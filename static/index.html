@@ -88,12 +88,10 @@
 
       <div class="form-group">
         <label data-i18n="label-base-url">Base URL</label>
-        <input type="text" id="llmBaseUrl" placeholder="http://localhost:11434/v1">
-      </div>
-
-      <div class="form-group">
-        <label data-i18n="label-model">Model</label>
-        <input type="text" id="llmModel" placeholder="gemma4:e4b">
+        <div class="input-row">
+          <input type="text" id="llmBaseUrl" placeholder="http://localhost:11434/v1" style="flex:1">
+          <button id="fetchModelsBtn" class="btn btn-secondary" style="font-size:0.85rem;white-space:nowrap">🔄 Fetch</button>
+        </div>
       </div>
 
       <div class="form-group">
@@ -102,6 +100,11 @@
           <input type="password" id="llmApiKey" placeholder="ollama">
           <button id="toggleKey" class="toggle-key">👁</button>
         </div>
+      </div>
+
+      <div class="form-group">
+        <label data-i18n="label-model">Model</label>
+        <select id="llmModelSelect"></select>
       </div>
 
       <div class="form-group">

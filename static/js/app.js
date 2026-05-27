@@ -59,6 +59,10 @@
       $temperatureValue.textContent = $temperatureRange.value;
     });
 
+    // Fetch models button
+    const $fetchBtn = document.getElementById('fetchModelsBtn');
+    if ($fetchBtn) $fetchBtn.addEventListener('click', handleFetchModels);
+
     // Cycle dropdown
     $cycleSelect.addEventListener('change', handleCycleChange);
 
@@ -307,6 +311,59 @@
       $testConnBtn.disabled = false;
       $testConnBtn.textContent = I18N.t('btn-test-connection');
     }
+  }
+
+  async function handleFetchModels() {
+    const $fetchBtn = document.getElementById('fetchModelsBtn');
+    const $modelSelect = document.getElementById('llmModelSelect');
+    const baseUrl = document.getElementById('llmBaseUrl').value.trim();
+    const apiKey = document.getElementById('llmApiKey').value;
+
+    if (!baseUrl) {
+      showToast('Please enter Base URL first');
+      return;
+    }
+
+    $fetchBtn.disabled = true;
+    $fetchBtn.textContent = '⏳';
+    $modelSelect.innerHTML = '<option value="">Loading...</option>';
+
+    try {
+      const models = await LLMSettings.fetchModels(baseUrl, apiKey);
+      if (models.length === 0) {
+        $modelSelect.innerHTML = '<option value="">(no models found)</option>';
+        showToast('No models found — enter manually below');
+        // Add a manual text input fallback
+        addManualModelInput();
+      } else {
+        $modelSelect.innerHTML = models.map(m =>
+          `<option value="${m}">${m}</option>`
+        ).join('');
+        showToast(`Found ${models.length} models`);
+      }
+    } catch (e) {
+      $modelSelect.innerHTML = '<option value="">(fetch failed)</option>';
+      showToast(`Fetch failed: ${e.message}`);
+      addManualModelInput();
+    } finally {
+      $fetchBtn.disabled = false;
+      $fetchBtn.textContent = '🔄 Fetch';
+    }
+  }
+
+  /** Add a manual model text input as fallback below the select. */
+  function addManualModelInput() {
+    const $modelSelect = document.getElementById('llmModelSelect');
+    // Only add once
+    if (document.getElementById('llmModelManual')) return;
+    const wrapper = $modelSelect.parentElement;
+    const manual = document.createElement('input');
+    manual.type = 'text';
+    manual.id = 'llmModelManual';
+    manual.placeholder = 'gemma4:e4b';
+    manual.style.marginTop = '4px';
+    manual.style.width = '100%';
+    wrapper.appendChild(manual);
   }
 
   function toggleApiKey() {
