@@ -1,8 +1,8 @@
 /**
  * LLM Settings — localStorage-persisted LLM configuration panel.
  *
- * The model field is a <select> dropdown populated from API via 🔄 Fetch button.
- * The "Other..." option allows typing a custom model name inline.
+ * The model field is an <input> with <datalist> (select + type combo).
+ * The 🔄 Fetch button populates the datalist options from the LLM API.
  */
 const LLMSettings = {
   STORAGE_KEY: 'ai_flight_planner_llm',
@@ -38,37 +38,14 @@ const LLMSettings = {
     document.getElementById('llmApiKey').value = settings.api_key;
     document.getElementById('llmTemperature').value = settings.temperature;
     document.getElementById('tempValue').textContent = settings.temperature;
-
-    // Model select — add custom value if not in list
-    const select = document.getElementById('llmModel');
-    if (!Array.from(select.options).some(o => o.value === settings.model)) {
-      const opt = document.createElement('option');
-      opt.value = settings.model;
-      opt.textContent = settings.model;
-      select.appendChild(opt);
-    }
-    select.value = settings.model;
+    document.getElementById('llmModel').value = settings.model;
   },
 
   readForm() {
-    const select = document.getElementById('llmModel');
-    let model = select.value;
-    // If "Other..." selected, show prompt for custom model name
-    if (model === '__custom__') {
-      model = prompt('Enter model name:') || select.options[0]?.value || '';
-      if (model) {
-        // Add the custom model to dropdown for future use
-        const opt = document.createElement('option');
-        opt.value = model;
-        opt.textContent = model;
-        select.insertBefore(opt, select.querySelector('option[value="__custom__"]'));
-        select.value = model;
-      }
-    }
     return {
       provider: document.getElementById('llmProvider').value,
       base_url: document.getElementById('llmBaseUrl').value.trim(),
-      model: model,
+      model: document.getElementById('llmModel').value.trim(),
       api_key: document.getElementById('llmApiKey').value,
       temperature: parseFloat(document.getElementById('llmTemperature').value),
     };
@@ -99,30 +76,25 @@ const LLMSettings = {
     }
   },
 
-  /** Replace the model <select> options with fetched list, keep "Other...". */
+  /** Replace the <datalist> options with fetched model list. */
   populateModels(models) {
-    const select = document.getElementById('llmModel');
-    const currentVal = select.value;
+    const list = document.getElementById('llmModelList');
+    const input = document.getElementById('llmModel');
+    const currentVal = input.value;
 
-    // Clear all except the "Other..." option
-    while (select.options.length > 0) {
-      if (select.options[0].value === '__custom__') break;
-      select.remove(0);
-    }
+    // Clear existing options
+    list.innerHTML = '';
 
-    // Prepend fetched models
+    // Add fetched models as datalist options
     models.forEach(name => {
       const opt = document.createElement('option');
       opt.value = name;
-      opt.textContent = name;
-      select.insertBefore(opt, select.options[0] || null);
+      list.appendChild(opt);
     });
 
-    // Preserve or set first model
-    if (Array.from(select.options).some(o => o.value === currentVal)) {
-      select.value = currentVal;
-    } else {
-      select.value = models[0] || select.options[0]?.value || '';
+    // Preserve current value if already typed; otherwise set first model
+    if (!currentVal || !models.includes(currentVal)) {
+      input.value = models[0] || '';
     }
   },
 };
