@@ -63,6 +63,10 @@
     const $fetchBtn = document.getElementById('fetchModelsBtn');
     if ($fetchBtn) $fetchBtn.addEventListener('click', handleFetchModels);
 
+    // Provider auto-fill
+    const $provider = document.getElementById('llmProvider');
+    if ($provider) $provider.addEventListener('change', handleProviderChange);
+
     // Cycle dropdown
     $cycleSelect.addEventListener('change', handleCycleChange);
 
@@ -315,7 +319,6 @@
 
   async function handleFetchModels() {
     const $fetchBtn = document.getElementById('fetchModelsBtn');
-    const $modelSelect = document.getElementById('llmModel');
     const baseUrl = document.getElementById('llmBaseUrl').value.trim();
     const apiKey = document.getElementById('llmApiKey').value;
 
@@ -330,37 +333,51 @@
     try {
       const models = await LLMSettings.fetchModels(baseUrl, apiKey);
       if (models.length === 0) {
-        LLMSettings.populateModels(['(no models found)']);
-        showToast('No models found — enter manually below');
-        addManualModelInput();
+        LLMSettings.populateModels(['(no models fetched)']);
+        showToast('No models found — type one below ⬇️');
       } else {
         LLMSettings.populateModels(models);
         showToast(`Found ${models.length} models`);
       }
     } catch (e) {
       LLMSettings.populateModels(['(fetch failed)']);
-      showToast(`Fetch failed: ${e.message}`);
-      addManualModelInput();
-    } finally {
-      $fetchBtn.disabled = false;
-      $fetchBtn.textContent = '🔄';
+      showToast(`Error: ${e.message} — type model below`);
     }
+
+    // Always show manual input as fallback
+    addManualModelInput();
+
+    $fetchBtn.disabled = false;
+    $fetchBtn.textContent = '🔄';
   }
 
-  /** Add a manual model text input as fallback below the select. */
   function addManualModelInput() {
     const $modelSelect = document.getElementById('llmModel');
-    // Only add once
     if (document.getElementById('llmModelManual')) return;
     const wrapper = $modelSelect.parentElement;
+    const currentVal = $modelSelect.value;
     const manual = document.createElement('input');
     manual.type = 'text';
     manual.id = 'llmModelManual';
     manual.placeholder = 'gemma4:e4b';
-    manual.style.marginTop = '4px';
-    manual.style.width = '100%';
-    manual.style.boxSizing = 'border-box';
+    manual.value = currentVal && currentVal !== '(no models fetched)' && currentVal !== '(fetch failed)' ? currentVal : '';
+    manual.style.cssText = 'margin-top:4px;width:100%;box-sizing:border-box;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-input);color:var(--text);font-size:0.9rem;';
     wrapper.appendChild(manual);
+  }
+
+  /** Auto-fill Base URL and API Key when provider changes. */
+  function handleProviderChange() {
+    const provider = document.getElementById('llmProvider').value;
+    const presets = {
+      ollama: { url: 'http://localhost:11434/v1', key: 'ollama' },
+      openai: { url: 'https://api.openai.com/v1', key: '' },
+      deepseek: { url: 'https://api.deepseek.com/v1', key: '' },
+      nvidia: { url: 'https://integrate.api.nvidia.com/v1', key: '' },
+    };
+    const preset = presets[provider];
+    if (preset) {
+      document.getElementById('llmBaseUrl').value = preset.url;
+    }
   }
 
   function toggleApiKey() {

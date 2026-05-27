@@ -80,7 +80,7 @@ const LLMSettings = {
     const base = baseUrl.replace(/\/+$/, '');
 
     // Try Ollama API first (/api/tags)
-    // Ollama's /api/tags is at port root, not under /v1
+    // Try Ollama API first (/api/tags)
     const rootUrl = base.replace(/\/v1$/, '');
     try {
       const res = await fetch(rootUrl + '/api/tags', {
@@ -93,7 +93,7 @@ const LLMSettings = {
           return data.models.map(m => m.name).sort();
         }
       }
-    } catch (e) { /* fall through to OpenAI-compatible */ }
+    } catch (e) { /* fall through */ }
 
     // Try OpenAI-compatible (/v1/models)
     const modelsUrl = (base.endsWith('/v1') ? base + '/models' : base + '/v1/models');
@@ -111,14 +111,37 @@ const LLMSettings = {
             .map(m => m.id)
             .sort();
         }
-        // Ollama /v1/models: { object: "list", data: [...] }
         if (Array.isArray(data)) {
           return data.filter(m => m.id).map(m => m.id).sort();
         }
       }
-    } catch (e) { /* model list unavailable */ }
+    } catch (e) { /* fall through */ }
 
     return [];
+  },
+
+  /**
+   * Get a static list of known model names for a provider,
+   * used as fallback when the API doesn't support model listing.
+   */
+  getKnownModels(provider) {
+    const models = {
+      ollama: [],
+      openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+      deepseek: ['deepseek-chat', 'deepseek-reasoner'],
+      nvidia: [
+        'meta/llama-3.1-8b-instruct',
+        'meta/llama-3.1-70b-instruct',
+        'meta/llama-3.1-405b-instruct',
+        'nvidia/llama-3.1-nemotron-70b-instruct',
+        'mistralai/mistral-large',
+        'mistralai/mixtral-8x22b-instruct-v0.1',
+        'google/gemma-2-27b-it',
+        'microsoft/phi-3-medium-128k-instruct',
+      ],
+      custom: [],
+    };
+    return models[provider] || [];
   },
 
   /** Replace the model <select> options with fetched list. */

@@ -97,6 +97,11 @@ const I18N = (() => {
       'zh-TW': '自定義 (兼容OpenAI)',
       'en': 'Custom (OpenAI-compatible)'
     },
+    'opt-provider-nvidia': {
+      'zh-CN': 'Nvidia NIM',
+      'zh-TW': 'Nvidia NIM',
+      'en': 'Nvidia NIM'
+    },
     'label-base-url': {
       'zh-CN': '接口地址',
       'zh-TW': '接口地址',
