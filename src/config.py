@@ -23,7 +23,7 @@ class Config:
     cycles_dir: str = field(
         default_factory=lambda: str(PROJECT_ROOT / "data" / "cycles")
     )
-    default_cycle: str = os.getenv("DB_CYCLE", "2604")
+    default_cycle: str = os.getenv("DB_CYCLE", "2605")
     # Runtime-mutable current cycle — initialized to default, updated via POST /api/cycle
     current_cycle: str = field(init=False)
 
@@ -104,7 +104,8 @@ def list_cycles() -> list[dict]:
     """
     List all available AIRAC cycles with metadata.
 
-    Returns a list of dicts with keys: id, label, db_path, valid_from, valid_to.
+    Returns a list of dicts with keys: id, label, db_path, sid_star_db_path,
+    has_sid_star, valid_from, valid_to.
     Sorted newest-first.
     """
     cycles_dir = Path(config.cycles_dir)
@@ -124,6 +125,15 @@ def list_cycles() -> list[dict]:
         cycle_info = _read_cycle_meta(entry)
         cycle_info["id"] = entry.name
         cycle_info["db_path"] = str(sqlite_file)
+
+        # Check for PMDG format SID/STAR database
+        s3db_file = entry / "e_dfd_PMDG.s3db"
+        if s3db_file.exists():
+            cycle_info["sid_star_db_path"] = str(s3db_file)
+            cycle_info["has_sid_star"] = True
+        else:
+            cycle_info["sid_star_db_path"] = None
+            cycle_info["has_sid_star"] = False
 
         result.append(cycle_info)
 

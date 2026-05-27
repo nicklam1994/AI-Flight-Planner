@@ -106,6 +106,7 @@ class CycleInfo(BaseModel):
     label: str
     valid_from: str = ""
     valid_to: str = ""
+    has_sid_star: bool = False
 
 
 class CyclesResponse(BaseModel):

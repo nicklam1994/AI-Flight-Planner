@@ -71,6 +71,7 @@ async def get_cycles():
                 label=c["label"],
                 valid_from=c.get("valid_from", ""),
                 valid_to=c.get("valid_to", ""),
+                has_sid_star=c.get("has_sid_star", False),
             )
             for c in cycles
         ],
