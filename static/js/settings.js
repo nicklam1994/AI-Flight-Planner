@@ -98,15 +98,19 @@ const LLMSettings = {
     try {
       const res = await fetch(modelsUrl, {
         headers: apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {},
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(8000),
       });
       if (res.ok) {
         const data = await res.json();
         if (data.data && Array.isArray(data.data)) {
           return data.data.filter(m => m.id && !m.id.startsWith('.')).map(m => m.id).sort();
         }
+      } else if (res.status === 401 || res.status === 403) {
+        throw new Error(`API returned ${res.status} — check your API key`);
       }
-    } catch (e) { /* fall through */ }
+    } catch (e) {
+      throw e; // re-throw so the caller can show the error
+    }
 
     return [];
   },

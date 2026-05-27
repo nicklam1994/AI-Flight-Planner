@@ -275,6 +275,62 @@ class CycleSwitchRequest(PydanticBaseModel):
     cycle: str
 
 
+# ---------------------------------------------------------------------------
+# LLM proxy — fetch model list from configured LLM API (bypass CORS)
+# ---------------------------------------------------------------------------
+
+class LlmProxyRequest(PydanticBaseModel):
+    base_url: str
+    api_key: str = ""
+
+
+@router.post("/llm/models")
+async def proxy_fetch_models(body: LlmProxyRequest):
+    """
+    Proxy for fetching LLM model list from the configured API endpoint.
+    Bypasses browser CORS by routing through the backend.
+    """
+    import httpx
+
+    base = body.base_url.rstrip("/")
+    api_key = body.api_key
+
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    # Try Ollama /api/tags
+    root_url = base.replace("/v1", "")
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.get(f"{root_url}/api/tags", headers=headers)
+            if resp.status_code == 200:
+                data = resp.json()
+                if data.get("models"):
+                    models = [m["name"] for m in data["models"]]
+                    return {"models": sorted(models), "source": "ollama"}
+    except Exception:
+        pass
+
+    # Try OpenAI-compatible /v1/models
+    models_url = f"{base}/models" if base.endswith("/v1") else f"{base}/v1/models"
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.get(models_url, headers=headers)
+            if resp.status_code == 200:
+                data = resp.json()
+                raw = []
+                if isinstance(data, list):
+                    raw = [m.get("id", "") for m in data if isinstance(m, dict)]
+                elif isinstance(data, dict) and "data" in data:
+                    raw = [m["id"] for m in data["data"] if m.get("id")]
+                return {"models": sorted(raw), "source": "openai"}
+    except Exception:
+        pass
+
+    return {"models": [], "source": None}
+
+
 @router.post("/cycle", response_model=HealthResponse)
 async def set_cycle(body: CycleSwitchRequest):
     """

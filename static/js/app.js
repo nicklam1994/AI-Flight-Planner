@@ -351,6 +351,7 @@
     } catch (e) {
       LLMSettings.populateModels(['(fetch failed)']);
       showToast(`Error: ${e.message} — type model below`);
+      addManualModelInput();
     }
 
     $fetchBtn.disabled = false;
