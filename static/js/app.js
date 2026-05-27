@@ -104,14 +104,15 @@
     if (!cycle) return;
     currentCycle = cycle;
     localStorage.setItem('ai_flight_planner_cycle', cycle);
-    showToast(`AIRAC cycle: ${cycle}`);
+    showToast(`AIRAC: ${cycle}`);
+    I18N.refresh();
   }
 
   // ── Plan route ────────────────────────────────────────────
   async function handlePlan() {
     const input = $input.value.trim();
     if (!input) {
-      showStatus('Please enter a route request (e.g., "VHHH to RJTT")', 'error');
+      showStatus(I18N.t('error-empty-input'), 'error');
       return;
     }
 
@@ -156,7 +157,7 @@
 
   function setLoading(loading) {
     $planBtn.disabled = loading;
-    $planBtn.textContent = loading ? 'Planning...' : '✈️ Plan Route';
+    $planBtn.textContent = loading ? I18N.t('btn-planning') : I18N.t('btn-plan');
   }
 
   // ── Rendering ─────────────────────────────────────────────
@@ -171,18 +172,18 @@
 
   function renderParsed(parsed) {
     const items = [
-      ['Origin', parsed.origin || '?'],
-      ['Destination', parsed.destination || '?'],
-      ['Airway Type', parsed.airway_type || 'Any'],
-      ['Cruise Alt', parsed.cruise_altitude ? `FL${Math.round(parsed.cruise_altitude / 100)}` : '—'],
-      ['Confidence', `${Math.round((parsed.confidence || 0) * 100)}%`],
+      [I18N.t('label-origin'), parsed.origin || '?'],
+      [I18N.t('label-destination'), parsed.destination || '?'],
+      [I18N.t('label-airway-type'), parsed.airway_type || I18N.t('any')],
+      [I18N.t('label-cruise-alt'), parsed.cruise_altitude ? `FL${Math.round(parsed.cruise_altitude / 100)}` : '\u2014'],
+      [I18N.t('label-confidence'), `${Math.round((parsed.confidence || 0) * 100)}%`],
     ];
 
     if (parsed.avoid_waypoints?.length) {
-      items.push(['Avoid WPs', parsed.avoid_waypoints.join(', ')]);
+      items.push([I18N.t('label-avoid-wps'), parsed.avoid_waypoints.join(', ')]);
     }
     if (parsed.avoid_airspaces?.length) {
-      items.push(['Avoid Airspaces', parsed.avoid_airspaces.join(', ')]);
+      items.push([I18N.t('label-avoid-airspaces'), parsed.avoid_airspaces.join(', ')]);
     }
 
     $parsedContent.innerHTML = items.map(([label, value]) =>
@@ -216,18 +217,18 @@
       return `
         <div class="card result-card ${isBest ? 'result-best' : ''}">
           <div class="result-header">
-            <strong>${isBest ? '⭐ Best Route' : `○ Alternative #${i + 1}`}</strong>
+            <strong>${isBest ? '⭐ ' + I18N.t('best-route') : '\u25cb ' + I18N.t('alternative') + (i + 1)}</strong>
             ${scoreHtml}
           </div>
           <div class="route-string">${c.route_string}</div>
           <div class="route-meta">
-            Distance: ${c.total_distance_nm?.toFixed(0) || '?'} NM
-            ${c.segments ? `· ${c.segments.length} segments` : ''}
+            ${I18N.t('distance-nm')}: ${c.total_distance_nm?.toFixed(0) || '?'} NM
+            ${c.segments ? '· ' + c.segments.length + ' ' + I18N.t('segments') : ''}
           </div>
           ${c.eval_reason ? `<div class="route-reason">${c.eval_reason}</div>` : ''}
           ${flowHtml}
-          <button class="copy-btn" onclick="navigator.clipboard.writeText('${c.route_string.replace(/'/g, "\\'")}');showToast('Route copied!')">
-            📋 Copy Route String
+          <button class="copy-btn" onclick="navigator.clipboard.writeText('${c.route_string.replace(/'/g, "\\'")}');showToast('${I18N.t('toast-route-copied')}')">
+            ${I18N.t('btn-copy-route')}
           </button>
         </div>
       `;
@@ -237,9 +238,15 @@
   }
 
   function renderWarnings(warnings) {
-    $warnings.innerHTML = warnings.map(w =>
-      `<div class="warning-item">⚠️ ${w}</div>`
-    ).join('');
+    // Translate known warnings from the backend
+    const warningMap = {
+      'Route evaluation unavailable — routes sorted by distance only': I18N.t('warning-no-evaluation'),
+      'Low confidence in parsing — results may not match your intent': I18N.t('warning-low-confidence'),
+    };
+    $warnings.innerHTML = warnings.map(w => {
+      const translated = warningMap[w] || w;
+      return `<div class="warning-item">⚠️ ${translated}</div>`;
+    }).join('');
   }
 
   // ── Settings modal ────────────────────────────────────────
@@ -256,19 +263,19 @@
     llmSettings = LLMSettings.readForm();
     LLMSettings.save(llmSettings);
     closeSettings();
-    showToast('Settings saved!');
+    showToast(I18N.t('toast-settings-saved'));
   }
 
   function resetSettings() {
     llmSettings = LLMSettings.reset();
     LLMSettings.populateForm(llmSettings);
-    showToast('Settings reset to defaults');
+    showToast(I18N.t('toast-reset-defaults'));
   }
 
   async function testConnection() {
     const settings = LLMSettings.readForm();
     $testConnBtn.disabled = true;
-    $testConnBtn.textContent = 'Testing...';
+    $testConnBtn.textContent = I18N.t('btn-testing');
 
     try {
       // Try a minimal chat completion
@@ -289,16 +296,16 @@
       });
 
       if (res.ok) {
-        showToast('✅ Connection successful!');
+        showToast(I18N.t('toast-connection-ok'));
       } else {
         const err = await res.text().catch(() => 'Unknown error');
-        showToast(`❌ Failed: ${res.status} ${err.substring(0, 60)}`);
+        showToast(`${I18N.t('toast-connection-fail')}${res.status} ${err.substring(0, 60)}`);
       }
     } catch (e) {
-      showToast(`❌ Connection failed: ${e.message}`);
+      showToast(`❌ ${I18N.t('toast-connection-fail')}${e.message}`);
     } finally {
       $testConnBtn.disabled = false;
-      $testConnBtn.textContent = '🧪 Test Connection';
+      $testConnBtn.textContent = I18N.t('btn-test-connection');
     }
   }
 
