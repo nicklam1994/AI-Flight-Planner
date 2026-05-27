@@ -72,47 +72,30 @@ const LLMSettings = {
   },
 
   /**
-   * Fetch available models from the LLM API.
-   * Supports Ollama (/api/tags) and OpenAI-compatible (/v1/models).
+   * Fetch available models from the LLM API via backend proxy.
+   * Avoids CORS issues with external APIs like NVIDIA NIM.
    */
   async fetchModels(baseUrl, apiKey) {
-    const base = baseUrl.replace(/\/+$/, '');
-    const rootUrl = base.replace(/\/v1$/, '');
-
-    // Try Ollama /api/tags (works for local Ollama instances)
     try {
-      const res = await fetch(rootUrl + '/api/tags', {
-        headers: apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {},
-        signal: AbortSignal.timeout(5000),
+      const res = await fetch('/api/llm/models', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base_url: baseUrl, api_key: apiKey }),
+        signal: AbortSignal.timeout(10000),
       });
       if (res.ok) {
         const data = await res.json();
-        if (data.models && Array.isArray(data.models)) {
-          return data.models.map(m => m.name).sort();
-        }
+        if (data.models && data.models.length > 0) return data.models;
+        // If we got a 200 but empty, the API might have responded with an error
+        const msg = data.source === null ? 'API returned no models — check your URL and key' : 'No models found';
+        throw new Error(msg);
       }
-    } catch (e) { /* fall through */ }
-
-    // Try OpenAI-compatible /v1/models
-    const modelsUrl = base.endsWith('/v1') ? base + '/models' : base + '/v1/models';
-    try {
-      const res = await fetch(modelsUrl, {
-        headers: apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {},
-        signal: AbortSignal.timeout(8000),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.data && Array.isArray(data.data)) {
-          return data.data.filter(m => m.id && !m.id.startsWith('.')).map(m => m.id).sort();
-        }
-      } else if (res.status === 401 || res.status === 403) {
-        throw new Error(`API returned ${res.status} — check your API key`);
-      }
+      // Extract error message from response
+      const text = await res.text().catch(() => '');
+      throw new Error(`API ${res.status}: ${text.substring(0, 100) || 'Unknown error'}`);
     } catch (e) {
       throw e; // re-throw so the caller can show the error
     }
-
-    return [];
   },
 
   /** Replace the model <select> options with fetched list, keep "Other...". */
