@@ -39,7 +39,7 @@
     <!-- Status -->
     <div id="status" class="status"></div>
 
-    <!-- Input -->
+    <!-- Card: Route Request -->
     <div class="card">
       <div class="card-title" data-i18n="card-route-request">🗣️ Route Request</div>
       <div class="input-area">
@@ -58,93 +58,68 @@
       </div>
     </div>
 
-    <!-- Weather Card -->
-    <div id="weatherCard" class="card" style="display:none">
-      <div class="card-title">
-        🌤️ Weather
-        <button id="weatherRefresh" class="btn btn-sm btn-secondary" style="float:right">🔄 Refresh</button>
-      </div>
-      <div id="weatherContent" class="weather-grid"></div>
-    </div>
+    <!-- Warnings -->
+    <div id="warnings" class="warnings"></div>
 
-    <!-- Parsed Intent -->
+    <!-- Card: Parsed Intent -->
     <div id="parsedCard" class="card" style="display:none">
       <div class="card-title" data-i18n="card-parsed-intent">📋 Parsed Intent</div>
       <div id="parsedContent" class="parsed-grid"></div>
     </div>
 
-    <!-- Results -->
-    <div id="resultsCard" class="card" style="display:none">
-      <div class="card-title" data-i18n="card-route-results">🛫 Route Results</div>
-      <div id="resultsContent"></div>
-      <div id="warnings" class="warnings"></div>
+    <!-- Card: Route Candidates (Step 2) -->
+    <div id="candidatesCard" class="card" style="display:none">
+      <div class="card-title" data-i18n="card-route-candidates">🛫 Route Candidates</div>
+      <div id="candidatesContent"></div>
     </div>
 
-    <!-- Four-Panel Detail Area (shown when route selected) -->
-    <div id="detailArea" style="display:none">
+    <!-- Card: Route Details (Step 4 — Four-Panel Grid) -->
+    <div id="detailCard" class="card" style="display:none">
+      <div class="card-title">📋 Route Details</div>
 
-      <!-- Departure Details -->
-      <div class="card">
-        <div class="card-title collapsible" onclick="togglePanel('depPanel')">
-          🛫 Departure Details <span id="depTitle"></span>
+      <div class="four-panel">
+        <!-- Panel 1: Departure -->
+        <div class="panel panel-departure">
+          <h3 id="departureTitle">🛫 Departure</h3>
+          <div id="departureContent"></div>
         </div>
-        <div id="depPanel" class="panel-body">
-          <div class="panel-section">
-            <h4>SID Procedures</h4>
-            <div id="depSidTable" class="data-table"></div>
-          </div>
-          <div class="panel-section">
-            <h4>Runway Info</h4>
-            <div id="depRunwayTable" class="data-table"></div>
-          </div>
+
+        <!-- Panel 2: Arrival -->
+        <div class="panel panel-arrival">
+          <h3 id="arrivalTitle">🛬 Arrival</h3>
+          <div id="arrivalContent"></div>
+        </div>
+
+        <!-- Panel 3: Route String -->
+        <div class="panel panel-routestr">
+          <h3>🗺️ Route String</h3>
+          <div id="routeContent"></div>
+        </div>
+
+        <!-- Panel 4: Navigation -->
+        <div class="panel panel-navigation">
+          <h3>🧭 Navigation Waypoints</h3>
+          <div id="navigationContent"></div>
         </div>
       </div>
+    </div>
 
-      <!-- Arrival Details -->
-      <div class="card">
-        <div class="card-title collapsible" onclick="togglePanel('arrPanel')">
-          🛬 Arrival Details <span id="arrTitle"></span>
+    <!-- Card: Weather (Step 5) -->
+    <div id="weatherCard" class="card" style="display:none">
+      <div class="card-title">
+        🌤️ <span data-i18n="card-weather">Weather</span>
+        <button id="weatherRefreshBtn" class="btn btn-secondary btn-sm" data-i18n="btn-refresh" style="margin-left:10px">🔄 Refresh</button>
+      </div>
+      <div class="weather-grid">
+        <div class="weather-col">
+          <h4 id="weatherDepLabel">🛫 Departure</h4>
+          <div id="weatherDepContent"></div>
         </div>
-        <div id="arrPanel" class="panel-body">
-          <div class="panel-section">
-            <h4>STAR Procedures</h4>
-            <div id="arrStarTable" class="data-table"></div>
-          </div>
-          <div class="panel-section">
-            <h4>Runway Info</h4>
-            <div id="arrRunwayTable" class="data-table"></div>
-          </div>
+        <div class="weather-col">
+          <h4 id="weatherArrLabel">🛬 Arrival</h4>
+          <div id="weatherArrContent"></div>
         </div>
       </div>
-
-      <!-- Route Details -->
-      <div class="card">
-        <div class="card-title collapsible" onclick="togglePanel('routePanel')">
-          🗺️ Route Details
-        </div>
-        <div id="routePanel" class="panel-body">
-          <div class="panel-section">
-            <h4>Full Route String</h4>
-            <div id="fullRouteStr" class="route-string"></div>
-          </div>
-          <div class="panel-section">
-            <h4>Flight Plan Route</h4>
-            <div id="fpRouteStr" class="route-string"></div>
-            <button class="btn btn-primary" onclick="copyFlightPlan()" style="margin-top:8px">📋 Copy Flight Plan Route</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Navigation Details -->
-      <div class="card">
-        <div class="card-title collapsible" onclick="togglePanel('navPanel')">
-          🧭 Navigation Details
-        </div>
-        <div id="navPanel" class="panel-body">
-          <div id="navTable" class="data-table"></div>
-        </div>
-      </div>
-
     </div>
   </div>
 
@@ -180,8 +155,7 @@
       <div class="form-group">
         <label data-i18n="label-model">Model</label>
         <div class="model-row">
-          <input type="text" id="llmModel" list="llmModelList" placeholder="gemma4:e4b"
-            style="flex:1;padding:8px 12px;background:var(--bg-input);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);font-size:0.9rem;">
+          <input type="text" id="llmModel" list="llmModelList" placeholder="gemma4:e4b" style="flex:1;padding:8px 12px;background:var(--bg-input);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);font-size:0.9rem;">
           <datalist id="llmModelList">
             <option value="gemma4:e4b">
             <option value="qwen3.6:27b">

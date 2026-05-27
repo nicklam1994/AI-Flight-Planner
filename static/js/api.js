@@ -4,6 +4,8 @@
 const API = {
   base: '',
 
+  // ── Route Planning ──────────────────────────────────────────
+
   async plan(input, k = 5, llmConfig = null, cycle = null) {
     const body = { input, k };
     if (llmConfig) body.llm_config = llmConfig;
@@ -22,10 +24,19 @@ const API = {
     return res.json();
   },
 
+  // ── Health & Cycles ─────────────────────────────────────────
+
   async health() {
     const res = await fetch(`${this.base}/api/health`);
     return res.json();
   },
+
+  async getCycles() {
+    const res = await fetch(`${this.base}/api/cycles`);
+    return res.json();
+  },
+
+  // ── Autocomplete ────────────────────────────────────────────
 
   async searchAirports(q, limit = 10) {
     const res = await fetch(`${this.base}/api/airports?q=${encodeURIComponent(q)}&limit=${limit}`);
@@ -37,10 +48,7 @@ const API = {
     return res.json();
   },
 
-  async getCycles() {
-    const res = await fetch(`${this.base}/api/cycles`);
-    return res.json();
-  },
+  // ── Procedures (legacy v1) ──────────────────────────────────
 
   async fetchProcedures(airport, type = '') {
     const params = new URLSearchParams({ airport });
@@ -50,33 +58,40 @@ const API = {
     return res.json();
   },
 
-  /** POST /api/procedures/filter — filter SID/STAR by route waypoints */
-  async filterProcedures(routeString, depIcao, arrIcao) {
-    const res = await fetch(`${this.base}/api/procedures/filter`, {
+  // ── Step 3: Route Filter (v2) ────────────────────────────────
+
+  async filterRoute(origin, destination, routeString) {
+    const res = await fetch(`${this.base}/api/route/filter`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        route_string: routeString,
-        dep_icao: depIcao,
-        arr_icao: arrIcao,
-      }),
+      body: JSON.stringify({ origin, destination, route_string: routeString }),
     });
-    if (!res.ok) return { sids: [], stars: [], sid_node: null, star_node: null };
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
     return res.json();
   },
 
-  /** GET /api/weather — fetch METAR/TAF for departure and arrival */
+  // ── Step 4: Waypoint Details (v2) ────────────────────────────
+
+  async getRouteWaypoints(candidateIndex) {
+    const res = await fetch(`${this.base}/api/route/${candidateIndex}/waypoints`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    return res.json();
+  },
+
+  // ── Step 5: Weather (v2) ─────────────────────────────────────
+
   async getWeather(dep, arr) {
-    const params = new URLSearchParams({ dep, arr });
-    const res = await fetch(`${this.base}/api/weather?${params}`);
-    if (!res.ok) return { departure: null, arrival: null };
-    return res.json();
-  },
-
-  /** GET /api/runways — get runway info for an airport */
-  async getRunways(icao) {
-    const res = await fetch(`${this.base}/api/runways?airport=${encodeURIComponent(icao)}`);
-    if (!res.ok) return [];
+    const res = await fetch(`${this.base}/api/weather?dep=${encodeURIComponent(dep)}&arr=${encodeURIComponent(arr)}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
     return res.json();
   },
 };

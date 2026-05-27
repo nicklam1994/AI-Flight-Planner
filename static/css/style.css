@@ -317,3 +317,170 @@ textarea#routeInput:focus { outline: none; border-color: var(--accent); }
 .error-text { color: var(--error); font-size: 0.85rem; }
 .btn-sm { padding: 4px 10px; font-size: 0.75rem; }
 .btn-primary.btn-sm { font-size: 0.8rem; }
+
+/* ── Candidate items ──────────────────────────────────────── */
+.candidate-item {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.candidate-item:hover { border-color: var(--accent); }
+.candidate-item.candidate-best { border-left: 3px solid #f59e0b; }
+.candidate-item.candidate-selected { border-color: var(--accent); background: rgba(59,130,246,0.08); }
+.candidate-header {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.9rem; margin-bottom: 4px;
+}
+.candidate-dist { color: var(--text-muted); font-size: 0.8rem; margin-left: auto; }
+.candidate-route-string {
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem; color: var(--accent);
+  margin-bottom: 6px; word-break: break-all;
+}
+.segment-flow-mini {
+  font-size: 0.75rem; color: var(--text-muted);
+  margin-bottom: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ── Procedure tables ────────────────────────────────────── */
+.proc-table {
+  width: 100%; border-collapse: collapse; font-size: 0.85rem;
+  margin-top: 8px;
+}
+.proc-table th {
+  background: var(--bg-input); color: var(--text-muted);
+  padding: 6px 10px; text-align: left; font-size: 0.75rem;
+  text-transform: uppercase;
+}
+.proc-table td {
+  padding: 5px 10px; border-top: 1px solid var(--border);
+}
+.proc-table tbody tr:hover { background: rgba(59,130,246,0.05); }
+.proc-row { cursor: pointer; }
+.proc-row a { color: var(--accent); text-decoration: none; }
+.proc-row a:hover { text-decoration: underline; }
+.proc-node-info { margin-bottom: 6px; font-size: 0.85rem; }
+.proc-node-info .label { color: var(--text-muted); }
+.proc-detail-header {
+  padding: 8px; background: var(--bg-input); border-radius: var(--radius);
+  margin-bottom: 8px;
+}
+.proc-detail-type { color: var(--text-muted); font-size: 0.8rem; margin-left: 8px; }
+.path-term {
+  display: inline-block; background: var(--bg-input);
+  padding: 1px 6px; border-radius: 3px; font-size: 0.75rem;
+  font-family: monospace;
+}
+
+/* ── Weather grid ────────────────────────────────────────── */
+.weather-label {
+  font-weight: 600; font-size: 0.9rem; color: var(--accent);
+  margin-bottom: 6px;
+}
+.weather-grid-inner {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 6px;
+}
+.weather-item {
+  display: flex; justify-content: space-between; gap: 8px;
+  font-size: 0.82rem; padding: 3px 0;
+}
+.weather-key { color: var(--text-muted); }
+.weather-phenomena {
+  margin-top: 6px; font-size: 0.82rem; color: var(--text);
+}
+.weather-no-data { color: var(--text-muted); font-style: italic; font-size: 0.85rem; }
+.taf-detail { margin-top: 8px; }
+.taf-detail summary { cursor: pointer; font-size: 0.8rem; color: var(--text-muted); }
+.taf-text {
+  font-family: 'Courier New', monospace; font-size: 0.75rem;
+  background: var(--bg-input); padding: 8px; border-radius: var(--radius);
+  margin-top: 4px; white-space: pre-wrap; word-break: break-all;
+  max-height: 150px; overflow-y: auto;
+}
+
+/* ── Route detail panels ─────────────────────────────────── */
+.route-section { margin-bottom: 12px; }
+.route-label {
+  font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.flight-plan-text {
+  font-family: 'Courier New', monospace; font-size: 0.85rem;
+  background: var(--bg-input); padding: 10px;
+  border-radius: var(--radius); border: 1px solid var(--border);
+  white-space: pre-wrap; word-break: break-all;
+  margin-bottom: 6px;
+}
+.route-meta-info {
+  font-size: 0.85rem; color: var(--text-muted);
+}
+.copy-btn-inline {
+  padding: 3px 10px; font-size: 0.75rem;
+  background: var(--bg-input); border: 1px solid var(--border);
+  border-radius: var(--radius); cursor: pointer; color: var(--text);
+}
+.copy-btn-inline:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Utility ─────────────────────────────────────────────── */
+.muted-text { color: var(--text-muted); font-style: italic; font-size: 0.85rem; }
+.loading-text { color: var(--text-muted); font-size: 0.85rem; }
+.warning-text { color: var(--warning, #f59e0b); font-size: 0.85rem; }
+
+/* ── Zone content ────────────────────────────────────────── */
+.zone-content { padding-top: 8px; }
+.proc-table-wrap { margin-bottom: 8px; }
+.runway-info { margin-top: 8px; }
+
+/* ── Collapsible card-title ──────────────────────────────── */
+.card-title.collapsible {
+  display: flex; justify-content: space-between; align-items: center;
+  cursor: pointer; user-select: none;
+}
+.card-title.collapsible:hover { color: var(--accent); }
+.collapse-icon { font-size: 0.7rem; transition: transform 0.2s; }
+
+/* ── Additional v2 styles ─────────────────────────────────── */
+.clickable { cursor: pointer; transition: border-color 0.2s; }
+.clickable:hover { border-color: var(--accent); }
+.result-selected { border-color: var(--accent) !important; background: rgba(59,130,246,0.08); }
+.text-muted { color: var(--text-muted); }
+.info-table {
+  width: 100%; border-collapse: collapse; font-size: 0.85rem;
+  margin-top: 8px;
+}
+.info-table th {
+  background: var(--bg-input); color: var(--text-muted);
+  padding: 6px 10px; text-align: left; font-size: 0.75rem;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border);
+}
+.info-table td {
+  padding: 5px 10px; border-top: 1px solid var(--border);
+  vertical-align: top;
+}
+.info-table tbody tr:hover { background: rgba(59,130,246,0.05); }
+.weather-metar { font-size: 0.85rem; margin-top: 4px; }
+.weather-metar .weather-raw {
+  font-family: 'Courier New', monospace; font-size: 0.7rem;
+  color: var(--text-muted); margin-top: 4px;
+  display: none;
+}
+.weather-station:hover .weather-raw { display: block; }
+.weather-taf { margin-top: 8px; }
+.flight-rules {
+  display: inline-block; padding: 1px 8px; border-radius: 4px;
+  font-size: 0.75rem; font-weight: 600; margin-right: 4px;
+}
+.flight-rules.vfr { background: #22c55e; color: #000; }
+.flight-rules.mvfr { background: #3b82f6; color: #fff; }
+.flight-rules.ifr { background: #ef4444; color: #fff; }
+.flight-rules.lifr { background: #a855f7; color: #fff; }
+.panel-section { margin-bottom: 16px; }
+.panel-section h4 {
+  font-size: 0.85rem; color: var(--text-muted);
+  margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;
+}

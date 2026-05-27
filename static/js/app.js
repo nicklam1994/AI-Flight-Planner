@@ -1,11 +1,8 @@
 /**
- * AI Flight Planner — v2 four-zone UI application logic.
+ * AI Flight Planner v2 — main application logic.
  *
- * Flow:
- *   Step 1: Natural language input → POST /api/plan
- *   Step 2: Display candidate routes (clickable)
- *   Step 3: Click candidate → POST /api/procedures/filter → four-zone details
- *   Step 4: Auto-fetch weather after plan result
+ * Coordinates the UI, API calls, LLM settings panel, and result rendering.
+ * v2 adds: state management, four-panel route details, weather integration.
  */
 (function () {
   'use strict';
@@ -13,32 +10,28 @@
   // ── State ──────────────────────────────────────────────────
   let llmSettings = LLMSettings.load();
   let currentCycle = localStorage.getItem('ai_flight_planner_cycle') || null;
-  /** @type {Object|null} Last plan result for reference */
-  let lastPlanResult = null;
-  /** @type {number|null} Index of selected candidate */
-  let selectedCandidateIdx = null;
+
+  // Session state (lost on page refresh — intentional per design decision)
+  let state = {
+    planResult: null,       // POST /api/plan response
+    selectedRoute: null,    // Selected RouteCandidateResponse
+    filterResult: null,     // POST /api/route/filter response
+    weatherData: null,      // GET /api/weather response
+  };
 
   // ── DOM refs ───────────────────────────────────────────────
   const $input = document.getElementById('routeInput');
   const $kSelect = document.getElementById('kSelect');
   const $planBtn = document.getElementById('planBtn');
   const $status = document.getElementById('status');
-
-  // Weather
-  const $weatherCard = document.getElementById('weatherCard');
-  const $weatherContent = document.getElementById('weatherContent');
-  const $weatherRefreshBtn = document.getElementById('weatherRefreshBtn');
-
-  // Candidates
+  const $parsedCard = document.getElementById('parsedCard');
+  const $parsedContent = document.getElementById('parsedContent');
   const $candidatesCard = document.getElementById('candidatesCard');
   const $candidatesContent = document.getElementById('candidatesContent');
-
-  // Four-zone detail panels
-  const $detailPanels = document.getElementById('detailPanels');
-  const $departureContent = document.getElementById('departureContent');
-  const $arrivalContent = document.getElementById('arrivalContent');
-  const $routePanelContent = document.getElementById('routePanelContent');
-  const $navigationContent = document.getElementById('navigationContent');
+  const $detailCard = document.getElementById('detailCard');
+  const $weatherCard = document.getElementById('weatherCard');
+  const $warnings = document.getElementById('warnings');
+  const $weatherRefreshBtn = document.getElementById('weatherRefreshBtn');
 
   // LLM settings modal
   const $settingsBtn = document.getElementById('settingsBtn');
@@ -64,13 +57,6 @@
       }
     });
 
-    // Weather refresh
-    $weatherRefreshBtn.addEventListener('click', () => {
-      const dep = lastPlanResult?.parsed?.origin;
-      const arr = lastPlanResult?.parsed?.destination;
-      if (dep || arr) fetchWeather(dep, arr);
-    });
-
     // Settings modal
     $settingsBtn.addEventListener('click', openSettings);
     $modalClose.addEventListener('click', closeSettings);
@@ -85,21 +71,16 @@
       $temperatureValue.textContent = $temperatureRange.value;
     });
 
-    // Fetch models button
     const $fetchBtn = document.getElementById('fetchModelsBtn');
     if ($fetchBtn) $fetchBtn.addEventListener('click', handleFetchModels);
 
-    // Provider auto-fill
     const $provider = document.getElementById('llmProvider');
     if ($provider) $provider.addEventListener('change', handleProviderChange);
 
-    // Cycle dropdown
     $cycleSelect.addEventListener('change', handleCycleChange);
 
-    // Collapsible panels
-    document.querySelectorAll('.collapsible').forEach(el => {
-      el.addEventListener('click', togglePanel);
-    });
+    // Weather refresh
+    $weatherRefreshBtn.addEventListener('click', handleWeatherRefresh);
 
     // Health check + cycle list on load
     checkHealth();
@@ -121,9 +102,11 @@
     try {
       const data = await API.getCycles();
       if (!data.cycles || data.cycles.length === 0) return;
+
       $cycleSelect.innerHTML = data.cycles.map(c =>
         `<option value="${c.id}">${c.label || c.id}</option>`
       ).join('');
+
       const preferred = currentCycle || data.default;
       if (preferred) {
         $cycleSelect.value = preferred;
@@ -153,33 +136,40 @@
 
     const k = parseInt($kSelect.value, 10);
 
-    // Hide previous results
-    $candidatesCard.style.display = 'none';
-    $detailPanels.style.display = 'none';
-    $weatherCard.style.display = 'none';
-    selectedCandidateIdx = null;
-    lastPlanResult = null;
+    // Hide all result cards
+    hideAllCards();
 
+    // Show loading
     setLoading(true);
     showStatus('Planning route...', 'loading');
 
     try {
       const result = await API.plan(input, k, llmSettings, currentCycle);
-      lastPlanResult = result;
+      state.planResult = result;
+      state.selectedRoute = null;
+      state.filterResult = null;
+      state.weatherData = null;
 
+      // Show parsed intent
+      if (result.parsed) {
+        renderParsed(result.parsed);
+      }
+
+      // Show candidates
       if (result.candidates && result.candidates.length > 0) {
         renderCandidates(result);
-        // Auto-fetch weather
-        const dep = result.parsed?.origin;
-        const arr = result.parsed?.destination;
-        if (dep || arr) fetchWeather(dep, arr);
       } else if (result.error) {
         showStatus(result.error, 'error');
       }
 
+      // Show warnings
+      if (result.warnings && result.warnings.length > 0) {
+        renderWarnings(result.warnings);
+      }
+
       hideStatus();
     } catch (e) {
-      showStatus(e.message || 'An error occurred', 'error');
+      showStatus(e.message || I18N.t('error-plan-failed'), 'error');
     } finally {
       setLoading(false);
     }
@@ -190,302 +180,15 @@
     $planBtn.textContent = loading ? I18N.t('btn-planning') : I18N.t('btn-plan');
   }
 
-  // ── Weather ───────────────────────────────────────────────
-  async function fetchWeather(dep, arr) {
-    $weatherCard.style.display = 'block';
-    $weatherContent.innerHTML = '<div class="panel-loading">Loading weather...</div>';
-    if ($weatherRefreshBtn) $weatherRefreshBtn.disabled = true;
-
-    try {
-      const data = await API.fetchWeather(dep, arr);
-      renderWeather(data);
-    } catch (e) {
-      $weatherContent.innerHTML = `<div class="error-text">Weather unavailable: ${e.message}</div>`;
-    } finally {
-      if ($weatherRefreshBtn) $weatherRefreshBtn.disabled = false;
-    }
+  function hideAllCards() {
+    $parsedCard.style.display = 'none';
+    $candidatesCard.style.display = 'none';
+    $detailCard.style.display = 'none';
+    $weatherCard.style.display = 'none';
+    $warnings.innerHTML = '';
   }
 
-  function renderWeather(data) {
-    const renderStation = (station, label) => {
-      if (!station) return '';
-      const metar = station.metar;
-      const ap = station.airport || {};
-      const name = ap.name || station.icao;
-
-      let html = `<div class="weather-station">
-        <div class="weather-header">${label} ${station.icao} (${name})</div>`;
-
-      if (metar) {
-        const w = metar.wind || {};
-        const windInfo = w.dir_compass
-          ? `${w.dir_compass} ${w.dir}° ${w.speed_kts || '?'}kt`
-          : (metar.wind_text || 'calm');
-        const tempInfo = metar.temp_c != null ? `${metar.temp_c}°C` : '—';
-        const presInfo = metar.pressure_hpa != null ? `${metar.pressure_hpa}hPa` : '—';
-        const cloudsStr = metar.clouds?.map(c =>
-          c.cover_cn ? `${c.cover}(${c.cover_cn})${c.height_ft ? '@' + c.height_ft + 'ft' : ''}` : c.cover
-        ).join(' ') || 'CAVOK';
-        const wxStr = metar.weather?.length ? 'wx: ' + metar.weather.join(', ') : '';
-        const frColor = {
-          VFR: '#4caf50', MVFR: '#2196f3', IFR: '#ff9800', LIFR: '#f44336'
-        };
-        const fr = metar.flight_rules || '?';
-
-        html += `<div class="weather-body">
-          <div class="weather-line">METAR ${metar.time ? new Date(metar.time).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'})+'Z' : '—'} | ${windInfo} | ${tempInfo}/${metar.dewpt_c != null ? metar.dewpt_c + '°C' : '?'} | ${presInfo}</div>
-          <div class="weather-line">VIS: ${metar.visibility_str} | ${cloudsStr}</div>
-          ${wxStr ? `<div class="weather-line">${wxStr}</div>` : ''}
-          <div class="weather-line">Flight Rules: <span style="color:${frColor[fr]||'#fff'};font-weight:bold">${fr}</span></div>
-          ${metar.raw ? `<div class="weather-raw">&#8203;${metar.raw}</div>` : ''}
-        </div>`;
-      }
-
-      if (station.taf_raw) {
-        html += `<div class="weather-taf">
-          <div class="weather-line" style="color:var(--accent)">TAF:</div>
-          <div class="weather-raw">${station.taf_raw.replace(/\n/g, '<br>')}</div>
-        </div>`;
-      }
-
-      html += '</div>';
-      return html;
-    };
-
-    $weatherContent.innerHTML =
-      renderStation(data.departure, '🛫') +
-      renderStation(data.arrival, '🛬');
-    if ($weatherRefreshBtn) $weatherRefreshBtn.disabled = false;
-  }
-
-  // ── Candidate rendering ────────────────────────────────────
-  function renderCandidates(result) {
-    const bestIdx = result.candidates[0]?.index ?? 0;
-
-    $candidatesContent.innerHTML = result.candidates.map((c, i) => {
-      const isBest = c.index === bestIdx;
-      const scoreHtml = c.score != null
-        ? `<span class="result-score">${c.score.toFixed(1)}</span>`
-        : '';
-
-      const flowHtml = c.segments?.length
-        ? `<div class="segment-flow">${c.segments.map(s =>
-            `<span class="segment-badge">${s.from_ident}</span>
-             <span class="segment-arrow">→</span>
-             ${s.segment_type === 'airway' ? `<span class="segment-badge" style="color:var(--accent)">${s.airway_name}</span><span class="segment-arrow">→</span>` : ''}
-             <span class="segment-badge">${s.to_ident}</span>`
-          ).join(' ')}</div>`
-        : '';
-
-      return `
-        <div class="card result-card ${isBest ? 'result-best' : ''} candidate-clickable"
-             data-candidate-idx="${i}" data-route="${c.route_string.replace(/"/g, '&quot;')}">
-          <div class="result-header">
-            <strong>${isBest ? '⭐ ' + I18N.t('best-route') : '◌ ' + I18N.t('alternative') + (i + 1)}</strong>
-            ${scoreHtml}
-          </div>
-          <div class="route-string">${c.route_string}</div>
-          <div class="route-meta">
-            ${I18N.t('distance-nm')}: ${c.total_distance_nm?.toFixed(0) || '?'} NM
-            ${c.segments ? '· ' + c.segments.length + ' ' + I18N.t('segments') : ''}
-          </div>
-          ${c.eval_reason ? `<div class="route-reason">${c.eval_reason}</div>` : ''}
-          ${flowHtml}
-          <button class="copy-btn" onclick="event.stopPropagation();navigator.clipboard.writeText('${c.route_string.replace(/'/g, "\\'")}');showToast('${I18N.t('toast-route-copied')}')">
-            ${I18N.t('btn-copy-route')}
-          </button>
-        </div>
-      `;
-    }).join('');
-
-    $candidatesCard.style.display = 'block';
-
-    // Click handler for candidate selection
-    document.querySelectorAll('.candidate-clickable').forEach(el => {
-      el.addEventListener('click', () => {
-        const idx = parseInt(el.dataset.candidateIdx, 10);
-        const routeStr = el.dataset.route;
-        selectCandidate(idx, routeStr, el);
-      });
-    });
-
-    // Auto-select best candidate
-    const firstEl = document.querySelector('.candidate-clickable');
-    if (firstEl) firstEl.click();
-  }
-
-  async function selectCandidate(idx, routeStr, el) {
-    selectedCandidateIdx = idx;
-    // Highlight
-    document.querySelectorAll('.candidate-clickable').forEach(e => e.classList.remove('candidate-selected'));
-    if (el) el.classList.add('candidate-selected');
-
-    $detailPanels.style.display = 'block';
-
-    // Render route details immediately
-    renderRouteDetails(routeStr);
-
-    // Fetch SID/STAR filter
-    const candidate = lastPlanResult?.candidates?.[idx];
-    if (candidate && lastPlanResult?.parsed) {
-      const dep = lastPlanResult.parsed.origin;
-      const arr = lastPlanResult.parsed.destination;
-
-      $departureContent.innerHTML = '<div class="panel-loading">Filtering SID procedures...</div>';
-      $arrivalContent.innerHTML = '<div class="panel-loading">Filtering STAR procedures...</div>';
-
-      try {
-        const filterData = await API.fetchProcedureFilter(routeStr, dep, arr);
-        renderDeparture(filterData, dep);
-        renderArrival(filterData, arr);
-
-        // Fetch navigation waypoint details
-        fetchNavigationDetails(candidate.segments);
-      } catch (e) {
-        $departureContent.innerHTML = `<div class="error-text">SID filter unavailable: ${e.message}</div>`;
-        $arrivalContent.innerHTML = `<div class="error-text">STAR filter unavailable: ${e.message}</div>`;
-      }
-    }
-  }
-
-  // ── Four-zone rendering ────────────────────────────────────
-
-  function renderDeparture(filterData, airport) {
-    const sids = filterData.sids || [];
-    const sidNode = filterData.sid_node || '?';
-
-    let html = `<h4>SID 離場程序 (經 <strong>${sidNode}</strong>)</h4>`;
-    if (sids.length === 0) {
-      html += '<div class="panel-empty">No matching SID procedures found for this waypoint</div>';
-    } else {
-      html += `<table class="data-table">
-        <thead><tr><th>程序名</th><th>跑道</th></tr></thead>
-        <tbody>${sids.map(s =>
-          `<tr><td><strong>${s.name}</strong></td><td>${(s.runways || []).join(', ')}</td></tr>`
-        ).join('')}</tbody>
-      </table>`;
-    }
-
-    // Also show full SID list summary
-    if (airport) {
-      html += `<div class="panel-note" style="margin-top:8px;font-size:0.8rem;opacity:0.6">
-        共 ${sids.length} 條匹配程序 (過濾節點: ${sidNode})
-      </div>`;
-    }
-
-    $departureContent.innerHTML = html;
-  }
-
-  function renderArrival(filterData, airport) {
-    const stars = filterData.stars || [];
-    const starNode = filterData.star_node || '?';
-
-    let html = `<h4>STAR 進場程序 (經 <strong>${starNode}</strong>)</h4>`;
-    if (stars.length === 0) {
-      html += '<div class="panel-empty">No matching STAR procedures found for this waypoint</div>';
-    } else {
-      html += `<table class="data-table">
-        <thead><tr><th>程序名</th><th>跑道</th></tr></thead>
-        <tbody>${stars.map(s =>
-          `<tr><td><strong>${s.name}</strong></td><td>${(s.runways || []).join(', ')}</td></tr>`
-        ).join('')}</tbody>
-      </table>`;
-    }
-
-    if (airport) {
-      html += `<div class="panel-note" style="margin-top:8px;font-size:0.8rem;opacity:0.6">
-        共 ${stars.length} 條匹配程序 (過濾節點: ${starNode})
-      </div>`;
-    }
-
-    $arrivalContent.innerHTML = html;
-  }
-
-  function renderRouteDetails(routeStr) {
-    // Clean route string: remove SID...STAR wrapping for flight plan copy
-    const planRoute = routeStr
-      .replace(/\bSID\s+\w+\s*/gi, '')
-      .replace(/\s*\w+\s+STAR\b/gi, '')
-      .trim();
-
-    $routePanelContent.innerHTML = `
-      <div class="route-detail-section">
-        <h4>完整航路字串 (ATS Route String)</h4>
-        <div class="route-string-display">${routeStr}</div>
-      </div>
-      <div class="route-detail-section">
-        <h4>飛行計劃航路 (Flight Plan Route)</h4>
-        <div class="route-string-display">${planRoute}</div>
-        <button class="btn btn-primary" onclick="navigator.clipboard.writeText('${planRoute.replace(/'/g, "\\'")}');showToast('Flight plan route copied!')" style="margin-top:8px">
-          📋 複製飛行計劃航路
-        </button>
-      </div>
-    `;
-  }
-
-  async function fetchNavigationDetails(segments) {
-    if (!segments || segments.length === 0) {
-      $navigationContent.innerHTML = '<div class="panel-empty">No waypoint data</div>';
-      return;
-    }
-
-    $navigationContent.innerHTML = '<div class="panel-loading">Loading waypoint details...</div>';
-
-    // Collect unique waypoint idents from segments
-    const idents = [...new Set(segments.flatMap(s => [s.from_ident, s.to_ident]))];
-
-    // Look up each waypoint via the /api/waypoints endpoint
-    const results = [];
-    for (const ident of idents) {
-      try {
-        const data = await API.searchWaypoints(ident, 1);
-        if (data.results && data.results.length > 0) {
-          results.push(data.results[0]);
-        } else {
-          results.push({ ident, wp_type: '?', lat: null, lon: null });
-        }
-      } catch (e) {
-        results.push({ ident, wp_type: '?', lat: null, lon: null });
-      }
-    }
-
-    renderNavigationTable(results);
-  }
-
-  function renderNavigationTable(waypoints) {
-    let html = `<table class="data-table">
-      <thead><tr><th>航點名</th><th>類型</th><th>緯度</th><th>經度</th></tr></thead>
-      <tbody>${waypoints.map(w =>
-        `<tr>
-          <td><strong>${w.ident}</strong></td>
-          <td>${w.wp_type || '?'}</td>
-          <td>${w.lat != null ? w.lat.toFixed(4) : '—'}</td>
-          <td>${w.lon != null ? w.lon.toFixed(4) : '—'}</td>
-        </tr>`
-      ).join('')}</tbody>
-    </table>`;
-    $navigationContent.innerHTML = html;
-  }
-
-  // ── Collapsible panels ─────────────────────────────────────
-  function togglePanel(e) {
-    const title = e.currentTarget;
-    const panel = title.dataset.panel;
-    const body = document.getElementById(panel + 'Panel');
-    const icon = title.querySelector('.collapse-icon');
-    if (body) {
-      body.classList.toggle('collapsed');
-      if (body.classList.contains('collapsed')) {
-        body.style.display = 'none';
-        icon.textContent = '▶';
-      } else {
-        body.style.display = 'block';
-        icon.textContent = '▼';
-      }
-    }
-  }
-
-  // ── Status / Toast ─────────────────────────────────────────
+  // ── Status ────────────────────────────────────────────────
   function showStatus(msg, type) {
     $status.textContent = msg;
     $status.className = `status show status-${type}`;
@@ -495,12 +198,388 @@
     $status.className = 'status';
   }
 
-  window.showToast = function (msg) {
-    const toast = document.getElementById('toast');
-    toast.textContent = msg;
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2500);
-  };
+  // ── Rendering: Parsed Intent ──────────────────────────────
+  function renderParsed(parsed) {
+    const items = [
+      [I18N.t('label-origin'), parsed.origin || '?'],
+      [I18N.t('label-destination'), parsed.destination || '?'],
+      [I18N.t('label-airway-type'), parsed.airway_type || I18N.t('any')],
+      [I18N.t('label-cruise-alt'), parsed.cruise_altitude ? `FL${Math.round(parsed.cruise_altitude / 100)}` : '\u2014'],
+      [I18N.t('label-confidence'), `${Math.round((parsed.confidence || 0) * 100)}%`],
+    ];
+
+    if (parsed.avoid_waypoints?.length) {
+      items.push([I18N.t('label-avoid-wps'), parsed.avoid_waypoints.join(', ')]);
+    }
+    if (parsed.avoid_airspaces?.length) {
+      items.push([I18N.t('label-avoid-airspaces'), parsed.avoid_airspaces.join(', ')]);
+    }
+
+    $parsedContent.innerHTML = items.map(([label, value]) =>
+      `<div class="parsed-item">
+        <div class="label">${label}</div>
+        <div>${value}</div>
+      </div>`
+    ).join('');
+    $parsedCard.style.display = 'block';
+  }
+
+  // ── Rendering: Candidates (Step 2) ────────────────────────
+  function renderCandidates(result) {
+    const bestIdx = result.candidate_index ?? result.candidates[0]?.index ?? 0;
+
+    $candidatesContent.innerHTML = result.candidates.map((c, i) => {
+      const isBest = c.index === bestIdx;
+      const scoreHtml = c.score != null
+        ? `<span class="result-score">${c.score.toFixed(1)}</span>`
+        : '';
+
+      return `
+        <div class="card result-card ${isBest ? 'result-best' : ''}">
+          <div class="result-header">
+            <strong>${isBest ? '⭐ ' + I18N.t('best-route') : '\u25cb ' + I18N.t('alternative') + (i + 1)}</strong>
+            ${scoreHtml}
+          </div>
+          <div class="route-string">${escapeHtml(c.route_string)}</div>
+          <div class="route-meta">
+            ${I18N.t('distance-nm')}: ${c.total_distance_nm?.toFixed(0) || '?'} NM
+            ${c.segments ? '· ' + c.segments.length + ' ' + I18N.t('segments') : ''}
+          </div>
+          ${c.eval_reason ? `<div class="route-reason">${escapeHtml(c.eval_reason)}</div>` : ''}
+          <div class="result-actions">
+            <button class="copy-btn" onclick="navigator.clipboard.writeText('${escapeAttr(c.route_string)}');showToast('${I18N.t('toast-route-copied')}')">
+              ${I18N.t('btn-copy-route')}
+            </button>
+            <button class="select-btn" onclick="app.selectRoute(${c.index})">
+              ${I18N.t('btn-select-route')}
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    $candidatesCard.style.display = 'block';
+  }
+
+  // ── Step 3-5: Select Route (v2 — parallel requests) ───────
+  async function handleSelectRoute(candidateIndex) {
+    const result = state.planResult;
+    if (!result || !result.candidates) return;
+
+    const candidate = result.candidates.find(c => c.index === candidateIndex);
+    if (!candidate) return;
+
+    state.selectedRoute = candidate;
+
+    const parsed = result.parsed;
+    const origin = parsed?.origin || '';
+    const destination = parsed?.destination || '';
+    const routeString = candidate.route_string;
+
+    // Show detail + weather cards
+    $detailCard.style.display = 'block';
+    $weatherCard.style.display = 'block';
+
+    // Set loading states
+    document.getElementById('departureTitle').textContent = `🛫 Departure — ${origin}`;
+    document.getElementById('arrivalTitle').textContent = `🛬 Arrival — ${destination}`;
+    document.getElementById('departureContent').innerHTML = '<div class="panel-loading">Loading SID data...</div>';
+    document.getElementById('arrivalContent').innerHTML = '<div class="panel-loading">Loading STAR data...</div>';
+    document.getElementById('routeContent').innerHTML = '';
+    document.getElementById('navigationContent').innerHTML = '<div class="panel-loading">Loading waypoint details...</div>';
+    document.getElementById('weatherDepContent').innerHTML = '<div class="panel-loading">Loading weather...</div>';
+    document.getElementById('weatherArrContent').innerHTML = '<div class="panel-loading">Loading weather...</div>';
+
+    // Parallel requests using Promise.allSettled so partial failures don't block
+    const [filterResult, waypointResult, weatherResult] = await Promise.allSettled([
+      API.filterRoute(origin, destination, routeString),
+      API.getRouteWaypoints(candidateIndex),
+      API.getWeather(origin, destination),
+    ]);
+
+    // Process filter result
+    if (filterResult.status === 'fulfilled') {
+      state.filterResult = filterResult.value;
+      renderDeparturePanel(origin, filterResult.value.sids || [], filterResult.value.sid_filter_node);
+      renderArrivalPanel(destination, filterResult.value.stars || [], filterResult.value.star_filter_node);
+    } else {
+      document.getElementById('departureContent').innerHTML = renderError('SID filter unavailable');
+      document.getElementById('arrivalContent').innerHTML = renderError('STAR filter unavailable');
+      console.warn('Filter request failed:', filterResult.reason);
+    }
+
+    // Process waypoint result
+    if (waypointResult.status === 'fulfilled') {
+      renderNavigationPanel(waypointResult.value.waypoints || []);
+    } else {
+      document.getElementById('navigationContent').innerHTML = renderError('Waypoint details unavailable');
+      console.warn('Waypoint request failed:', waypointResult.reason);
+    }
+
+    // Render route string panel
+    renderRoutePanel(candidate);
+
+    // Process weather result
+    if (weatherResult.status === 'fulfilled') {
+      state.weatherData = weatherResult.value;
+      renderWeatherPanel(weatherResult.value);
+    } else {
+      document.getElementById('weatherDepContent').innerHTML = renderError('Weather unavailable');
+      document.getElementById('weatherArrContent').innerHTML = renderError('Weather unavailable');
+      console.warn('Weather request failed:', weatherResult.reason);
+    }
+  }
+
+  // ── Panel: Departure (SID table) ──────────────────────────
+  function renderDeparturePanel(icao, sids, filterNode) {
+    const runways = sids.length > 0
+      ? [...new Set(sids.flatMap(s => s.runways || []))].join(', ')
+      : '\u2014';
+
+    let html = '';
+
+    if (filterNode) {
+      html += `<div class="filter-info">Filter: <code>${escapeHtml(filterNode)}</code></div>`;
+    }
+
+    html += `<div class="runway-info">Runways: <strong>${escapeHtml(runways)}</strong></div>`;
+
+    if (sids.length > 0) {
+      html += `<table class="proc-table">
+        <thead><tr><th>SID</th><th>Runways</th></tr></thead>
+        <tbody>${sids.map(s =>
+          `<tr><td>${escapeHtml(s.name)}</td><td>${escapeHtml((s.runways || []).join(', '))}</td></tr>`
+        ).join('')}</tbody>
+      </table>`;
+    } else {
+      html += `<p class="no-data">${filterNode ? 'No matching SIDs found' : 'Unable to determine filter node'}</p>`;
+    }
+
+    document.getElementById('departureContent').innerHTML = html;
+  }
+
+  // ── Panel: Arrival (STAR table) ───────────────────────────
+  function renderArrivalPanel(icao, stars, filterNode) {
+    const runways = stars.length > 0
+      ? [...new Set(stars.flatMap(s => s.runways || []))].join(', ')
+      : '\u2014';
+
+    let html = '';
+
+    if (filterNode) {
+      html += `<div class="filter-info">Filter: <code>${escapeHtml(filterNode)}</code></div>`;
+    }
+
+    html += `<div class="runway-info">Runways: <strong>${escapeHtml(runways)}</strong></div>`;
+
+    if (stars.length > 0) {
+      html += `<table class="proc-table">
+        <thead><tr><th>STAR</th><th>Runways</th></tr></thead>
+        <tbody>${stars.map(s =>
+          `<tr><td>${escapeHtml(s.name)}</td><td>${escapeHtml((s.runways || []).join(', '))}</td></tr>`
+        ).join('')}</tbody>
+      </table>`;
+    } else {
+      html += `<p class="no-data">${filterNode ? 'No matching STARs found' : 'Unable to determine filter node'}</p>`;
+    }
+
+    document.getElementById('arrivalContent').innerHTML = html;
+  }
+
+  // ── Panel: Route String ───────────────────────────────────
+  function renderRoutePanel(candidate) {
+    document.getElementById('routeContent').innerHTML = `
+      <div class="route-string-box">${escapeHtml(candidate.route_string)}</div>
+      <button class="copy-btn" style="margin-top:8px" onclick="navigator.clipboard.writeText('${escapeAttr(candidate.route_string)}');showToast('${I18N.t('toast-route-copied')}')">
+        📋 Copy
+      </button>
+      <div class="route-stats">
+        <span>${I18N.t('distance-nm')}: ${candidate.total_distance_nm?.toFixed(0) || '?'} NM</span>
+        <span>${I18N.t('segments')}: ${candidate.segments?.length || 0}</span>
+        ${candidate.score != null ? `<span>Score: ${candidate.score.toFixed(1)}</span>` : ''}
+      </div>
+    `;
+  }
+
+  // ── Panel: Navigation (waypoint table) ────────────────────
+  function renderNavigationPanel(waypoints) {
+    if (!waypoints || waypoints.length === 0) {
+      document.getElementById('navigationContent').innerHTML = '<p class="no-data">No waypoint data available</p>';
+      return;
+    }
+
+    const freqStr = (freq) => {
+      if (freq == null) return '\u2014';
+      return (freq / 1000).toFixed(2) + ' MHz';  // kHz*100 → MHz
+    };
+
+    document.getElementById('navigationContent').innerHTML = `
+      <table class="nav-table">
+        <thead>
+          <tr>
+            <th>Waypoint</th>
+            <th>Type</th>
+            <th>Frequency</th>
+            <th>Lat</th>
+            <th>Lon</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${waypoints.map(w => `
+            <tr>
+              <td>${escapeHtml(w.ident)}</td>
+              <td>${escapeHtml(w.type_label || w.type)}</td>
+              <td>${freqStr(w.frequency)}</td>
+              <td>${w.lat?.toFixed(3) || '\u2014'}</td>
+              <td>${w.lon?.toFixed(3) || '\u2014'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  // ── Weather ───────────────────────────────────────────────
+  function renderWeatherPanel(data) {
+    renderWeatherColumn(
+      document.getElementById('weatherDepLabel'),
+      document.getElementById('weatherDepContent'),
+      data.departure
+    );
+    renderWeatherColumn(
+      document.getElementById('weatherArrLabel'),
+      document.getElementById('weatherArrContent'),
+      data.arrival
+    );
+  }
+
+  function renderWeatherColumn(labelEl, contentEl, wx) {
+    if (!wx) {
+      labelEl.textContent = '🛫 Weather';
+      contentEl.innerHTML = '<p class="no-data">No weather data</p>';
+      return;
+    }
+
+    labelEl.textContent = `${wx.icao || ''} — ${wx.airport?.name || wx.airport?.city || ''}`;
+
+    if (!wx.metar) {
+      contentEl.innerHTML = `<p class="no-data">No METAR data</p>
+        ${wx.taf_raw ? `<details><summary>Raw TAF</summary>
+        <pre class="weather-metar-raw">${escapeHtml(wx.taf_raw)}</pre></details>` : ''}`;
+      return;
+    }
+
+    const m = wx.metar;
+
+    let html = '<div class="weather-fields">';
+
+    // Time
+    html += `<div class="weather-field"><span class="label">Time</span><span class="value">${m.time || '\u2014'}</span></div>`;
+
+    // Wind
+    html += `<div class="weather-field"><span class="label">Wind</span><span class="value">${m.wind_text || m.wind?.description || '\u2014'}</span></div>`;
+
+    // Visibility
+    html += `<div class="weather-field"><span class="label">Vis</span><span class="value">${m.visibility_str || (m.visibility_m != null ? (m.visibility_m >= 10000 ? '10km+' : m.visibility_m + 'm') : '\u2014')}</span></div>`;
+
+    // Temperature / Dew point
+    const tempStr = m.temp_c != null ? `${m.temp_c}°C` : '\u2014';
+    const dewStr = m.dewpt_c != null ? `${m.dewpt_c}°C` : '\u2014';
+    html += `<div class="weather-field"><span class="label">Temp/Dew</span><span class="value">${tempStr} / ${dewStr}</span></div>`;
+
+    // Pressure
+    html += `<div class="weather-field"><span class="label">QNH</span><span class="value">${m.pressure_hpa != null ? m.pressure_hpa + ' hPa' : '\u2014'}</span></div>`;
+
+    // Clouds
+    if (m.clouds && m.clouds.length > 0) {
+      const cloudStr = m.clouds.map(c => {
+        const cover = c.cover_cn || c.cover || '';
+        const alt = c.height_ft != null ? ` ${c.height_ft}ft` : '';
+        return `${cover}${alt}`;
+      }).join(', ');
+      html += `<div class="weather-field"><span class="label">Clouds</span><span class="value">${escapeHtml(cloudStr)}</span></div>`;
+    }
+
+    // Flight rules
+    if (m.flight_rules) {
+      html += `<div class="weather-field"><span class="label">Rules</span><span class="value"><span class="wx-badge wx-${m.flight_rules.toLowerCase()}">${m.flight_rules}</span></span></div>`;
+    }
+
+    // Weather phenomena
+    if (m.weather && m.weather.length > 0) {
+      html += `<div class="weather-field"><span class="label">Weather</span><span class="value">${escapeHtml(m.weather.join(', '))}</span></div>`;
+    }
+
+    html += '</div>';
+
+    // Raw METAR
+    if (wx.metar_raw) {
+      html += `<details><summary>Raw METAR</summary>
+        <pre class="weather-metar-raw">${escapeHtml(wx.metar_raw)}</pre></details>`;
+    }
+
+    // Raw TAF
+    if (wx.taf_raw) {
+      html += `<details><summary>Raw TAF</summary>
+        <pre class="weather-metar-raw">${escapeHtml(wx.taf_raw)}</pre></details>`;
+    }
+
+    contentEl.innerHTML = html;
+  }
+
+  async function handleWeatherRefresh() {
+    if (!state.selectedRoute || !state.planResult?.parsed) {
+      showToast('Select a route first');
+      return;
+    }
+
+    const parsed = state.planResult.parsed;
+    $weatherRefreshBtn.disabled = true;
+    $weatherRefreshBtn.textContent = '⏳';
+
+    try {
+      const data = await API.getWeather(parsed.origin, parsed.destination);
+      state.weatherData = data;
+      renderWeatherPanel(data);
+      showToast(I18N.t('toast-weather-refreshed'));
+    } catch (e) {
+      showToast(I18N.t('toast-weather-fail') + ': ' + e.message);
+    } finally {
+      $weatherRefreshBtn.disabled = false;
+      $weatherRefreshBtn.textContent = '🔄 Refresh';
+    }
+  }
+
+  // ── Warnings ──────────────────────────────────────────────
+  function renderWarnings(warnings) {
+    const warningMap = {
+      'Route evaluation unavailable — routes sorted by distance only': I18N.t('warning-no-evaluation'),
+      'Low confidence in parsing — results may not match your intent': I18N.t('warning-low-confidence'),
+    };
+    $warnings.innerHTML = warnings.map(w => {
+      const translated = warningMap[w] || w;
+      return `<div class="warning-item">⚠️ ${escapeHtml(translated)}</div>`;
+    }).join('');
+  }
+
+  // ── Helpers ───────────────────────────────────────────────
+  function renderError(msg) {
+    return `<p class="no-data error">⚠️ ${escapeHtml(msg)}</p>`;
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function escapeAttr(str) {
+    if (!str) return '';
+    return String(str).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  }
 
   // ── Settings modal ────────────────────────────────────────
   function openSettings() {
@@ -586,7 +665,6 @@
     } catch (e) {
       LLMSettings.populateModels(['(fetch failed)']);
       showToast(`Error: ${e.message} — type model below`);
-      addManualModelInput();
     }
 
     $fetchBtn.disabled = false;
@@ -599,7 +677,7 @@
       ollama: { url: 'http://localhost:11434/v1', key: 'ollama' },
       openai: { url: 'https://api.openai.com/v1', key: '' },
       deepseek: { url: 'https://api.deepseek.com/v1', key: '' },
-      nvidia: { url: 'https://integrate.api.nvidia.com/v1', key: '' },
+      nvidia: { url: 'https://api.integrate.nvidia.com/v1', key: '' },
     };
     const preset = presets[provider];
     if (preset) {
@@ -612,6 +690,19 @@
     input.type = input.type === 'password' ? 'text' : 'password';
     $toggleKey.textContent = input.type === 'password' ? '👁' : '🙈';
   }
+
+  // ── Toast ─────────────────────────────────────────────────
+  window.showToast = function (msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
+  };
+
+  // ── Public API (exposed for onclick handlers in rendered HTML) ─
+  window.app = {
+    selectRoute: handleSelectRoute,
+  };
 
   // ── Start ─────────────────────────────────────────────────
   init();
