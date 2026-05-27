@@ -105,15 +105,17 @@
         <div class="model-row">
           <select id="llmModel" style="flex:1">
             <option value="gemma4:e4b">gemma4:e4b</option>
+            <option value="qwen3.6:27b">qwen3.6:27b</option>
             <option value="qwen3.5:9b">qwen3.5:9b</option>
             <option value="qwen3.5:9b-agent">qwen3.5:9b-agent</option>
-            <option value="qwen3-coder:30b-mlx">qwen3-coder:30b</option>
+            <option value="qwen3-coder:30b">qwen3-coder:30b</option>
             <option value="deepseek-chat" data-provider="deepseek">deepseek-chat</option>
             <option value="gpt-4o" data-provider="openai">gpt-4o</option>
-            <option value="custom">Other...</option>
+            <option value="__custom__">Other...</option>
           </select>
           <button id="fetchModelsBtn" class="btn btn-secondary" title="Fetch model list from API">🔄</button>
         </div>
+        <input type="text" id="llmModelManual" placeholder="Or type a model name..." style="margin-top:4px;width:100%;box-sizing:border-box;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-input);color:var(--text);font-size:0.9rem;">
       </div>
 
       <div class="form-group">

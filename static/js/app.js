@@ -63,6 +63,15 @@
     const $fetchBtn = document.getElementById('fetchModelsBtn');
     if ($fetchBtn) $fetchBtn.addEventListener('click', handleFetchModels);
 
+    // Sync select → manual input
+    const $modelSync = document.getElementById('llmModel');
+    if ($modelSync) {
+      $modelSync.addEventListener('change', () => {
+        const manual = document.getElementById('llmModelManual');
+        if (manual) manual.value = $modelSync.value;
+      });
+    }
+
     // Provider auto-fill
     const $provider = document.getElementById('llmProvider');
     if ($provider) $provider.addEventListener('change', handleProviderChange);
@@ -344,28 +353,10 @@
       showToast(`Error: ${e.message} — type model below`);
     }
 
-    // Always show manual input as fallback
-    addManualModelInput();
-
     $fetchBtn.disabled = false;
     $fetchBtn.textContent = '🔄';
   }
 
-  function addManualModelInput() {
-    const $modelSelect = document.getElementById('llmModel');
-    if (document.getElementById('llmModelManual')) return;
-    const wrapper = $modelSelect.parentElement;
-    const currentVal = $modelSelect.value;
-    const manual = document.createElement('input');
-    manual.type = 'text';
-    manual.id = 'llmModelManual';
-    manual.placeholder = 'gemma4:e4b';
-    manual.value = currentVal && currentVal !== '(no models fetched)' && currentVal !== '(fetch failed)' ? currentVal : '';
-    manual.style.cssText = 'margin-top:4px;width:100%;box-sizing:border-box;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-input);color:var(--text);font-size:0.9rem;';
-    wrapper.appendChild(manual);
-  }
-
-  /** Auto-fill Base URL and API Key when provider changes. */
   function handleProviderChange() {
     const provider = document.getElementById('llmProvider').value;
     const presets = {
