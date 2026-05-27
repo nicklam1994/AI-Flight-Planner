@@ -1,8 +1,8 @@
 /**
  * LLM Settings — localStorage-persisted LLM configuration panel.
  *
- * The Model field is now a <select> that can be auto-populated from
- * the /api/tags (Ollama) or /v1/models (OpenAI-compatible) endpoint.
+ * The Model field is a <select> with a "🔄 Fetch" button to populate
+ * from the LLM API endpoint. "Other..." option opens a manual text input.
  */
 const LLMSettings = {
   STORAGE_KEY: 'ai_flight_planner_llm',
@@ -43,23 +43,29 @@ const LLMSettings = {
     document.getElementById('llmTemperature').value = settings.temperature;
     document.getElementById('tempValue').textContent = settings.temperature;
 
-    // Repopulate the model dropdown — preserve any existing options
-    const select = document.getElementById('llmModelSelect');
-    select.innerHTML = `<option value="${settings.model}">${settings.model}</option>`;
+    // Populate model — add current value if not in dropdown
+    const select = document.getElementById('llmModel');
+    if (!Array.from(select.options).some(o => o.value === settings.model)) {
+      const opt = document.createElement('option');
+      opt.value = settings.model;
+      opt.textContent = settings.model;
+      select.appendChild(opt);
+    }
+    select.value = settings.model;
   },
 
   /** Read values from the settings form. */
   readForm() {
-    const select = document.getElementById('llmModelSelect');
-    const manual = document.getElementById('llmModelManual');
-    // Prefer select value, fall back to manual input, then first option
+    const select = document.getElementById('llmModel');
     let model = select.value;
-    if (!model && manual) model = manual.value.trim();
-    if (!model) model = select.options[0]?.value || '';
+    // If "Other..." selected, read from the manual input
+    if (model === 'custom') {
+      model = document.getElementById('llmModelManual')?.value?.trim() || '';
+    }
     return {
       provider: document.getElementById('llmProvider').value,
       base_url: document.getElementById('llmBaseUrl').value.trim(),
-      model: model,
+      model: model || select.options[0]?.value || '',
       api_key: document.getElementById('llmApiKey').value,
       temperature: parseFloat(document.getElementById('llmTemperature').value),
     };
@@ -74,9 +80,10 @@ const LLMSettings = {
     const base = baseUrl.replace(/\/+$/, '');
 
     // Try Ollama API first (/api/tags)
-    const ollamaUrl = base.replace(/\/v1$/, '') + '/api/tags';
+    // Ollama's /api/tags is at port root, not under /v1
+    const rootUrl = base.replace(/\/v1$/, '');
     try {
-      const res = await fetch(ollamaUrl, {
+      const res = await fetch(rootUrl + '/api/tags', {
         headers: apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {},
         signal: AbortSignal.timeout(5000),
       });
@@ -89,23 +96,56 @@ const LLMSettings = {
     } catch (e) { /* fall through to OpenAI-compatible */ }
 
     // Try OpenAI-compatible (/v1/models)
-    const openaiUrl = base.endsWith('/v1/models') ? base : base + '/models';
+    const modelsUrl = (base.endsWith('/v1') ? base + '/models' : base + '/v1/models');
     try {
-      const res = await fetch(openaiUrl, {
+      const res = await fetch(modelsUrl, {
         headers: apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {},
         signal: AbortSignal.timeout(5000),
       });
       if (res.ok) {
         const data = await res.json();
+        // OpenAI-like: { data: [{ id: "..." }, ...] }
         if (data.data && Array.isArray(data.data)) {
           return data.data
             .filter(m => m.id && !m.id.startsWith('.'))
             .map(m => m.id)
             .sort();
         }
+        // Ollama /v1/models: { object: "list", data: [...] }
+        if (Array.isArray(data)) {
+          return data.filter(m => m.id).map(m => m.id).sort();
+        }
       }
     } catch (e) { /* model list unavailable */ }
 
     return [];
+  },
+
+  /** Replace the model <select> options with fetched list. */
+  populateModels(models) {
+    const select = document.getElementById('llmModel');
+    const currentVal = select.value;
+
+    // Clear existing options, keep "Other..."
+    while (select.options.length > 0) {
+      const opt = select.options[0];
+      if (opt.value !== 'custom') select.remove(0);
+      else break;
+    }
+
+    // Insert fetched models before "Other..."
+    models.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      select.insertBefore(opt, select.options[select.options.length - 1] || null);
+    });
+
+    // Restore or set first model
+    if (Array.from(select.options).some(o => o.value === currentVal)) {
+      select.value = currentVal;
+    } else {
+      select.value = models[0] || select.options[0]?.value || '';
+    }
   },
 };

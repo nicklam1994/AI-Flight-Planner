@@ -87,11 +87,18 @@
       </div>
 
       <div class="form-group">
+        <label data-i18n="label-provider">Provider</label>
+        <select id="llmProvider">
+          <option value="ollama" data-i18n="opt-provider-ollama">Ollama</option>
+          <option value="openai" data-i18n="opt-provider-openai">OpenAI</option>
+          <option value="deepseek" data-i18n="opt-provider-deepseek">DeepSeek</option>
+          <option value="custom" data-i18n="opt-provider-custom">Custom (OpenAI-compatible)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
         <label data-i18n="label-base-url">Base URL</label>
-        <div class="input-row">
-          <input type="text" id="llmBaseUrl" placeholder="http://localhost:11434/v1" style="flex:1">
-          <button id="fetchModelsBtn" class="btn btn-secondary" style="font-size:0.85rem;white-space:nowrap">🔄 Fetch</button>
-        </div>
+        <input type="text" id="llmBaseUrl" placeholder="http://localhost:11434/v1">
       </div>
 
       <div class="form-group">
@@ -104,7 +111,18 @@
 
       <div class="form-group">
         <label data-i18n="label-model">Model</label>
-        <select id="llmModelSelect"></select>
+        <div class="model-row">
+          <select id="llmModel" style="flex:1">
+            <option value="gemma4:e4b">gemma4:e4b</option>
+            <option value="qwen3.5:9b">qwen3.5:9b</option>
+            <option value="qwen3.5:9b-agent">qwen3.5:9b-agent</option>
+            <option value="qwen3-coder:30b-mlx">qwen3-coder:30b</option>
+            <option value="deepseek-chat" data-provider="deepseek">deepseek-chat</option>
+            <option value="gpt-4o" data-provider="openai">gpt-4o</option>
+            <option value="custom">Other...</option>
+          </select>
+          <button id="fetchModelsBtn" class="btn btn-secondary" title="Fetch model list from API">🔄</button>
+        </div>
       </div>
 
       <div class="form-group">

@@ -98,6 +98,19 @@ textarea#routeInput:focus { outline: none; border-color: var(--accent); }
   padding: 6px 10px; font-size: 0.875rem;
 }
 
+.model-row {
+  display: flex; gap: 6px; align-items: stretch;
+}
+.model-row select {
+  flex: 1;
+  background: var(--bg-input); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 6px 10px; font-size: 0.875rem;
+}
+.model-row button {
+  padding: 6px 10px; font-size: 0.85rem;
+}
+
 /* Status indicators */
 .status {
   padding: 12px 16px; border-radius: var(--radius);

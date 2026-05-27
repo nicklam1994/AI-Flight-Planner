@@ -14,3 +14,5 @@ venv/
 *.egg-info/
 data/cycles/**/*.sqlite
 data/cycles/**/*.db
+data/cycles/**/*.s3db
+data/cycles/**/*.db3

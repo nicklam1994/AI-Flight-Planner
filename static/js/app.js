@@ -315,7 +315,7 @@
 
   async function handleFetchModels() {
     const $fetchBtn = document.getElementById('fetchModelsBtn');
-    const $modelSelect = document.getElementById('llmModelSelect');
+    const $modelSelect = document.getElementById('llmModel');
     const baseUrl = document.getElementById('llmBaseUrl').value.trim();
     const apiKey = document.getElementById('llmApiKey').value;
 
@@ -326,34 +326,30 @@
 
     $fetchBtn.disabled = true;
     $fetchBtn.textContent = '⏳';
-    $modelSelect.innerHTML = '<option value="">Loading...</option>';
 
     try {
       const models = await LLMSettings.fetchModels(baseUrl, apiKey);
       if (models.length === 0) {
-        $modelSelect.innerHTML = '<option value="">(no models found)</option>';
+        LLMSettings.populateModels(['(no models found)']);
         showToast('No models found — enter manually below');
-        // Add a manual text input fallback
         addManualModelInput();
       } else {
-        $modelSelect.innerHTML = models.map(m =>
-          `<option value="${m}">${m}</option>`
-        ).join('');
+        LLMSettings.populateModels(models);
         showToast(`Found ${models.length} models`);
       }
     } catch (e) {
-      $modelSelect.innerHTML = '<option value="">(fetch failed)</option>';
+      LLMSettings.populateModels(['(fetch failed)']);
       showToast(`Fetch failed: ${e.message}`);
       addManualModelInput();
     } finally {
       $fetchBtn.disabled = false;
-      $fetchBtn.textContent = '🔄 Fetch';
+      $fetchBtn.textContent = '🔄';
     }
   }
 
   /** Add a manual model text input as fallback below the select. */
   function addManualModelInput() {
-    const $modelSelect = document.getElementById('llmModelSelect');
+    const $modelSelect = document.getElementById('llmModel');
     // Only add once
     if (document.getElementById('llmModelManual')) return;
     const wrapper = $modelSelect.parentElement;
@@ -363,6 +359,7 @@
     manual.placeholder = 'gemma4:e4b';
     manual.style.marginTop = '4px';
     manual.style.width = '100%';
+    manual.style.boxSizing = 'border-box';
     wrapper.appendChild(manual);
   }
 
