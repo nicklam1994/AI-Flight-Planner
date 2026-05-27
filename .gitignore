@@ -1,0 +1,14 @@
+# Cycle databases (large, not version-controlled)
+data/cycles/**/*.sqlite
+data/cycles/**/*.db
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment
+.env
+venv/
+.venv/
+*.egg-info/

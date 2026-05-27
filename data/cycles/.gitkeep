@@ -1,0 +1,4 @@
+# AIRAC Cycle Databases
+# Place little_navmap_navigraph.sqlite inside each cycle folder
+# Example: data/cycles/2604/little_navmap_navigraph.sqlite
+
