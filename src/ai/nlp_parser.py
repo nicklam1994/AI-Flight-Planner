@@ -60,26 +60,40 @@ async def parse_intent(
 
 def _extract_json(text: str) -> dict:
     """
-    Extract a JSON object from LLM output, handling markdown code blocks.
+    Extract a JSON object from LLM output, handling markdown code blocks
+    and chain-of-thought text (where the actual JSON appears near the end).
     """
     text = text.strip()
 
     # Remove markdown code fences
     if text.startswith("```"):
         lines = text.split("\n")
-        # Remove first line (```json or ```) and last line (```)
         if lines[0].startswith("```"):
             lines = lines[1:]
         if lines and lines[-1].strip() == "```":
             lines = lines[:-1]
         text = "\n".join(lines)
 
-    # Find the first { and last }
-    start = text.find("{")
+    # Find the last complete JSON object (model thinks out loud first)
     end = text.rfind("}")
-    if start != -1 and end != -1 and end > start:
-        text = text[start:end + 1]
+    if end == -1:
+        raise json.JSONDecodeError("No closing brace found", text, 0)
 
+    depth = 0
+    start = end
+    for i in range(end, -1, -1):
+        if text[i] == "}":
+            depth += 1
+        elif text[i] == "{":
+            depth -= 1
+            if depth == 0:
+                start = i
+                break
+
+    if depth != 0:
+        raise json.JSONDecodeError("Unmatched braces", text, 0)
+
+    text = text[start:end + 1]
     return json.loads(text)
 
 

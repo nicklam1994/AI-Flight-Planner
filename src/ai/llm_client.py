@@ -100,7 +100,13 @@ async def llm_chat(
     # OpenAI-compatible: {"choices": [{"message": {"content": "..."}}]}
     # Some providers: {"response": "..."} or {"content": "..."}
     if "choices" in data and len(data["choices"]) > 0:
-        return data["choices"][0]["message"]["content"]
+        msg = data["choices"][0]["message"]
+        content = msg.get("content", "")
+        # Some models (e.g., qwen3.5:9b-agent) put response in "reasoning" field
+        # while "content" is empty. Fall back to reasoning if content is empty.
+        if not content and "reasoning" in msg and msg["reasoning"]:
+            content = msg["reasoning"]
+        return content
     elif "response" in data:
         return data["response"]
     elif "content" in data:

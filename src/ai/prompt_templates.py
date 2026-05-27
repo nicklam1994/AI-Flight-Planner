@@ -63,13 +63,13 @@ Rank them from best (1) to worst (K) based on:
 User preferences: {user_preferences}
 
 Output ONLY valid JSON:
-{
+{{
   "rankings": [
-    {"index": 0, "score": 8.5, "reason": "Shortest distance, good airway continuity, complies with all preferences"},
+    {{"index": 0, "score": 8.5, "reason": "Shortest distance, good airway continuity, complies with all preferences"}},
     ...
   ],
   "best_index": 0
-}
+}}
 
 Score is 1.0-10.0 (higher is better). The "reason" should be 1-2 sentences in the same language as the user's input."""
 # Note: The {origin}, {destination}, and {user_preferences} placeholders

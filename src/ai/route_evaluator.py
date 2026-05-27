@@ -90,8 +90,13 @@ async def evaluate_routes(
 
 
 def _extract_json(text: str) -> dict:
-    """Extract a JSON object from LLM output, handling markdown wrapping."""
+    """
+    Extract a JSON object from LLM output, handling markdown code blocks
+    and chain-of-thought text (where the actual JSON appears near the end).
+    """
     text = text.strip()
+
+    # Remove markdown code fences
     if text.startswith("```"):
         lines = text.split("\n")
         if lines[0].startswith("```"):
@@ -100,9 +105,27 @@ def _extract_json(text: str) -> dict:
             lines = lines[:-1]
         text = "\n".join(lines)
 
-    start = text.find("{")
+    # Find the last complete JSON object (the model often thinks out loud
+    # before producing the actual JSON output, so the real JSON is last).
+    # Search from the end to find the final {...} block.
     end = text.rfind("}")
-    if start != -1 and end != -1 and end > start:
-        text = text[start:end + 1]
+    if end == -1:
+        raise json.JSONDecodeError("No closing brace found", text, 0)
 
+    # Walk backwards from end to find the matching opening brace
+    depth = 0
+    start = end
+    for i in range(end, -1, -1):
+        if text[i] == "}":
+            depth += 1
+        elif text[i] == "{":
+            depth -= 1
+            if depth == 0:
+                start = i
+                break
+
+    if depth != 0:
+        raise json.JSONDecodeError("Unmatched braces", text, 0)
+
+    text = text[start:end + 1]
     return json.loads(text)

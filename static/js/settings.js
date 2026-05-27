@@ -7,7 +7,7 @@ const LLMSettings = {
   defaults: {
     provider: 'ollama',
     base_url: 'http://localhost:11434/v1',
-    model: 'qwen3.5:9b-agent',
+    model: 'gemma4:e4b',
     api_key: 'ollama',
     temperature: 0.3,
   },
