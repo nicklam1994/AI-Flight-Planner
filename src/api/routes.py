@@ -281,12 +281,13 @@ async def set_cycle(body: CycleSwitchRequest):
 
     Request body: { "cycle": "2604" }
     """
-    from src.api.app import reload_graph
+    from src.api.app import _load_graph, graph_stats
 
     cycle_id = body.cycle
 
     try:
-        stats = await reload_graph(cycle_id)
+        await _load_graph(cycle_id)
+        stats = graph_stats
     except FileNotFoundError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:

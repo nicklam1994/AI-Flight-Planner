@@ -87,9 +87,6 @@ def reconnect_db(db_path: str | None = None) -> sqlite3.Connection:
 
     Args:
         db_path: New database path. If None, uses config.db_path.
-
-    Returns:
-        The new sqlite3.Connection.
     """
     global _conn
     if _conn is not None:
@@ -101,12 +98,7 @@ def reconnect_db(db_path: str | None = None) -> sqlite3.Connection:
         _conn = None
 
     if db_path:
-        import src.config as cfg_module
-        old = cfg_module.config.db_path
-        cfg_module.config.db_path = db_path
-        try:
-            return get_db()
-        finally:
-            cfg_module.config.db_path = old
+        import src.config as cfg
+        cfg.config.db_path = db_path
 
     return get_db()

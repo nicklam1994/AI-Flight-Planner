@@ -31,7 +31,7 @@ waypoint_map: dict[int, WaypointInfo] = {}
 # Graph statistics for /api/health
 graph_stats: dict = {"nodes": 0, "edges": 0}
 
-# Track which cycle the current graph was built from
+# Currently loaded AIRAC cycle (set during _load_graph)
 _current_cycle: str | None = None
 
 
@@ -69,6 +69,9 @@ async def _load_graph(cycle: str | None = None):
 
     db_path = resolve_db_path(cycle)
     logger.info(f"Using database: {db_path}")
+
+    # Update config so get_db() can find the right DB
+    config.current_cycle = cycle or config.default_cycle
 
     # Reconnect if the DB path has changed
     reconnect_db(db_path)
