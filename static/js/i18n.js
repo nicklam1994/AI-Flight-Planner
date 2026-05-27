@@ -330,7 +330,7 @@ const I18N = (() => {
 
     // Update all labels inside the modal
     const modalLabels = document.querySelectorAll('.modal .form-group > label');
-    const labelKeys = ['label-provider', 'label-base-url', 'label-model', 'label-api-key', 'label-temperature'];
+    const labelKeys = ['label-provider', 'label-base-url', 'label-api-key', 'label-model', 'label-temperature'];
     modalLabels.forEach((label, i) => {
       if (i < labelKeys.length) label.textContent = t(labelKeys[i]);
     });

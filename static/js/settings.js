@@ -1,11 +1,8 @@
 /**
  * LLM Settings — localStorage-persisted LLM configuration panel.
  *
- * The model field has BOTH a <select> dropdown AND a text input.
- * - Dropdown: populated from API via 🔄 Fetch button
- * - Text input: always visible, can type any model name
- * - When dropdown value changes → text input copies it
- * - When saving: text input wins if non-empty
+ * The model field is a <select> dropdown populated from API via 🔄 Fetch button.
+ * The "Other..." option allows typing a custom model name inline.
  */
 const LLMSettings = {
   STORAGE_KEY: 'ai_flight_planner_llm',
@@ -51,17 +48,23 @@ const LLMSettings = {
       select.appendChild(opt);
     }
     select.value = settings.model;
-
-    // Manual input — always populated with current model
-    const manual = document.getElementById('llmModelManual');
-    if (manual) manual.value = settings.model;
   },
 
   readForm() {
     const select = document.getElementById('llmModel');
-    const manual = document.getElementById('llmModelManual');
-    // Manual input wins if non-empty; otherwise use select
-    const model = (manual && manual.value.trim()) || select.value || '';
+    let model = select.value;
+    // If "Other..." selected, show prompt for custom model name
+    if (model === '__custom__') {
+      model = prompt('Enter model name:') || select.options[0]?.value || '';
+      if (model) {
+        // Add the custom model to dropdown for future use
+        const opt = document.createElement('option');
+        opt.value = model;
+        opt.textContent = model;
+        select.insertBefore(opt, select.querySelector('option[value="__custom__"]'));
+        select.value = model;
+      }
+    }
     return {
       provider: document.getElementById('llmProvider').value,
       base_url: document.getElementById('llmBaseUrl').value.trim(),
@@ -86,15 +89,13 @@ const LLMSettings = {
       if (res.ok) {
         const data = await res.json();
         if (data.models && data.models.length > 0) return data.models;
-        // If we got a 200 but empty, the API might have responded with an error
         const msg = data.source === null ? 'API returned no models — check your URL and key' : 'No models found';
         throw new Error(msg);
       }
-      // Extract error message from response
       const text = await res.text().catch(() => '');
       throw new Error(`API ${res.status}: ${text.substring(0, 100) || 'Unknown error'}`);
     } catch (e) {
-      throw e; // re-throw so the caller can show the error
+      throw e;
     }
   },
 
@@ -123,9 +124,5 @@ const LLMSettings = {
     } else {
       select.value = models[0] || select.options[0]?.value || '';
     }
-
-    // Sync manual input
-    const manual = document.getElementById('llmModelManual');
-    if (manual) manual.value = select.value;
   },
 };

@@ -63,15 +63,6 @@
     const $fetchBtn = document.getElementById('fetchModelsBtn');
     if ($fetchBtn) $fetchBtn.addEventListener('click', handleFetchModels);
 
-    // Sync select → manual input
-    const $modelSync = document.getElementById('llmModel');
-    if ($modelSync) {
-      $modelSync.addEventListener('change', () => {
-        const manual = document.getElementById('llmModelManual');
-        if (manual) manual.value = $modelSync.value;
-      });
-    }
-
     // Provider auto-fill
     const $provider = document.getElementById('llmProvider');
     if ($provider) $provider.addEventListener('change', handleProviderChange);
