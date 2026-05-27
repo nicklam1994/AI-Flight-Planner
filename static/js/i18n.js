@@ -282,6 +282,167 @@ const I18N = (() => {
       'zh-TW': '此機場無可用程序',
       'en': 'No procedures available'
     },
+    'card-weather': {
+      'zh-CN': 'Weather',
+      'zh-TW': 'Weather',
+      'en': 'Weather'
+    },
+    'card-route-candidates': {
+      'zh-CN': '🛫 候選航線',
+      'zh-TW': '🛫 候選航線',
+      'en': '🛫 Route Candidates'
+    },
+    'panel-departure': {
+      'zh-CN': '離場詳情',
+      'zh-TW': '離場詳情',
+      'en': 'Departure Details'
+    },
+    'panel-arrival': {
+      'zh-CN': '進場詳情',
+      'zh-TW': '進場詳情',
+      'en': 'Arrival Details'
+    },
+    'panel-route': {
+      'zh-CN': '航路詳情',
+      'zh-TW': '航路詳情',
+      'en': 'Route Details'
+    },
+    'panel-navigation': {
+      'zh-CN': '導航詳情',
+      'zh-TW': '導航詳情',
+      'en': 'Navigation Details'
+    },
+    'btn-refresh': {
+      'zh-CN': '🔄 刷新',
+      'zh-TW': '🔄 刷新',
+      'en': '🔄 Refresh'
+    },
+
+    'card-weather': {
+      'zh-CN': '\u26c5 \u6c14\u8c61\u4fe1\u606f',
+      'zh-TW': '\u26c5 \u6c23\u8c61\u8cc7\u8a0a',
+      'en': '\u26c5 Weather'
+    },
+    'btn-refresh': {
+      'zh-CN': '\ud83d\udd04 \u5237\u65b0',
+      'zh-TW': '\ud83d\udd04 \u5237\u65b0',
+      'en': '\ud83d\udd04 Refresh'
+    },
+    'zone-departure': {
+      'zh-CN': '\ud83d\udeeb \u79bb\u573a\u8be6\u60c5 (SID)',
+      'zh-TW': '\ud83d\udeeb \u96e2\u5834\u8a73\u60c5 (SID)',
+      'en': '\ud83d\udeeb Departure Details (SID)'
+    },
+    'zone-arrival': {
+      'zh-CN': '\ud83d\udeec \u8fdb\u573a\u8be6\u60c5 (STAR)',
+      'zh-TW': '\ud83d\udeec \u9032\u5834\u8a73\u60c5 (STAR)',
+      'en': '\ud83d\udeec Arrival Details (STAR)'
+    },
+    'zone-route': {
+      'zh-CN': '\ud83d\uddfa\ufe0f \u822a\u8def\u8be6\u60c5',
+      'zh-TW': '\ud83d\uddfa\ufe0f \u822a\u8def\u8a73\u60c5',
+      'en': '\ud83d\uddfa\ufe0f Route Details'
+    },
+    'zone-nav': {
+      'zh-CN': '\ud83e\udded \u5bfc\u822a\u70b9\u8be6\u60c5',
+      'zh-TW': '\ud83e\udded \u5c0e\u822a\u9ede\u8a73\u60c5',
+      'en': '\ud83e\udded Navigation Waypoints'
+    },
+    'label-proc-name': {
+      'zh-CN': '\u7a0b\u5e8f\u540d',
+      'zh-TW': '\u7a0b\u5e8f\u540d',
+      'en': 'Procedure'
+    },
+    'label-runway': {
+      'zh-CN': '\u8dd1\u9053',
+      'zh-TW': '\u8dd1\u9053',
+      'en': 'Runway'
+    },
+    'label-transitions': {
+      'zh-CN': '\u8fc7\u6e21\u70b9',
+      'zh-TW': '\u904e\u6e21\u9ede',
+      'en': 'Transitions'
+    },
+    'label-wp-name': {
+      'zh-CN': '\u540d\u79f0',
+      'zh-TW': '\u540d\u7a31',
+      'en': 'Name'
+    },
+    'label-wp-type': {
+      'zh-CN': '\u7c7b\u578b',
+      'zh-TW': '\u985e\u578b',
+      'en': 'Type'
+    },
+    'label-wp-freq': {
+      'zh-CN': '\u9891\u7387',
+      'zh-TW': '\u983b\u7387',
+      'en': 'Freq'
+    },
+    'label-lat': {
+      'zh-CN': '\u7eac\u5ea6',
+      'zh-TW': '\u7def\u5ea6',
+      'en': 'Lat'
+    },
+    'label-lon': {
+      'zh-CN': '\u7ecf\u5ea6',
+      'zh-TW': '\u7d93\u5ea6',
+      'en': 'Lon'
+    },
+    'label-flight-plan': {
+      'zh-CN': '\u98de\u884c\u8ba1\u5212',
+      'zh-TW': '\u98db\u884c\u8a08\u5283',
+      'en': 'Flight Plan'
+    },
+    'btn-copy-flight-plan': {
+      'zh-CN': '\ud83d\udccb \u590d\u5236\u98de\u884c\u8ba1\u5212',
+      'zh-TW': '\ud83d\udccb \u8907\u88fd\u98db\u884c\u8a08\u5283',
+      'en': '\ud83d\udccb Copy Flight Plan'
+    },
+    'toast-flight-plan-copied': {
+      'zh-CN': '\u98de\u884c\u8ba1\u5212\u5df2\u590d\u5236\uff01',
+      'zh-TW': '\u98db\u884c\u8a08\u5283\u5df2\u8907\u88fd\uff01',
+      'en': 'Flight plan copied!'
+    },
+    'weather-wind': {
+      'zh-CN': '\u98ce',
+      'zh-TW': '\u98a8',
+      'en': 'Wind'
+    },
+    'weather-vis': {
+      'zh-CN': '\u80fd\u89c1\u5ea6',
+      'zh-TW': '\u80fd\u898b\u5ea6',
+      'en': 'Vis'
+    },
+    'weather-temp': {
+      'zh-CN': '\u6e29\u5ea6',
+      'zh-TW': '\u6eab\u5ea6',
+      'en': 'Temp'
+    },
+    'weather-qnh': {
+      'zh-CN': '\u6c14\u538b',
+      'zh-TW': '\u6c23\u58d3',
+      'en': 'QNH'
+    },
+    'weather-ceiling': {
+      'zh-CN': '\u4e91\u5e95',
+      'zh-TW': '\u96f2\u5e95',
+      'en': 'Ceiling'
+    },
+    'label-sid-node': {
+      'zh-CN': '\u79bb\u573a\u8282\u70b9',
+      'zh-TW': '\u96e2\u5834\u7bc0\u9ede',
+      'en': 'SID Node'
+    },
+    'label-star-node': {
+      'zh-CN': '\u8fdb\u573a\u8282\u70b9',
+      'zh-TW': '\u9032\u5834\u7bc0\u9ede',
+      'en': 'STAR Node'
+    },
+    'toast-plan-copied': {
+      'zh-CN': '\u5df2\u590d\u5236\u822a\u8def\uff01',
+      'zh-TW': '\u5df2\u8907\u88fd\u822a\u8def\uff01',
+      'en': 'Route copied!'
+    },
   };
 
   let currentLang = DEFAULT_LANG;

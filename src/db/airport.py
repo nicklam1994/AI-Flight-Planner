@@ -99,3 +99,85 @@ def search(query: str, limit: int = 10) -> list[Airport]:
     ).fetchall()
 
     return [_row_to_airport(r) for r in rows]
+
+
+def get_waypoint_details(idents: list[str]) -> list[dict]:
+    """
+    Batch query waypoint details: type, frequency (VOR/NDB), lat/lon.
+
+    Queries the LNM .sqlite waypoint table, then joins vor/ndb tables
+    for frequency data where applicable.
+
+    Args:
+        idents: List of waypoint identifier strings (e.g., ["OCEAN", "SIKOU"])
+
+    Returns:
+        List of dicts with keys: ident, type, type_label, frequency, lat, lon.
+        Waypoints not found are silently skipped.
+    """
+    from src.db.connection import get_db
+
+    if not idents:
+        return []
+
+    db = get_db()
+    placeholders = ",".join(["?" for _ in idents])
+
+    # Query waypoints
+    rows = db.execute(
+        f"SELECT ident, type, laty, lonx FROM waypoint "
+        f"WHERE ident IN ({placeholders})",
+        idents,
+    ).fetchall()
+
+    # Batch query VOR frequencies
+    vor_freqs: dict[str, int] = {}
+    try:
+        vor_rows = db.execute(
+            f"SELECT ident, frequency FROM vor WHERE ident IN ({placeholders})",
+            idents,
+        ).fetchall()
+        for r in vor_rows:
+            vor_freqs[r["ident"]] = r["frequency"]
+    except Exception:
+        pass  # vor table may not exist in all LNM DBs
+
+    # Batch query NDB frequencies
+    ndb_freqs: dict[str, int] = {}
+    try:
+        ndb_rows = db.execute(
+            f"SELECT ident, frequency FROM ndb WHERE ident IN ({placeholders})",
+            idents,
+        ).fetchall()
+        for r in ndb_rows:
+            ndb_freqs[r["ident"]] = r["frequency"]
+    except Exception:
+        pass  # ndb table may not exist in all LNM DBs
+
+    type_labels = {
+        "WN": "Waypoint",
+        "WU": "Unnamed WP",
+        "V": "VOR",
+        "N": "NDB",
+    }
+
+    results = []
+    for r in rows:
+        ident = r["ident"]
+        wp_type = r["type"]
+        freq = None
+        if wp_type == "V":
+            freq = vor_freqs.get(ident)
+        elif wp_type == "N":
+            freq = ndb_freqs.get(ident)
+
+        results.append({
+            "ident": ident,
+            "type": wp_type,
+            "type_label": type_labels.get(wp_type, wp_type),
+            "frequency": freq,
+            "lat": r["laty"],
+            "lon": r["lonx"],
+        })
+
+    return results

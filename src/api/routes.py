@@ -22,6 +22,18 @@ from src.api.schemas import (
     ProcedureSummary,
     ProcedureDetailResponse,
     ProcedureLegResponse,
+    ProcedureFilterRequest,
+    ProcedureFilterResponse,
+    RouteFilterRequest,
+    RouteFilterResponse,
+    WaypointDetailResponse,
+    RouteWaypointsResponse,
+    WeatherResponse,
+    WeatherStation,
+    WeatherMetar,
+    WeatherWind,
+    WeatherCloud,
+    WeatherAirport,
 )
 from src.db.airport import search as search_airports
 from src.db.connection import get_db, reconnect_db, reconnect_s3db
@@ -33,6 +45,10 @@ from src.config import config, list_cycles
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api")
+
+# Session-level cache for the last plan result (used by /api/route/{idx}/waypoints).
+# Lives in app memory — resets on restart, not persisted.
+_last_plan_candidates: list | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -212,10 +228,15 @@ async def plan_route(request: PlanRequest):
     if not rankings:
         warnings.append("Route evaluation unavailable — routes sorted by distance only")
 
+    # Cache for /api/route/{idx}/waypoints
+    global _last_plan_candidates
+    _last_plan_candidates = candidates
+
     return PlanResponse(
         parsed=_intent_to_response(intent),
         route_string=best.route_string,
         candidates=candidate_responses,
+        candidate_index=best_idx or 0,
         warnings=warnings,
     )
 
@@ -355,7 +376,213 @@ async def get_procedure_detail(airport: str, name: str, type: str = "sid"):
     )
 
 
-# -------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Step 3: Procedure filter (filter SID/STAR by route waypoint)
+# ---------------------------------------------------------------------------
+
+@router.post("/procedures/filter", response_model=ProcedureFilterResponse)
+async def filter_procedures_endpoint(body: ProcedureFilterRequest):
+    """
+    Filter SID/STAR procedures based on the waypoints extracted from a route string.
+
+    Given a route_string like "VHHH SID OCEAN V3 ... SASAN STAR ZSSS",
+    extracts OCEAN (SID exit) and SASAN (STAR entry), then queries the
+    .s3db for procedures that pass through those waypoints.
+
+    Request body: { route_string, dep_icao, arr_icao }
+    """
+    from src.route.step3_filter import filter_for_route
+
+    result = filter_for_route(
+        route_string=body.route_string,
+        dep_icao=body.dep_icao,
+        arr_icao=body.arr_icao,
+    )
+
+    return ProcedureFilterResponse(
+        sids=[ProcedureSummary(name=p["name"], runways=p["runways"]) for p in result["sids"]],
+        stars=[ProcedureSummary(name=p["name"], runways=p["runways"]) for p in result["stars"]],
+        sid_node=result.get("sid_node"),
+        star_node=result.get("star_node"),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Weather (METAR + TAF from NOAA)
+# ---------------------------------------------------------------------------
+
+NOAA_METAR_URL = "https://aviationweather.gov/api/data/metar/"
+
+
+@router.get("/weather", response_model=WeatherResponse)
+async def get_weather(dep: str = "", arr: str = ""):
+    """
+    Fetch METAR and TAF for departure and arrival airports from NOAA.
+
+    Query params:
+        dep: Departure airport ICAO (e.g., "VHHH")
+        arr: Arrival airport ICAO (e.g., "ZSSS")
+
+    Returns parsed METAR with Chinese cloud translations, plus raw TAF.
+    """
+    import httpx
+    from src.weather.metar import parse_metar
+
+    result = WeatherResponse()
+
+    icaos = []
+    if dep:
+        icaos.append(dep.upper())
+    if arr:
+        icaos.append(arr.upper())
+
+    if not icaos:
+        raise HTTPException(status_code=400, detail="At least one of dep/arr required")
+
+    url = f"{NOAA_METAR_URL}?ids={','.join(icaos)}&taf=1"
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.get(url)
+            if resp.status_code != 200:
+                logger.warning(f"NOAA API returned {resp.status_code}: {resp.text[:200]}")
+                raise HTTPException(status_code=502, detail=f"NOAA API returned {resp.status_code}")
+            raw_text = resp.text.strip()
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="NOAA API timed out")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to fetch weather: {e}")
+        raise HTTPException(status_code=502, detail=f"Failed to fetch weather: {e}")
+
+    # NOAA returns METAR lines followed by TAF lines, separated by blank lines.
+    # Each airport's report block starts with its own METAR.
+    blocks = _split_noaa_response(raw_text, icaos)
+
+    dep_data = _build_weather_station(dep.upper(), blocks.get(dep.upper(), "")) if dep else None
+    arr_data = _build_weather_station(arr.upper(), blocks.get(arr.upper(), "")) if arr else None
+
+    return WeatherResponse(departure=dep_data, arrival=arr_data)
+
+
+def _split_noaa_response(raw: str, icaos: list[str]) -> dict[str, str]:
+    """
+    Split NOAA multi-station response into per-ICAO blocks.
+
+    NOAA returns:
+        METAR VHHH ...
+        TAF VHHH ...
+
+        METAR ZSSS ...
+        TAF ZSSS ...
+
+    Returns dict mapping ICAO → combined block text.
+    """
+    result: dict[str, str] = {}
+    current_icao = None
+    current_lines: list[str] = []
+
+    for line in raw.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            # Blank line = block separator
+            if current_icao:
+                result[current_icao] = "\n".join(current_lines)
+            current_icao = None
+            current_lines = []
+            continue
+
+        # Detect ICAO from METAR or TAF prefix
+        for icao in icaos:
+            if (stripped.upper().startswith(f"METAR {icao}") or
+                stripped.upper().startswith(f"TAF {icao}")):
+                if current_icao != icao:
+                    # Save previous block
+                    if current_icao:
+                        result[current_icao] = "\n".join(current_lines)
+                    current_icao = icao
+                    current_lines = []
+                break
+
+        current_lines.append(stripped)
+
+    # Save last block
+    if current_icao:
+        result[current_icao] = "\n".join(current_lines)
+
+    return result
+
+
+def _build_weather_station(icao: str, block: str) -> WeatherStation | None:
+    """Parse a NOAA block for one airport into a WeatherStation model."""
+    from src.weather.metar import parse_metar
+
+    if not block:
+        return None
+
+    lines = block.splitlines()
+    metar_line = ""
+    taf_lines: list[str] = []
+
+    for line in lines:
+        if line.upper().startswith("METAR"):
+            metar_line = line
+        elif line.upper().startswith("TAF"):
+            taf_lines.append(line)
+
+    # Parse METAR
+    metar_data = parse_metar(metar_line) if metar_line else None
+
+    airport_info = WeatherAirport()
+    if metar_data:
+        ap = metar_data.get("airport", {})
+        airport_info = WeatherAirport(
+            ident=ap.get("ident", icao),
+            name=ap.get("name", ""),
+            city=ap.get("city", ""),
+            country=ap.get("country", ""),
+        )
+
+    metar_model = None
+    if metar_data:
+        wind_data = metar_data.get("wind", {})
+        metar_model = WeatherMetar(
+            raw=metar_line,
+            icao=metar_data.get("icao", icao),
+            airport=airport_info,
+            time=metar_data.get("time"),
+            wind=WeatherWind(
+                dir=wind_data.get("dir"),
+                speed_kts=wind_data.get("speed_kts"),
+                gust_kts=wind_data.get("gust_kts"),
+                dir_compass=wind_data.get("dir_compass"),
+            ),
+            wind_text=metar_data.get("wind_text", ""),
+            temp_c=metar_data.get("temp_c"),
+            dewpt_c=metar_data.get("dewpt_c"),
+            visibility_m=metar_data.get("visibility_m"),
+            visibility_str=metar_data.get("visibility_str", ""),
+            visibility_qualifier=metar_data.get("visibility_qualifier", ""),
+            pressure_hpa=metar_data.get("pressure_hpa"),
+            pressure_inhg=metar_data.get("pressure_inhg"),
+            clouds=[
+                WeatherCloud(cover=c.get("cover", ""), cover_cn=c.get("cover_cn", ""), height_ft=c.get("height_ft"))
+                for c in metar_data.get("clouds", [])
+            ],
+            weather=metar_data.get("weather", []),
+            flight_rules=metar_data.get("flight_rules", ""),
+        )
+
+    return WeatherStation(
+        icao=icao,
+        airport=airport_info,
+        metar=metar_model,
+        taf_raw="\n".join(taf_lines) if taf_lines else None,
+    )
+
+
+# ---------------------------------------------------------------------------
 # AIRAC Cycle switching
 # ---------------------------------------------------------------------------
 

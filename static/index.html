@@ -43,7 +43,8 @@
     <div class="card">
       <div class="card-title" data-i18n="card-route-request">🗣️ Route Request</div>
       <div class="input-area">
-        <textarea id="routeInput" data-i18n="input-placeholder" data-i18n-attr="placeholder" placeholder="Describe your flight...&#10;e.g., VHHH to RJTT, high altitude airways, avoid Taiwan airspace"></textarea>
+        <textarea id="routeInput" data-i18n="input-placeholder" data-i18n-attr="placeholder"
+          placeholder="Describe your flight...&#10;e.g., VHHH to RJTT, high altitude airways, avoid Taiwan airspace"></textarea>
         <div class="input-row">
           <label for="kSelect" data-i18n="label-candidates">Candidates:</label>
           <select id="kSelect">
@@ -54,33 +55,22 @@
           </select>
           <button id="planBtn" class="btn btn-primary" data-i18n="btn-plan">✈️ Plan Route</button>
         </div>
-        <div class="input-row procedure-row" id="procedureRow" style="display:none">
-          <label for="sidSelect" data-i18n="label-sid">SID:</label>
-          <select id="sidSelect"><option value="">--</option></select>
-          <label for="starSelect" data-i18n="label-star">STAR:</label>
-          <select id="starSelect"><option value="">--</option></select>
-        </div>
       </div>
+    </div>
+
+    <!-- Weather Card -->
+    <div id="weatherCard" class="card" style="display:none">
+      <div class="card-title">
+        🌤️ Weather
+        <button id="weatherRefresh" class="btn btn-sm btn-secondary" style="float:right">🔄 Refresh</button>
+      </div>
+      <div id="weatherContent" class="weather-grid"></div>
     </div>
 
     <!-- Parsed Intent -->
     <div id="parsedCard" class="card" style="display:none">
       <div class="card-title" data-i18n="card-parsed-intent">📋 Parsed Intent</div>
       <div id="parsedContent" class="parsed-grid"></div>
-      <div id="proceduresRow" class="procedures-row" style="display:none">
-        <div class="proc-col">
-          <label for="sidSelect" class="proc-label">SID</label>
-          <select id="sidSelect" class="proc-select">
-            <option value="">(auto)</option>
-          </select>
-        </div>
-        <div class="proc-col">
-          <label for="starSelect" class="proc-label">STAR</label>
-          <select id="starSelect" class="proc-select">
-            <option value="">(auto)</option>
-          </select>
-        </div>
-      </div>
     </div>
 
     <!-- Results -->
@@ -88,6 +78,73 @@
       <div class="card-title" data-i18n="card-route-results">🛫 Route Results</div>
       <div id="resultsContent"></div>
       <div id="warnings" class="warnings"></div>
+    </div>
+
+    <!-- Four-Panel Detail Area (shown when route selected) -->
+    <div id="detailArea" style="display:none">
+
+      <!-- Departure Details -->
+      <div class="card">
+        <div class="card-title collapsible" onclick="togglePanel('depPanel')">
+          🛫 Departure Details <span id="depTitle"></span>
+        </div>
+        <div id="depPanel" class="panel-body">
+          <div class="panel-section">
+            <h4>SID Procedures</h4>
+            <div id="depSidTable" class="data-table"></div>
+          </div>
+          <div class="panel-section">
+            <h4>Runway Info</h4>
+            <div id="depRunwayTable" class="data-table"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Arrival Details -->
+      <div class="card">
+        <div class="card-title collapsible" onclick="togglePanel('arrPanel')">
+          🛬 Arrival Details <span id="arrTitle"></span>
+        </div>
+        <div id="arrPanel" class="panel-body">
+          <div class="panel-section">
+            <h4>STAR Procedures</h4>
+            <div id="arrStarTable" class="data-table"></div>
+          </div>
+          <div class="panel-section">
+            <h4>Runway Info</h4>
+            <div id="arrRunwayTable" class="data-table"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Route Details -->
+      <div class="card">
+        <div class="card-title collapsible" onclick="togglePanel('routePanel')">
+          🗺️ Route Details
+        </div>
+        <div id="routePanel" class="panel-body">
+          <div class="panel-section">
+            <h4>Full Route String</h4>
+            <div id="fullRouteStr" class="route-string"></div>
+          </div>
+          <div class="panel-section">
+            <h4>Flight Plan Route</h4>
+            <div id="fpRouteStr" class="route-string"></div>
+            <button class="btn btn-primary" onclick="copyFlightPlan()" style="margin-top:8px">📋 Copy Flight Plan Route</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Details -->
+      <div class="card">
+        <div class="card-title collapsible" onclick="togglePanel('navPanel')">
+          🧭 Navigation Details
+        </div>
+        <div id="navPanel" class="panel-body">
+          <div id="navTable" class="data-table"></div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -123,7 +180,8 @@
       <div class="form-group">
         <label data-i18n="label-model">Model</label>
         <div class="model-row">
-          <input type="text" id="llmModel" list="llmModelList" placeholder="gemma4:e4b" style="flex:1;padding:8px 12px;background:var(--bg-input);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);font-size:0.9rem;">
+          <input type="text" id="llmModel" list="llmModelList" placeholder="gemma4:e4b"
+            style="flex:1;padding:8px 12px;background:var(--bg-input);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);font-size:0.9rem;">
           <datalist id="llmModelList">
             <option value="gemma4:e4b">
             <option value="qwen3.6:27b">

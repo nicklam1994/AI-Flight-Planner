@@ -58,6 +58,7 @@ class PlanResponse(BaseModel):
     parsed: ParsedIntentResponse | None = None
     route_string: str = ""
     candidates: list[RouteCandidateResponse] = []
+    candidate_index: int = 0  # Index of best candidate for /api/route/{index}/waypoints
     warnings: list[str] = []
     error: str | None = None
 
@@ -151,3 +152,119 @@ class ProcedureDetailResponse(BaseModel):
     airport_icao: str
     runways: list[str] = []
     legs: list[ProcedureLegResponse] = []
+
+
+# ---------------------------------------------------------------------------
+# Step 3: Procedure filter (filter SID/STAR by route waypoint)
+# ---------------------------------------------------------------------------
+
+class ProcedureFilterRequest(BaseModel):
+    """POST /api/procedures/filter request."""
+    route_string: str
+    dep_icao: str
+    arr_icao: str
+
+
+class ProcedureFilterResponse(BaseModel):
+    """POST /api/procedures/filter response."""
+    sids: list[ProcedureSummary] = []
+    stars: list[ProcedureSummary] = []
+    sid_node: str | None = None
+    star_node: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# Weather
+# ---------------------------------------------------------------------------
+
+class WeatherWind(BaseModel):
+    dir: float | None = None
+    speed_kts: float | None = None
+    gust_kts: float | None = None
+    dir_compass: str | None = None
+
+
+class WeatherCloud(BaseModel):
+    cover: str = ""
+    cover_cn: str = ""
+    height_ft: int | None = None
+
+
+class WeatherAirport(BaseModel):
+    ident: str = ""
+    name: str = ""
+    city: str = ""
+    country: str = ""
+
+
+class WeatherMetar(BaseModel):
+    raw: str = ""
+    icao: str = ""
+    airport: WeatherAirport = Field(default_factory=WeatherAirport)
+    time: str | None = None
+    wind: WeatherWind = Field(default_factory=WeatherWind)
+    wind_text: str = ""
+    temp_c: float | None = None
+    dewpt_c: float | None = None
+    visibility_m: float | None = None
+    visibility_str: str = ""
+    visibility_qualifier: str = ""
+    pressure_hpa: float | None = None
+    pressure_inhg: float | None = None
+    clouds: list[WeatherCloud] = Field(default_factory=list)
+    weather: list[str] = Field(default_factory=list)
+    flight_rules: str = ""
+
+
+class WeatherStation(BaseModel):
+    icao: str = ""
+    airport: WeatherAirport = Field(default_factory=WeatherAirport)
+    metar: WeatherMetar | None = None
+    taf_raw: str | None = None
+
+
+class WeatherResponse(BaseModel):
+    """GET /api/weather response."""
+    departure: WeatherStation | None = None
+    arrival: WeatherStation | None = None
+
+
+# ---------------------------------------------------------------------------
+# Route filter (v2 Step 3 — filter SID/STAR by route waypoint)
+# ---------------------------------------------------------------------------
+
+class RouteFilterRequest(BaseModel):
+    """POST /api/route/filter request."""
+    origin: str = Field(..., min_length=4, max_length=4)
+    destination: str = Field(..., min_length=4, max_length=4)
+    route_string: str = Field(..., min_length=1)
+
+
+class RouteFilterResponse(BaseModel):
+    """POST /api/route/filter response."""
+    origin: str
+    destination: str
+    route_string: str
+    sid_filter_node: str | None = None
+    star_filter_node: str | None = None
+    sids: list[ProcedureSummary] = []
+    stars: list[ProcedureSummary] = []
+
+
+# ---------------------------------------------------------------------------
+# Route waypoints (v2 Step 4 — navigation details)
+# ---------------------------------------------------------------------------
+
+class WaypointDetailResponse(BaseModel):
+    """A single waypoint with full detail."""
+    ident: str
+    type: str
+    type_label: str
+    frequency: int | None = None  # kHz * 100 (e.g., 11230 = 112.30 MHz)
+    lat: float
+    lon: float
+
+
+class RouteWaypointsResponse(BaseModel):
+    """GET /api/route/{candidate_index}/waypoints response."""
+    waypoints: list[WaypointDetailResponse] = []

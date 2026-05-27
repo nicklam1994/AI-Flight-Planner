@@ -121,6 +121,40 @@ def list_stars(icao: str) -> list[str]:
     return _query_distinct_procedures("tbl_stars", icao, STAR_RT)
 
 
+def _get_all_runways(icao: str, table: str, rt_filter: str) -> dict[str, list[str]]:
+    """
+    Return {procedure_identifier: [transition_identifier, ...]} for all
+    procedures at an airport in a single batch query.
+
+    Replaces the N+1 pattern of calling _get_runways() per procedure inside
+    get_procedures().  For VHHH (47 SIDs + 14 STARs) this cuts 63 round-trips
+    down to 2.
+
+    Args:
+        icao: 4-letter ICAO airport code
+        table: 'tbl_sids' or 'tbl_stars'
+        rt_filter: SQL clause for route_type (e.g., "IN ('2','5')")
+    """
+    db = get_s3db()
+    if db is None:
+        return {}
+    rows = db.execute(
+        f"SELECT DISTINCT procedure_identifier, transition_identifier "
+        f"FROM {table} "
+        "WHERE airport_identifier = ? "
+        f"AND route_type {rt_filter} "
+        "AND waypoint_identifier IS NOT NULL "
+        "ORDER BY procedure_identifier, transition_identifier",
+        (icao,),
+    ).fetchall()
+    result: dict[str, list[str]] = {}
+    for r in rows:
+        result.setdefault(r["procedure_identifier"], []).append(
+            r["transition_identifier"]
+        )
+    return result
+
+
 def _get_runways(icao: str, name: str, proc_type: str) -> list[str]:
     """Return distinct runway/transition identifiers for a procedure."""
     table = "tbl_sids" if proc_type == "SID" else "tbl_stars"
@@ -211,6 +245,9 @@ def get_procedures(icao: str) -> dict:
     without the full leg data. Use get_procedure_legs() for detailed leg
     sequences.
 
+    Uses _get_all_runways() — 2 queries total regardless of procedure count,
+    instead of N+1 individual _get_runways() calls.
+
     Args:
         icao: 4-letter ICAO airport code
 
@@ -218,14 +255,18 @@ def get_procedures(icao: str) -> dict:
         {"icao": str, "sids": [...], "stars": [...]}
         Each entry in the lists has {"name": str, "runways": [str]}.
     """
+    # Two batch queries — one per table — instead of N+1 per-procedure calls.
+    sid_runways = _get_all_runways(icao, "tbl_sids", SID_RT)
+    star_runways = _get_all_runways(icao, "tbl_stars", STAR_RT)
+
     return {
         "icao": icao,
         "sids": [
-            {"name": s, "runways": _get_runways(icao, s, "SID")}
-            for s in list_sids(icao)
+            {"name": name, "runways": rwys}
+            for name, rwys in sid_runways.items()
         ],
         "stars": [
-            {"name": s, "runways": _get_runways(icao, s, "STAR")}
-            for s in list_stars(icao)
+            {"name": name, "runways": rwys}
+            for name, rwys in star_runways.items()
         ],
     }
