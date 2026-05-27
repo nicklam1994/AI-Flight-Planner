@@ -89,6 +89,7 @@ def build_airway_graph(airway_type: str | None = None) -> tuple[nx.DiGraph, dict
     sql = f"""SELECT airway_name, airway_type, sequence_no,
                      from_waypoint_id, to_waypoint_id,
                      minimum_altitude, maximum_altitude,
+                     direction,
                      from_lonx, from_laty, to_lonx, to_laty
               FROM airway {where}
               ORDER BY airway_name, sequence_no"""
@@ -122,33 +123,47 @@ def build_airway_graph(airway_type: str | None = None) -> tuple[nx.DiGraph, dict
             G.add_node(to_id)
             nodes_added.add(to_id)
 
-        # Add forward edge
-        G.add_edge(
-            from_id, to_id,
-            airway_name=seg["airway_name"],
-            airway_type=seg["airway_type"],
-            sequence_no=seg["sequence_no"],
-            min_alt=seg["minimum_altitude"],
-            max_alt=seg["maximum_altitude"],
-            distance_nm=dist_nm,
-            distance_km=dist_nm * 1.852,
-        )
-        edges_added += 1
+        # --- Determine direction and add edges ---
+        # direction = 'F' → forward only (one-way)
+        # direction = 'B' or NULL → bidirectional (current default)
+        # direction = 'R' → reverse only (one-way opposite)
+        direction = seg["direction"]  # sqlite3.Row: None when column is NULL
 
-        # Bi-directional airways: also add reverse edge with same attributes.
-        # In LNM format, bidirectional airways don't have reversed rows —
-        # we add the reverse edge with swapped altitudes but same airway name.
-        G.add_edge(
-            to_id, from_id,
-            airway_name=seg["airway_name"],
-            airway_type=seg["airway_type"],
-            sequence_no=seg["sequence_no"] + 1000,  # distinguish from forward
-            min_alt=seg["minimum_altitude"],
-            max_alt=seg["maximum_altitude"],
-            distance_nm=dist_nm,
-            distance_km=dist_nm * 1.852,
-        )
-        edges_added += 1
+        def _add_forward_edge():
+            G.add_edge(
+                from_id, to_id,
+                airway_name=seg["airway_name"],
+                airway_type=seg["airway_type"],
+                sequence_no=seg["sequence_no"],
+                min_alt=seg["minimum_altitude"],
+                max_alt=seg["maximum_altitude"],
+                distance_nm=dist_nm,
+                distance_km=dist_nm * 1.852,
+            )
+
+        def _add_reverse_edge():
+            G.add_edge(
+                to_id, from_id,
+                airway_name=seg["airway_name"],
+                airway_type=seg["airway_type"],
+                sequence_no=seg["sequence_no"] + 1000,  # distinguish from forward
+                min_alt=seg["minimum_altitude"],
+                max_alt=seg["maximum_altitude"],
+                distance_nm=dist_nm,
+                distance_km=dist_nm * 1.852,
+            )
+
+        if direction == "F":
+            _add_forward_edge()
+            edges_added += 1
+        elif direction == "R":
+            _add_reverse_edge()
+            edges_added += 1
+        else:
+            # direction == 'B' or NULL: treat as bidirectional
+            _add_forward_edge()
+            _add_reverse_edge()
+            edges_added += 2
 
     logger.info(
         f"Graph built: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges "
