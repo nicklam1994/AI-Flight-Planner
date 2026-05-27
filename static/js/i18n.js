@@ -272,6 +272,41 @@ const I18N = (() => {
       'zh-TW': '進場程序 (STAR)',
       'en': 'Arrival (STAR)'
     },
+    'btn-select-route': {
+      'zh-CN': '✅ 选择',
+      'zh-TW': '✅ 選擇',
+      'en': 'Select'
+    },
+    'btn-refresh': {
+      'zh-CN': '🔄 刷新',
+      'zh-TW': '🔄 刷新',
+      'en': '🔄 Refresh'
+    },
+    'toast-weather-refreshed': {
+      'zh-CN': '天气已刷新',
+      'zh-TW': '天氣已刷新',
+      'en': 'Weather refreshed'
+    },
+    'toast-weather-fail': {
+      'zh-CN': '天气刷新失败',
+      'zh-TW': '天氣刷新失敗',
+      'en': 'Weather refresh failed'
+    },
+    'error-plan-failed': {
+      'zh-CN': '规划失败，请检查 LLM 设置或网络连接',
+      'zh-TW': '規劃失敗，請檢查 LLM 設定或網路連線',
+      'en': 'Planning failed. Check LLM settings or network connection.'
+    },
+    'card-weather': {
+      'zh-CN': '天气',
+      'zh-TW': '天氣',
+      'en': 'Weather'
+    },
+    'card-route-candidates': {
+      'zh-CN': '🛫 候选航线',
+      'zh-TW': '🛫 候選航線',
+      'en': '🛫 Route Candidates'
+    },
     'label-loading-procedures': {
       'zh-CN': '載入程序中...',
       'zh-TW': '載入程序中...',
