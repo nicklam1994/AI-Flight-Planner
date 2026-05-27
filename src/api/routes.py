@@ -24,7 +24,7 @@ from src.api.schemas import (
     ProcedureLegResponse,
 )
 from src.db.airport import search as search_airports
-from src.db.connection import get_db, reconnect_db
+from src.db.connection import get_db, reconnect_db, reconnect_s3db
 from src.ai.nlp_parser import parse_intent
 from src.ai.route_evaluator import evaluate_routes
 from src.route.models import ParsedIntent, RouteCandidate
@@ -285,7 +285,7 @@ async def get_procedures(airport: str = "", type: str = ""):
         type: "sid", "star", or empty (both).
     """
     if not airport or len(airport) < 4:
-        return ProceduresResponse(icao=airport.upper())
+        raise HTTPException(status_code=400, detail="Airport ICAO code required (4 characters)")
 
     from src.db.sidstar import get_procedures as get_procs
 
@@ -323,7 +323,9 @@ async def get_procedure_detail(airport: str, name: str, type: str = "sid"):
 
     from src.db.sidstar import get_procedure_legs
 
-    proc_type = type.upper() if type.lower() in ("sid", "star") else "SID"
+    if type.lower() not in ("sid", "star"):
+        raise HTTPException(status_code=400, detail="type must be 'sid' or 'star'")
+    proc_type = type.upper()
     proc = get_procedure_legs(airport.upper(), name, proc_type)
 
     if proc is None:
@@ -450,6 +452,11 @@ async def set_cycle(body: CycleSwitchRequest):
         airac_cycle = cycle_id
 
     config.current_cycle = cycle_id
+
+    # Reconnect s3db so subsequent SID/STAR queries use the new cycle's database.
+    # Even if no .s3db exists for the new cycle (returns None), get_s3db()
+    # will detect the mismatch on next call and handle it gracefully.
+    reconnect_s3db(cycle_id)
 
     return HealthResponse(
         status="ok",

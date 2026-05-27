@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 # Module-level singletons (read-only, safe to share).
 _conn: sqlite3.Connection | None = None       # LNM airway database
 _s3db_conn: sqlite3.Connection | None = None   # PMDG SID/STAR database
+_s3db_cycle: str | None = None                 # Which cycle _s3db_conn is connected to
 
 
 # ---------------------------------------------------------------------------
@@ -155,21 +156,29 @@ def get_s3db(cycle: str | None = None) -> sqlite3.Connection | None:
     Returns:
         Read-only sqlite3 connection to the PMDG database, or None if unavailable.
     """
-    global _s3db_conn
+    global _s3db_conn, _s3db_cycle
 
-    # If a different cycle is requested, close and reopen
-    if cycle is not None and cycle != config.current_cycle:
-        if _s3db_conn is not None:
-            try:
-                _s3db_conn.close()
-            except Exception:
-                pass
-            _s3db_conn = None
+    # Resolve the effective cycle: explicit arg wins, otherwise current_config
+    effective_cycle = cycle or config.current_cycle
+
+    # Close and reopen if the cycle has changed (catches both explicit cycle
+    # changes AND config.current_cycle changes from POST /api/cycle).
+    if _s3db_conn is not None and _s3db_cycle != effective_cycle:
+        logger.info(
+            f"s3db cycle mismatch: conn={_s3db_cycle} requested={effective_cycle}. "
+            f"Reconnecting..."
+        )
+        try:
+            _s3db_conn.close()
+        except Exception:
+            pass
+        _s3db_conn = None
+        _s3db_cycle = None
 
     if _s3db_conn is not None:
         return _s3db_conn
 
-    s3db_path = _resolve_s3db_path(cycle)
+    s3db_path = _resolve_s3db_path(effective_cycle)
     if s3db_path is None:
         logger.debug("No .s3db available - SID/STAR queries will return empty")
         return None
@@ -185,6 +194,7 @@ def get_s3db(cycle: str | None = None) -> sqlite3.Connection | None:
     except sqlite3.OperationalError:
         pass
 
+    _s3db_cycle = effective_cycle
     logger.info("PMDG database connection established")
     return _s3db_conn
 
@@ -199,7 +209,7 @@ def reconnect_s3db(cycle: str | None = None) -> sqlite3.Connection | None:
     Returns:
         The new connection, or None if no .s3db is available.
     """
-    global _s3db_conn
+    global _s3db_conn, _s3db_cycle
     if _s3db_conn is not None:
         logger.info("Closing existing PMDG DB connection")
         try:
@@ -207,6 +217,7 @@ def reconnect_s3db(cycle: str | None = None) -> sqlite3.Connection | None:
         except Exception:
             pass
         _s3db_conn = None
+        _s3db_cycle = None
 
     return get_s3db(cycle)
 
