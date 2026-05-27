@@ -224,3 +224,20 @@ textarea#routeInput:focus { outline: none; border-color: var(--accent); }
   transition: all 0.3s; z-index: 200;
 }
 .toast.show { opacity: 1; transform: translateY(0); }
+
+/* Procedures row (SID/STAR selectors) */
+.procedures-row {
+  display: flex; gap: 16px; margin-top: 16px; padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.proc-col { display: flex; flex-direction: column; gap: 4px; }
+.proc-label {
+  font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.proc-select {
+  background: var(--bg-input); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 6px 10px; font-size: 0.85rem; min-width: 100px;
+}
+.proc-select:hover { border-color: var(--accent); }

@@ -256,7 +256,32 @@ const I18N = (() => {
       'zh-CN': '未找到可用的航线',
       'zh-TW': '未找到可用的航線',
       'en': 'No routes found'
-    }
+    },
+    'card-procedures': {
+      'zh-CN': '🛫 離場/進場程序',
+      'zh-TW': '🛫 離場/進場程序',
+      'en': '🛫 SID/STAR Procedures'
+    },
+    'label-sid': {
+      'zh-CN': '離場程序 (SID)',
+      'zh-TW': '離場程序 (SID)',
+      'en': 'Departure (SID)'
+    },
+    'label-star': {
+      'zh-CN': '進場程序 (STAR)',
+      'zh-TW': '進場程序 (STAR)',
+      'en': 'Arrival (STAR)'
+    },
+    'label-loading-procedures': {
+      'zh-CN': '載入程序中...',
+      'zh-TW': '載入程序中...',
+      'en': 'Loading procedures...'
+    },
+    'label-no-procedures': {
+      'zh-CN': '此機場無可用程序',
+      'zh-TW': '此機場無可用程序',
+      'en': 'No procedures available'
+    },
   };
 
   let currentLang = DEFAULT_LANG;

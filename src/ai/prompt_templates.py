@@ -21,8 +21,8 @@ Return a JSON object with these fields:
   "airway_type": "J (high-altitude jet) | B (low-altitude) | V (Victor, low-altitude) | null (any)",
   "avoid_waypoints": ["Waypoint idents to avoid", ...],
   "avoid_airspaces": ["Airspace names to avoid", ...],
-  "prefer_sid": "Preferred SID name or null",
-  "prefer_star": "Preferred STAR name or null",
+  "prefer_sid": "Preferred SID name (e.g., RAME1C, BEKO3A) or null",
+  "prefer_star": "Preferred STAR name (e.g., SIER7A, ABEY3B) or null",
   "cruise_altitude": cruise altitude in feet (integer) or null,
   "confidence": confidence score 0.0-1.0
 }
@@ -31,6 +31,10 @@ Rules:
 - Map city/airport names to ICAO codes (e.g., "Hong Kong" → "VHHH", "Tokyo" → "RJTT")
 - "high altitude" / "upper" / "jet" → airway_type "J"
 - "low altitude" / "lower" / "victor" → airway_type "V" or "B"
+- If the user mentions a specific SID by name (e.g., "OCEAN1", "RAME1C"), set prefer_sid to that name
+- If the user mentions a specific STAR by name (e.g., "SIER7A"), set prefer_star to that name
+- "departure via XXX" or "SID XXX" or "離場走XXX" → prefer_sid "XXX"
+- "arrival via XXX" or "STAR XXX" or "進場走XXX" → prefer_star "XXX"
 - If the user mentions a waypoint to avoid, use the exact ident
 - Set confidence to 0.0 if you cannot determine origin or destination
 - Do NOT invent waypoint or airway names that aren't mentioned

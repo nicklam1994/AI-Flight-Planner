@@ -73,8 +73,12 @@ async def _load_graph(cycle: str | None = None):
     # Update config so get_db() can find the right DB
     config.current_cycle = cycle or config.default_cycle
 
-    # Reconnect if the DB path has changed
+    # Reconnect LNM database if the DB path has changed
     reconnect_db(db_path)
+
+    # Also reconnect the SID/STAR .s3db when switching cycles
+    from src.db.connection import reconnect_s3db
+    reconnect_s3db(cycle)
 
     try:
         airway_graph, waypoint_map = build_airway_graph(airway_type=None)

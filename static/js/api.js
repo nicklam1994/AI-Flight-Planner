@@ -41,4 +41,12 @@ const API = {
     const res = await fetch(`${this.base}/api/cycles`);
     return res.json();
   },
+
+  async fetchProcedures(airport, type = '') {
+    const params = new URLSearchParams({ airport });
+    if (type) params.set('type', type);
+    const res = await fetch(`${this.base}/api/procedures?${params}`);
+    if (!res.ok) return { icao: airport, sids: [], stars: [] };
+    return res.json();
+  },
 };

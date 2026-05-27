@@ -28,6 +28,8 @@ def find_routes(
     min_alt: int | None = None,
     max_alt: int | None = None,
     avoid_waypoint_ids: list[int] | None = None,
+    prefer_sid: str | None = None,
+    prefer_star: str | None = None,
 ) -> list[RouteCandidate]:
     """
     Find K shortest paths between two airports through the airway graph.
@@ -44,6 +46,10 @@ def find_routes(
         min_alt: Minimum cruise altitude in feet (filters edges below this).
         max_alt: Maximum cruise altitude in feet (filters edges above this).
         avoid_waypoint_ids: Waypoint IDs to exclude from paths.
+        prefer_sid: SID procedure name — used for route string annotation only
+                    (Phase 1: no auto waypoint pinning).
+        prefer_star: STAR procedure name — used for route string annotation only
+                     (Phase 1: no auto waypoint pinning).
 
     Returns:
         List of RouteCandidate, sorted by distance ascending.
@@ -219,7 +225,7 @@ def find_routes(
                 total_dist += dist
 
         # Build route string
-        route_str = build_route_string(origin, dest, segments, wp_map)
+        route_str = build_route_string(origin, dest, segments, wp_map, prefer_sid, prefer_star)
 
         candidates.append(RouteCandidate(
             index=idx,
@@ -244,16 +250,22 @@ def build_route_string(
     dest: Airport,
     segments: list[RouteSegment],
     wp_map: dict[int, WaypointInfo],
+    prefer_sid: str | None = None,
+    prefer_star: str | None = None,
 ) -> str:
     """
     Build an ATS route string from a list of segments.
 
-    Format: ICAO_ORIGIN SID_NAME? WP1 AWY1 WP2 AWY2 ... DCT ICAO_DEST
+    Format: ICAO_ORIGIN SID_NAME? WP1 AWY1 WP2 AWY2 ... DCT STAR_NAME? ICAO_DEST
 
     Compresses consecutive segments on the same airway into
     "START_WP AWY_NAME END_WP".
     """
     parts = [origin.icao or origin.ident]
+
+    # If SID is specified, insert it after the origin airport
+    if prefer_sid:
+        parts.append(prefer_sid)
 
     # Compress consecutive same-airway segments
     i = 0
@@ -290,8 +302,10 @@ def build_route_string(
         parts.append(end_wp)
         i = j
 
-    # Add destination if not already the last element
+    # Add STAR name before destination if specified
     dest_icao = dest.icao or dest.ident
+    if prefer_star:
+        parts.append(prefer_star)
     if parts[-1] != dest_icao:
         parts.append(dest_icao)
 

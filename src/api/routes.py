@@ -18,6 +18,10 @@ from src.api.schemas import (
     HealthResponse,
     CycleInfo,
     CyclesResponse,
+    ProceduresResponse,
+    ProcedureSummary,
+    ProcedureDetailResponse,
+    ProcedureLegResponse,
 )
 from src.db.airport import search as search_airports
 from src.db.connection import get_db, reconnect_db
@@ -144,6 +148,8 @@ async def plan_route(request: PlanRequest):
             waypoint_map,
             k=request.k,
             avoid_waypoint_ids=avoid_ids,
+            prefer_sid=intent.prefer_sid,
+            prefer_star=intent.prefer_star,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -266,6 +272,88 @@ async def search_waypoint_endpoint(q: str = "", limit: int = 10):
 
 
 # ---------------------------------------------------------------------------
+# SID/STAR procedures
+# ---------------------------------------------------------------------------
+
+@router.get("/procedures", response_model=ProceduresResponse)
+async def get_procedures(airport: str = "", type: str = ""):
+    """
+    Return SID and STAR procedures for a given airport.
+
+    Query params:
+        airport: ICAO airport code (e.g., "VHHH"). Case-insensitive.
+        type: "sid", "star", or empty (both).
+    """
+    if not airport or len(airport) < 4:
+        return ProceduresResponse(icao=airport.upper())
+
+    from src.db.sidstar import get_procedures as get_procs
+
+    try:
+        data = get_procs(airport.upper())
+    except Exception as e:
+        logger.warning(f"Procedure query failed for {airport}: {e}")
+        return ProceduresResponse(icao=airport.upper())
+
+    sids = [ProcedureSummary(name=s["name"], runways=s["runways"]) for s in data["sids"]]
+    stars = [ProcedureSummary(name=s["name"], runways=s["runways"]) for s in data["stars"]]
+
+    # Filter by type if specified
+    if type.lower() == "sid":
+        stars = []
+    elif type.lower() == "star":
+        sids = []
+
+    return ProceduresResponse(icao=airport.upper(), sids=sids, stars=stars)
+
+
+@router.get("/procedures/{name}", response_model=ProcedureDetailResponse)
+async def get_procedure_detail(airport: str, name: str, type: str = "sid"):
+    """
+    Return the full leg-by-leg detail of a specific SID or STAR procedure.
+
+    Path params:
+        name: Procedure name (e.g., "RAME1C")
+    Query params:
+        airport: ICAO airport code (e.g., "VHHH")
+        type: "sid" or "star"
+    """
+    if not airport or len(airport) < 4:
+        raise HTTPException(status_code=400, detail="Valid airport ICAO code required")
+
+    from src.db.sidstar import get_procedure_legs
+
+    proc_type = type.upper() if type.lower() in ("sid", "star") else "SID"
+    proc = get_procedure_legs(airport.upper(), name, proc_type)
+
+    if proc is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Procedure '{name}' ({proc_type}) not found for {airport.upper()}",
+        )
+
+    return ProcedureDetailResponse(
+        name=proc.name,
+        procedure_type=proc.procedure_type,
+        airport_icao=airport.upper(),
+        runways=proc.runways,
+        legs=[
+            ProcedureLegResponse(
+                seqno=leg.seqno,
+                waypoint_ident=leg.waypoint_identifier,
+                path_termination=leg.path_termination,
+                lat=leg.waypoint_latitude,
+                lon=leg.waypoint_longitude,
+                altitude1=leg.altitude1,
+                altitude2=leg.altitude2,
+                transition=leg.transition_identifier,
+            )
+            for leg in proc.legs
+        ],
+    )
+
+
+# -------------------------------------------------------------------------
 # AIRAC Cycle switching
 # ---------------------------------------------------------------------------
 
@@ -394,6 +482,10 @@ def _intent_to_response(intent: ParsedIntent) -> ParsedIntentResponse:
 def _build_user_prefs(intent: ParsedIntent) -> str:
     """Build a user preferences string for the evaluator prompt."""
     parts = []
+    if intent.prefer_sid:
+        parts.append(f"Use SID: {intent.prefer_sid}")
+    if intent.prefer_star:
+        parts.append(f"Use STAR: {intent.prefer_star}")
     if intent.airway_type:
         type_name = {"J": "high-altitude jet airways", "B": "low-altitude", "V": "Victor airways"}.get(
             intent.airway_type, intent.airway_type

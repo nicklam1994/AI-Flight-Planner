@@ -32,6 +32,9 @@
   const $temperatureRange = document.getElementById('llmTemperature');
   const $temperatureValue = document.getElementById('tempValue');
   const $cycleSelect = document.getElementById('cycleSelect');
+  const $procedureRow = document.getElementById('proceduresRow');
+  const $sidSelect = document.getElementById('sidSelect');
+  const $starSelect = document.getElementById('starSelect');
 
   // ── Initialization ────────────────────────────────────────
   function init() {
@@ -69,6 +72,17 @@
 
     // Cycle dropdown
     $cycleSelect.addEventListener('change', handleCycleChange);
+
+    // SID/STAR procedure fetching on input change
+    let fetchTimer = null;
+    $input.addEventListener('input', () => {
+      clearTimeout(fetchTimer);
+      fetchTimer = setTimeout(() => fetchProceduresForInput(), 500);
+    });
+
+    // SID/STAR selection — append to input
+    $sidSelect.addEventListener('change', () => appendProcedureToInput('sid'));
+    $starSelect.addEventListener('change', () => appendProcedureToInput('star'));
 
     // Health check + cycle list on load
     checkHealth();
@@ -114,6 +128,86 @@
     localStorage.setItem('ai_flight_planner_cycle', cycle);
     showToast(`AIRAC: ${cycle}`);
     I18N.refresh();
+  }
+
+  // ── SID/STAR Procedures ──────────────────────────────────
+  async function fetchProceduresForInput() {
+    const input = $input.value.toUpperCase();
+    // Match ICAO airport codes (4 uppercase letters)
+    const icaoMatches = input.match(/\b([A-Z]{4})\b/g) || [];
+
+    if (icaoMatches.length === 0) {
+      $procedureRow.style.display = 'none';
+      return;
+    }
+
+    // Use the first ICAO as the likely origin
+    const originIcao = icaoMatches[0];
+    let destIcao = icaoMatches.length >= 2 ? icaoMatches[1] : null;
+
+    try {
+      const procData = await API.fetchProcedures(originIcao);
+      populateProcedureSelects(procData);
+
+      // If we have a destination, also fetch its STARs (for display only for now)
+      // In Phase 1, we only show SIDs for origin and STARs for destination
+      if (destIcao && destIcao !== originIcao) {
+        const starData = await API.fetchProcedures(destIcao);
+        populateStarSelect(starData.stars || []);
+      }
+    } catch (e) {
+      console.warn('Failed to fetch procedures:', e);
+      $procedureRow.style.display = 'none';
+    }
+  }
+
+  function populateProcedureSelects(procData) {
+    const sids = procData.sids || [];
+    const stars = procData.stars || [];
+
+    // Populate SID dropdown (origin departure procedures)
+    if (sids.length > 0) {
+      $sidSelect.innerHTML = '<option value="">-- ' + I18N.t('label-sid') + ' --</option>' +
+        sids.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+    } else {
+      $sidSelect.innerHTML = '<option value="">--</option>';
+    }
+
+    // Show procedure row if we have any procedures
+    if (sids.length > 0 || stars.length > 0) {
+      $procedureRow.style.display = 'flex';
+    } else {
+      $procedureRow.style.display = 'none';
+    }
+  }
+
+  function populateStarSelect(stars) {
+    if (stars.length > 0) {
+      $starSelect.innerHTML = '<option value="">-- ' + I18N.t('label-star') + ' --</option>' +
+        stars.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+    } else {
+      $starSelect.innerHTML = '<option value="">--</option>';
+    }
+  }
+
+  function appendProcedureToInput(type) {
+    const select = type === 'sid' ? $sidSelect : $starSelect;
+    const procName = select.value;
+    if (!procName) return;
+
+    const currentInput = $input.value.trim();
+    const keyword = type === 'sid' ? ' SID' : ' STAR';
+
+    // Avoid double-adding
+    if (currentInput.toUpperCase().includes(procName.toUpperCase())) return;
+
+    // Append procedure name to input
+    const suffix = type === 'sid' ? ` ${procName} departure` : ` ${procName} arrival`;
+    $input.value = currentInput + suffix;
+
+    // Reset select
+    select.value = '';
+    showToast(`${type.toUpperCase()}: ${procName}`);
   }
 
   // ── Plan route ────────────────────────────────────────────

@@ -113,3 +113,41 @@ class CyclesResponse(BaseModel):
     """GET /api/cycles response."""
     cycles: list[CycleInfo]
     default: str
+
+
+# ---------------------------------------------------------------------------
+# Procedures (SID/STAR)
+# ---------------------------------------------------------------------------
+
+class ProcedureSummary(BaseModel):
+    """A SID or STAR procedure summary (name + runways)."""
+    name: str
+    runways: list[str] = []
+
+
+class ProceduresResponse(BaseModel):
+    """GET /api/procedures response."""
+    icao: str
+    sids: list[ProcedureSummary] = []
+    stars: list[ProcedureSummary] = []
+
+
+class ProcedureLegResponse(BaseModel):
+    """A single leg within a SID/STAR procedure."""
+    seqno: int
+    waypoint_ident: str | None = None
+    path_termination: str = ""
+    lat: float | None = None
+    lon: float | None = None
+    altitude1: int | None = None
+    altitude2: int | None = None
+    transition: str | None = None
+
+
+class ProcedureDetailResponse(BaseModel):
+    """GET /api/procedures/{name} response."""
+    name: str
+    procedure_type: str  # "SID" or "STAR"
+    airport_icao: str
+    runways: list[str] = []
+    legs: list[ProcedureLegResponse] = []

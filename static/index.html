@@ -54,6 +54,12 @@
           </select>
           <button id="planBtn" class="btn btn-primary" data-i18n="btn-plan">✈️ Plan Route</button>
         </div>
+        <div class="input-row procedure-row" id="procedureRow" style="display:none">
+          <label for="sidSelect" data-i18n="label-sid">SID:</label>
+          <select id="sidSelect"><option value="">--</option></select>
+          <label for="starSelect" data-i18n="label-star">STAR:</label>
+          <select id="starSelect"><option value="">--</option></select>
+        </div>
       </div>
     </div>
 
@@ -61,6 +67,20 @@
     <div id="parsedCard" class="card" style="display:none">
       <div class="card-title" data-i18n="card-parsed-intent">📋 Parsed Intent</div>
       <div id="parsedContent" class="parsed-grid"></div>
+      <div id="proceduresRow" class="procedures-row" style="display:none">
+        <div class="proc-col">
+          <label for="sidSelect" class="proc-label">SID</label>
+          <select id="sidSelect" class="proc-select">
+            <option value="">(auto)</option>
+          </select>
+        </div>
+        <div class="proc-col">
+          <label for="starSelect" class="proc-label">STAR</label>
+          <select id="starSelect" class="proc-select">
+            <option value="">(auto)</option>
+          </select>
+        </div>
+      </div>
     </div>
 
     <!-- Results -->
