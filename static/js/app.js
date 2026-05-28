@@ -582,11 +582,8 @@
       }
       return '';
     }
-    var depCn = extractCnName(dep, ctx);
-    var arrCn = extractCnName(arr, ctx);
-    var useCn = (I18N.currentLang || '').startsWith('zh');
-    var depDisplay = depCn || depName;
-    var arrDisplay = arrCn || arrName;
+    var depDisplay = depName;
+    var arrDisplay = arrName;
     var n = candidate.segments ? candidate.segments.length + 2 : '?';
     var distance = candidate.total_distance_nm?.toFixed(0) || '?';
     var bearingId = 'route-bearing-' + candidate.index;
