@@ -6,8 +6,8 @@ const API = {
 
   // ── Route Planning ──────────────────────────────────────────
 
-  async plan(input, k = 5, llmConfig = null, cycle = null) {
-    const body = { input, k };
+  async plan(input, k = 5, llmConfig = null, cycle = null, useEvaluator = true) {
+    const body = { input, k, use_evaluator: useEvaluator };
     if (llmConfig) body.llm_config = llmConfig;
     if (cycle) body.cycle = cycle;
 

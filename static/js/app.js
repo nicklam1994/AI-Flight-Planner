@@ -16,6 +16,7 @@
   let llmSettings = LLMSettings.load();
   let currentCycle = localStorage.getItem('ai_flight_planner_cycle') || null;
   let currentTimezone = localStorage.getItem('ai_flight_planner_timezone') || 'UTC+8';
+  let useEvaluator = localStorage.getItem('ai_flight_planner_evaluator') === 'true'; // default off
 
   let state = {
     planResult: null,       // POST /api/plan response
@@ -147,7 +148,7 @@
 
     try {
       showStatus('Planning route...', 'loading');
-      const result = await API.plan(input, 3, llmSettings, currentCycle);
+      const result = await API.plan(input, 3, llmSettings, currentCycle, useEvaluator);
       state.planResult = result;
       state.selectedRoute = null;
       state.candidateIndex = null;
@@ -1019,6 +1020,9 @@
     if ($settingsTimezone) {
       $settingsTimezone.value = currentTimezone;
     }
+    // Populate evaluator toggle
+    const $settingsEval = document.getElementById('settingsEval');
+    if ($settingsEval) $settingsEval.checked = useEvaluator;
     $modalOverlay.classList.add('show');
   }
 
@@ -1048,7 +1052,11 @@
       currentTimezone = $settingsTimezone.value;
       localStorage.setItem('ai_flight_planner_timezone', currentTimezone);
     }
-
+    const $settingsEval = document.getElementById('settingsEval');
+    if ($settingsEval) {
+      useEvaluator = $settingsEval.checked;
+      localStorage.setItem('ai_flight_planner_evaluator', useEvaluator ? 'true' : 'false');
+    }
     closeSettings();
     showToast(I18N.t('toast-settings-saved'));
   }

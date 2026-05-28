@@ -197,18 +197,23 @@ async def plan_route(request: PlanRequest):
             error="No routes found between specified airports.",
         )
 
-    # --- Step 3: Evaluate routes with LLM ---
+    # --- Step 3: Evaluate routes with LLM (if enabled) ---
     user_prefs = _build_user_prefs(intent)
-    try:
-        best_idx, rankings = await evaluate_routes(
-            intent.origin,
-            intent.destination,
-            candidates,
-            user_preferences=user_prefs,
-            llm_config=llm_cfg,
-        )
-    except Exception as e:
-        logger.warning(f"Route evaluation failed (using distance order): {e}")
+    eval_enabled = getattr(request, 'use_evaluator', True)
+    if eval_enabled:
+        try:
+            best_idx, rankings = await evaluate_routes(
+                intent.origin,
+                intent.destination,
+                candidates,
+                user_preferences=user_prefs,
+                llm_config=llm_cfg,
+            )
+        except Exception as e:
+            logger.warning(f"Route evaluation failed (using distance order): {e}")
+            best_idx = 0
+            rankings = []
+    else:
         best_idx = 0
         rankings = []
 
