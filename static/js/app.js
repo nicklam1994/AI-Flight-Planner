@@ -1076,7 +1076,7 @@
         var timeMatch = rest.match(/(\d{4})\/(\d{4})/);
         var timeStr = '';
         if (timeMatch) {
-          timeStr = timeMatch[1][0]+timeMatch[1][1]+'\u65E5'+timeMatch[1][2]+timeMatch[1][3]+'Z\u2013'+timeMatch[2][0]+timeMatch[2][1]+'\u65E5'+timeMatch[2][2]+timeMatch[2][3]+'Z';
+          timeStr = timeMatch[1][0]+timeMatch[1][1]+'\u65E5 '+timeMatch[1][2]+':'+timeMatch[1][3]+' \u2013 '+timeMatch[2][0]+timeMatch[2][1]+'\u65E5 '+timeMatch[2][2]+':'+timeMatch[2][3]+' (UTC)';
           rest = rest.replace(timeMatch[0], '').trim();
         }
 
@@ -1107,9 +1107,10 @@
         var label = kindStr;
         if (kindStr === 'TEMPO') { tempoNum++; label = '\u77ED\u66AB\u6CE2\u52D5' + tempoNum; }
         else if (kindStr === 'BECMG') label = '\u9010\u6F38\u8F49\u8B8A';
-        else if (kindStr.indexOf('PROB') === 0) label = '\u6982\u7387' + kindStr.substring(4) + '\uFF05';
-        if (timeStr) label += ' (' + timeStr + ')';
-        h += '<tr><td class="intent-label">' + label + '</td><td class="intent-value" colspan="3">' + desc.trim() + '</td></tr>';
+        else if (kindStr.indexOf('PROB') === 0) label = '\u6982\u7387 ' + kindStr.substring(4) + '\uFF05';
+        // Include time in content value
+        var contentStr = (timeStr || '') + (desc.trim() ? (timeStr ? ' | ' : '') + desc.trim() : '');
+        h += '<tr><td class="intent-label">' + label + '</td><td class="intent-value" colspan="3">' + contentStr + '</td></tr>';
       }
 
       h += '</tbody></table></div>';
