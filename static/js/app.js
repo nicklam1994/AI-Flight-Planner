@@ -195,9 +195,12 @@
 
   // ── Rendering: Parsed Intent (TABLE) ─────────────────────
   function renderParsedTable(parsed) {
-    const altStr = parsed.cruise_altitude
-      ? `FL${Math.round(parsed.cruise_altitude / 100)}`
-      : '\u2014';
+    const altMin = parsed.cruise_altitude_min
+      ? `FL${Math.round(parsed.cruise_altitude_min / 100)}`
+      : parsed.cruise_altitude ? `FL${Math.round(parsed.cruise_altitude / 100)}` : '\u2014';
+    const altMax = parsed.cruise_altitude_max
+      ? `FL${Math.round(parsed.cruise_altitude_max / 100)}`
+      : parsed.cruise_altitude ? `FL${Math.round(parsed.cruise_altitude / 100)}` : '\u2014';
 
     const avoidParts = [];
     if (parsed.avoid_waypoints && parsed.avoid_waypoints.length > 0) {
@@ -217,8 +220,8 @@
             <td class="intent-label">到達(ICAO/IATA)</td><td class="intent-value">${escapeHtml(parsed.destination || '?')}${parsed.dest_iata ? '/' + escapeHtml(parsed.dest_iata) : ''}</td>
           </tr>
           <tr>
-            <td class="intent-label">巡航高度(MIN)</td><td class="intent-value">${escapeHtml(altStr)}</td>
-            <td class="intent-label">巡航高度(MAX)</td><td class="intent-value">${escapeHtml(altStr)}</td>
+            <td class="intent-label">巡航高度(MIN)</td><td class="intent-value">${escapeHtml(altMin)}</td>
+            <td class="intent-label">巡航高度(MAX)</td><td class="intent-value">${escapeHtml(altMax)}</td>
           </tr>
           <tr>
             <td class="intent-label">航路類型</td><td class="intent-value">${escapeHtml(parsed.airway_type === 'J' ? 'High' : parsed.airway_type === 'B' || parsed.airway_type === 'V' ? 'Low' : 'Both')}</td>

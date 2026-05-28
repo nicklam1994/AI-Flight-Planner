@@ -24,6 +24,8 @@ Return a JSON object with these fields:
   "prefer_sid": "Preferred SID name (e.g., RAME1C, BEKO3A) or null",
   "prefer_star": "Preferred STAR name (e.g., SIER7A, ABEY3B) or null",
   "cruise_altitude": cruise altitude in feet (integer) or null,
+  "cruise_altitude_min": minimum cruise altitude in feet if a range is given (e.g., \"FL290-FL310\" → 29000) or null,
+  "cruise_altitude_max": maximum cruise altitude in feet if a range is given (e.g., \"FL290-FL310\" → 31000) or null,
   "confidence": confidence score 0.0-1.0,
   "context": "One sentence in the user's language explaining your interpretation, including full airport names and cities if known (e.g., '出發地 RJAA（東京成田機場，日本），目的地 ZBAA（北京首都機場，中國），偏好高空航線' or 'Departs RJAA (Tokyo Narita, Japan) to ZBAA (Beijing Capital, China) via high altitude airways')"
 }

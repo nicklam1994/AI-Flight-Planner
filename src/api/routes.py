@@ -1067,6 +1067,8 @@ def _intent_to_response(intent: ParsedIntent) -> ParsedIntentResponse:
         prefer_sid=intent.prefer_sid,
         prefer_star=intent.prefer_star,
         cruise_altitude=intent.cruise_altitude,
+        cruise_altitude_min=intent.cruise_altitude_min,
+        cruise_altitude_max=intent.cruise_altitude_max,
         confidence=intent.confidence,
         context=intent.context,
         origin_iata=intent.origin_iata,

@@ -31,6 +31,8 @@ class ParsedIntentResponse(BaseModel):
     prefer_sid: str | None = None
     prefer_star: str | None = None
     cruise_altitude: int | None = None
+    cruise_altitude_min: int | None = None
+    cruise_altitude_max: int | None = None
     confidence: float = 0.0
     context: str | None = None     # AI reasoning/explanation
     origin_iata: str | None = None

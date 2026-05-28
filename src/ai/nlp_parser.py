@@ -50,6 +50,8 @@ async def parse_intent(
             prefer_sid=parsed.get("prefer_sid"),
             prefer_star=parsed.get("prefer_star"),
             cruise_altitude=parsed.get("cruise_altitude"),
+            cruise_altitude_min=parsed.get("cruise_altitude_min"),
+            cruise_altitude_max=parsed.get("cruise_altitude_max"),
             confidence=float(parsed.get("confidence", 0.0)),
             context=parsed.get("context") or parsed.get("reasoning"),
         )
