@@ -1076,6 +1076,8 @@ def _intent_to_response(intent: ParsedIntent) -> ParsedIntentResponse:
         use_sids=intent.use_sids,
         use_stars=intent.use_stars,
         rnav_capable=intent.rnav_capable,
+        aircraft_type=intent.aircraft_type,
+        fuel_unit=intent.fuel_unit,
     )
 
 

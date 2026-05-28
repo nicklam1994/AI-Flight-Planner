@@ -40,6 +40,8 @@ class ParsedIntentResponse(BaseModel):
     use_sids: bool = True
     use_stars: bool = True
     rnav_capable: bool = True
+    aircraft_type: str | None = None
+    fuel_unit: str | None = None
 
 
 class RouteSegmentResponse(BaseModel):

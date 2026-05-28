@@ -54,6 +54,8 @@ async def parse_intent(
             cruise_altitude_max=parsed.get("cruise_altitude_max"),
             confidence=float(parsed.get("confidence", 0.0)),
             context=parsed.get("context") or parsed.get("reasoning"),
+            aircraft_type=parsed.get("aircraft_type"),
+            fuel_unit=parsed.get("fuel_unit"),
         )
 
     except Exception as e:
