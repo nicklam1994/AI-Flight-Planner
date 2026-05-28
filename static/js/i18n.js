@@ -534,11 +534,7 @@ const I18N = (() => {
   function refresh() {
     apply();
 
-    // Update LLM settings button text
-    const settingsBtn = document.getElementById('settingsBtn');
-    if (settingsBtn) settingsBtn.textContent = t('btn-settings');
-
-    // Update plan button
+    // Plan button
     const planBtn = document.getElementById('planBtn');
     if (planBtn && !planBtn.disabled) planBtn.textContent = t('btn-plan');
 
