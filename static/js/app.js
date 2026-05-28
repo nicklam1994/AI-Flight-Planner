@@ -675,7 +675,7 @@
         html += '<td>' + (r.elevation_ft != null ? r.elevation_ft : '\u2014') + '</td>';
         html += '<td>' + (r.heading_deg != null ? r.heading_deg.toFixed(0) : '\u2014') + '</td>';
         html += '<td>' + (r.glidepath_deg != null ? r.glidepath_deg.toFixed(1) : '\u2014') + '</td>';
-        html += '<td>' + escapeHtml(r.ils_freq || '\u2014') + '</td>';
+        html += '<td>' + (r.ils_frequency ? (r.ils_frequency/1000).toFixed(3) : '\u2014') + '</td>';
         html += '<td>' + escapeHtml(r.ils_ident || '\u2014') + '</td>';
         html += '<td>' + escapeHtml(r.ils_cat || '\u2014') + '</td>';
         html += '<td>' + (r.has_dme ? '\u652F\u6301' : '\u2014') + '</td>';
