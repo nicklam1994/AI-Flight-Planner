@@ -530,7 +530,7 @@
     if (descRow && state._depAirportName) {
       var depFull = dep + (parsed?.origin_iata ? '/' + parsed.origin_iata : '');
       var arrFull = arr + (parsed?.dest_iata ? '/' + parsed.dest_iata : '');
-      descRow.innerHTML = '\\u51FA\\u767C\\u5730 ' + escapeHtml(depFull) + '\\uFF08' + escapeHtml(state._depAirportName) + '\\uFF09\\uFF0C\\u76EE\\u7684\\u5730 ' + escapeHtml(arrFull) + '\\uFF08' + escapeHtml(state._arrAirportName) + '\\uFF09';
+      descRow.innerHTML = '\u51FA\u767C\u5730 ' + escapeHtml(depFull) + '\uFF08' + escapeHtml(state._depAirportName) + '\uFF09\uFF0C\u76EE\u7684\u5730 ' + escapeHtml(arrFull) + '\uFF08' + escapeHtml(state._arrAirportName) + '\uFF09';
     }
 
     if (depResult.status === 'rejected') console.warn('Departure airport detail failed:', depResult.reason);
