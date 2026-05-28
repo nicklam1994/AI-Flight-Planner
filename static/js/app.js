@@ -574,7 +574,8 @@
 
     var html = '<div class="card route-description-card">';
     html += '<div class="card-title">\u2708\uFE0F \u822A\u7DDA\u8A73\u60C5</div>';
-    html += '<div class="route-string-box" title="\u9EDE\u64CA\u5373\u53EF\u590D\u5236" onclick="var t=this.querySelector(\'.route-string-text\');if(t)navigator.clipboard.writeText(t.textContent.trim());this.classList.add(\'copied\');setTimeout(function(){this.classList.remove(\'copied\')}.bind(this),1500)">';
+    html += '<div class="route-string-box" title="點擊即可複製" onclick="var t=this.querySelector(\'.route-string-text\');if(t)navigator.clipboard.writeText(t.textContent.trim());this.classList.add(\'copied\');var tip=this.querySelector(\'.copy-toast\');if(tip){tip.style.display=\'block\';setTimeout(function(){tip.style.display=\'none\'},1500)}">';
+    html += '<span class="copy-toast" style="display:none;position:absolute;top:-24px;right:8px;background:var(--success);color:#fff;padding:2px 8px;border-radius:4px;font-size:0.7rem;z-index:10">✓ 已複製</span>';
     html += '<span class="route-string-text">' + escapeHtml(candidate.route_string) + '</span></div>';
     html += '<table class="data-table">';
     html += '<tr><td class="intent-label">\u7DDA\u8DEF\u63CF\u8FF0</td><td class="intent-value">\u51FA\u767C\u5730 ' + escapeHtml(dep) + '\uFF08' + escapeHtml(depName) + '\uFF09\uFF0C\u76EE\u7684\u5730 ' + escapeHtml(arr) + '\uFF08' + escapeHtml(arrName) + '\uFF09</td></tr>';
