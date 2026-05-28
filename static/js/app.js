@@ -613,87 +613,84 @@
   // ── Airport Card ─────────────────────────────────────────
   function renderAirportCard(container, icao, fix, data, weatherData, icon) {
     if (!data) {
-      container.innerHTML = renderError(`Airport data unavailable for ${escapeHtml(icao)}`);
+      container.innerHTML = renderError('Airport data unavailable for ' + escapeHtml(icao));
       return;
     }
+    var ap = data.airport || data;
+    var name = ap.name || icao;
+    var isDeparture = (icon === '\uD83D\uDEEB');
+    var html = '';
 
-    const ap = data.airport || data;
-    const name = ap.name || icao;
-    const city = ap.city || '';
-    const country = ap.country || '';
+    // Header: "🛫 Narita Intl（RJAA）"
+    html += '<div class="airport-header">' + icon + ' <strong>' + escapeHtml(name) + '\uFF08' + escapeHtml(icao) + '\uFF09</strong></div>';
 
-    let html = '';
-
-    // Airport name header
-    html += `<div class="airport-header">${icon} <strong>${escapeHtml(icao)} — ${escapeHtml(name)}</strong>`;
-    if (city || country) {
-      html += ` <span class="airport-location">${escapeHtml(city)}${city && country ? ', ' : ''}${escapeHtml(country)}</span>`;
-    }
-    html += '</div>';
-
-    // Update route description bearing if we have coordinates
     if (ap.lat != null && ap.lon != null) {
       state['_ap_' + icao] = { lat: ap.lat, lon: ap.lon };
       updateRouteBearing();
     }
 
-    // SID/STAR table
-    const hasProcedures = (data.sids && data.sids.length > 0) || (data.stars && data.stars.length > 0);
-    if (hasProcedures) {
-      html += '<div class="airport-section"><div class="airport-section-title">\u25B6 \u9032/\u96E2\u5834\u7A0B\u5E8F</div>';
-      html += '<table class="proc-table"><thead><tr><th>\u7A0B\u5E8F</th><th>\u4F7F\u7528\u8DD1\u9053</th><th>\u9032/\u96E2\u5834\u9EDE</th></tr></thead><tbody>';
+    // Procedures (already filtered by fix from backend)
+    var procs = isDeparture ? (data.sids || []) : (data.stars || []);
+    var procTitle = isDeparture ? '\u96E2\u5834\u7A0B\u5E8F (SID)' : '\u9032\u5834\u7A0B\u5E8F (STAR)';
+    var fixCol = isDeparture ? '\u96E2\u5834\u9EDE' : '\u9032\u5834\u9EDE';
+    var refRunways = {};
 
-      if (data.sids) {
-        data.sids.forEach(s => {
-          html += `<tr><td>SID ${escapeHtml(s.name)}</td><td>${escapeHtml((s.runways || []).join(', '))}</td><td>${escapeHtml(s.transition_fix || s.transition || '\u2014')}</td></tr>`;
-        });
-      }
-      if (data.stars) {
-        data.stars.forEach(s => {
-          html += `<tr><td>STAR ${escapeHtml(s.name)}</td><td>${escapeHtml((s.runways || []).join(', '))}</td><td>${escapeHtml(s.transition_fix || s.transition || '\u2014')}</td></tr>`;
-        });
-      }
-
+    if (procs.length > 0) {
+      html += '<div class="airport-section"><div class="airport-section-title">' + procTitle + '</div>';
+      html += '<table class="data-table"><thead><tr><th>\u7A0B\u5E8F</th><th>\u4F7F\u7528\u8DD1\u9053</th><th>' + fixCol + '</th></tr></thead><tbody>';
+      procs.forEach(function(p) {
+        var rwy = (p.runway || '').replace(/^RW/i, '');
+        if (rwy) refRunways[rwy.toUpperCase()] = true;
+        var fix = isDeparture ? (p.exit_fix || '\u2014') : ((p.fix_waypoints && p.fix_waypoints[0]) || '\u2014');
+        html += '<tr><td>' + escapeHtml(p.name) + '</td><td>' + escapeHtml(rwy || '\u2014') + '</td><td>' + escapeHtml(fix) + '</td></tr>';
+      });
       html += '</tbody></table></div>';
-    } else {
-      html += '<p class="no-data">No SID/STAR procedures available</p>';
     }
 
-    // Runway table
-    if (data.runways && data.runways.length > 0) {
-      html += '<div class="airport-section"><div class="airport-section-title">\u25B6 \u8DD1\u9053\u4FE1\u606F</div>';
-      html += '<table class="runway-table"><thead><tr>';
-      html += '<th>\u8DD1\u9053</th><th>\u9577\u5EA6(ft)</th><th>\u5BEC\u5EA6(ft)</th><th>\u9AD8\u5EA6(ft)</th><th>\u822A\u5411(\u00B0)</th><th>GP\u4E0B\u6ED1(\u00B0)</th><th>ILS\u983B\u7387</th><th>\u6A19\u8B58</th><th>CAT</th><th>DME</th><th>\u904E\u6E21\u9AD8\u5EA6(ft)</th>';
-      html += '</tr></thead><tbody>';
+    // Runway table — show only runways referenced by procedures
+    var runways = data.runways || [];
+    var displayRunways = runways;
+    var refKeys = Object.keys(refRunways);
+    if (refKeys.length > 0) {
+      displayRunways = runways.filter(function(r) {
+        var rn = (r.name || '').replace(/^RW/i, '').toUpperCase();
+        return refRunways[rn];
+      });
+    }
+    // Find max length for recommendation
+    var maxLen = 0;
+    displayRunways.forEach(function(r) { if ((r.length_ft || 0) > maxLen) maxLen = r.length_ft; });
 
-      data.runways.forEach(r => {
+    if (displayRunways.length > 0) {
+      html += '<div class="airport-section"><div class="airport-section-title">\u8DD1\u9053\u4FE1\u606F</div>';
+      html += '<table class="data-table"><thead><tr>';
+      html += '<th>\u8DD1\u9053</th><th>\u9577\u5EA6(ft)</th><th>\u5BEC\u5EA6(ft)</th><th>\u9AD8\u5EA6(ft)</th><th>\u822A\u5411(\u00B0)</th><th>GP\u4E0B\u6ED1(\u00B0)</th><th>ILS\u983B\u7387</th><th>\u6A19\u8B58</th><th>CAT</th><th>DME</th><th>\u904E\u6E21\u9AD8\u5EA6(ft)</th><th title=\"ILS CAT II/III + \u6700\u9577\u2014\u512A\u5148\u7CBE\u78BA\u9032\u5834\">\u63A8\u85A6</th>';
+      html += '</tr></thead><tbody>';
+      displayRunways.forEach(function(r) {
+        var isRec = r.ils_cat && (r.ils_cat.indexOf('II') >= 0 || r.ils_cat.indexOf('III') >= 0) && r.length_ft === maxLen && maxLen > 0;
         html += '<tr>';
-        html += `<td>${escapeHtml(r.name || r.ident || '\u2014')}</td>`;
-        html += `<td>${r.length_ft != null ? r.length_ft.toLocaleString() : '\u2014'}</td>`;
-        html += `<td>${r.width_ft != null ? r.width_ft : '\u2014'}</td>`;
-        html += `<td>${r.elevation_ft != null ? r.elevation_ft : '\u2014'}</td>`;
-        html += `<td>${r.heading_deg != null ? r.heading_deg : '\u2014'}</td>`;
-        html += `<td>${r.glidepath_deg != null ? r.glidepath_deg.toFixed(1) : '\u2014'}</td>`;
-        html += `<td>${escapeHtml(r.ils_freq || '\u2014')}</td>`;
-        html += `<td>${escapeHtml(r.ils_ident || '\u2014')}</td>`;
-        html += `<td>${escapeHtml(r.ils_cat || '\u2014')}</td>`;
-        html += `<td>${r.dme != null ? (r.dme ? '\u2713' : '\u2717') : '\u2014'}</td>`;
-        html += `<td>${r.transition_alt_ft != null ? r.transition_alt_ft : '\u2014'}</td>`;
+        html += '<td>' + escapeHtml(r.name || '\u2014') + '</td>';
+        html += '<td>' + (r.length_ft != null ? r.length_ft.toLocaleString() : '\u2014') + '</td>';
+        html += '<td>' + (r.width_ft != null ? r.width_ft : '\u2014') + '</td>';
+        html += '<td>' + (r.elevation_ft != null ? r.elevation_ft : '\u2014') + '</td>';
+        html += '<td>' + (r.heading_deg != null ? r.heading_deg.toFixed(0) : '\u2014') + '</td>';
+        html += '<td>' + (r.glidepath_deg != null ? r.glidepath_deg.toFixed(1) : '\u2014') + '</td>';
+        html += '<td>' + escapeHtml(r.ils_freq || '\u2014') + '</td>';
+        html += '<td>' + escapeHtml(r.ils_ident || '\u2014') + '</td>';
+        html += '<td>' + escapeHtml(r.ils_cat || '\u2014') + '</td>';
+        html += '<td>' + (r.has_dme ? '\u652F\u6301' : '\u2014') + '</td>';
+        html += '<td>' + (r.transition_alt_ft != null ? r.transition_alt_ft : '\u2014') + '</td>';
+        html += '<td>' + (isRec ? '\u2705\uFE0F' : '') + '</td>';
         html += '</tr>';
       });
-
       html += '</tbody></table></div>';
     }
 
     // Weather section (collapsible)
     if (weatherData && (weatherData.metar || weatherData.taf || weatherData.metar_raw || weatherData.taf_raw)) {
-      const wxId = 'wx-' + icao + '-' + Date.now();
-      html += '<div class="airport-section weather-toggle-section">';
-      html += `<div class="airport-section-title collapsible-header" onclick="document.getElementById('${wxId}').classList.toggle('collapsed');this.classList.toggle('expanded')">`;
-      html += `\u25B6 \u6C23\u8C61\u4FE1\u606F (\u9EDE\u64CA\u5C55\u958B/\u6536\u5408)`;
-      html += `<button class="btn btn-small weather-refresh-btn" onclick="event.stopPropagation();app.refreshWeather('${escapeAttr(icao)}', ${state.candidateIndex})" style="margin-left:12px">\uD83D\uDD04</button>`;
-      html += '</div>';
-      html += `<div id="${wxId}" class="collapsible-content collapsed">`;
+      var wxId = 'wx-' + icao + '-' + Date.now();
+      html += '<div class="airport-section"><div class="airport-section-title collapsible-header" onclick="document.getElementById(\'' + wxId + '\').classList.toggle(\'collapsed\')">\u6C23\u8C61\u4FE1\u606F (\u9EDE\u64CA\u5C55\u958B/\u6536\u5408)</div>';
+      html += '<div id="' + wxId + '" class="collapsible-content collapsed">';
       html += renderWeatherContent(icao, weatherData);
       html += '</div></div>';
     }
@@ -701,6 +698,7 @@
     container.innerHTML = html;
   }
 
+  // ── Update bearing
   // ── Update bearing in route description ─────────────────
   function updateRouteBearing() {
     if (!state.selectedRoute || !state._bearingElId) return;
