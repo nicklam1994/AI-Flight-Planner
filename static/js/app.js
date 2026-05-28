@@ -578,7 +578,7 @@
     html += '<span class="copy-toast" style="display:none;position:absolute;top:-24px;right:8px;background:var(--success);color:#fff;padding:2px 8px;border-radius:4px;font-size:0.7rem;z-index:10">✓ 已複製</span>';
     html += '<span class="route-string-text">' + escapeHtml(candidate.route_string) + '</span></div>';
     html += '<table class="data-table">';
-    html += '<tr><td class="intent-label">\u7DDA\u8DEF\u63CF\u8FF0</td><td class="intent-value">\u51FA\u767C\u5730 ' + escapeHtml(dep) + '\uFF08' + escapeHtml(depName) + '\uFF09\uFF0C\u76EE\u7684\u5730 ' + escapeHtml(arr) + '\uFF08' + escapeHtml(arrName) + '\uFF09</td></tr>';
+    html += '<tr><td class="intent-label">\u822A\u7DDA\u63CF\u8FF0</td><td class="intent-value">\u51FA\u767C\u5730 ' + escapeHtml(dep) + '\uFF08' + escapeHtml(depName) + '\uFF09\uFF0C\u76EE\u7684\u5730 ' + escapeHtml(arr) + '\uFF08' + escapeHtml(arrName) + '\uFF09</td></tr>';
     html += '<tr><td class="intent-label">\u5168\u7A0B\u6578\u64DA</td><td class="intent-value">\u5168\u7A0B\u5171 ' + n + ' \u500B\u5C0E\u822A\u9EDE\uFF0C\u76F4\u98DB\u822A\u5411 <span id="' + bearingId + '">\u2014</span>\u00B0\uFF0C\u822A\u8DEF\u91CC\u7A0B ' + distance + ' \u6D77\u91CC</td></tr>';
     html += '<tr><td class="intent-label">\u4E2D\u570B RVSM</td><td class="intent-value">9200\u7C73(FL301)\u30019800\u7C73(FL321)\u300110400\u7C73(FL341) \u6216\u4EE5\u4E0A</td></tr>';
     html += '<tr><td class="intent-label">\u570B\u969B RVSM</td><td class="intent-value">FL290\u3001FL310\u3001FL330 \u6216\u4EE5\u4E0A</td></tr>';
