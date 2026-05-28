@@ -565,10 +565,10 @@ const I18N = (() => {
   /** Initialize: load persisted lang, apply, attach change listener. */
   function init() {
     load();
-    document.getElementById('langSelect').value = currentLang;
+    document.getElementById('settingsLang').value = currentLang;
     refresh();
 
-    document.getElementById('langSelect').addEventListener('change', (e) => {
+    document.getElementById('settingsLang').addEventListener('change', (e) => {
       save(e.target.value);
       refresh();
     });

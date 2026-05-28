@@ -15,6 +15,7 @@
   // ── State ──────────────────────────────────────────────────
   let llmSettings = LLMSettings.load();
   let currentCycle = localStorage.getItem('ai_flight_planner_cycle') || null;
+  let currentTimezone = localStorage.getItem('ai_flight_planner_timezone') || 'UTC+8';
 
   let state = {
     planResult: null,       // POST /api/plan response
@@ -1001,6 +1002,17 @@
   // ── Settings modal ────────────────────────────────────────
   function openSettings() {
     LLMSettings.populateForm(llmSettings);
+    // Populate language
+    const $settingsLang = document.getElementById('settingsLang');
+    if ($settingsLang) {
+      const lang = localStorage.getItem('ai_flight_planner_language') || 'zh-TW';
+      $settingsLang.value = lang;
+    }
+    // Populate timezone
+    const $settingsTimezone = document.getElementById('settingsTimezone');
+    if ($settingsTimezone) {
+      $settingsTimezone.value = currentTimezone;
+    }
     $modalOverlay.classList.add('show');
   }
 
@@ -1011,6 +1023,26 @@
   function saveSettings() {
     llmSettings = LLMSettings.readForm();
     LLMSettings.save(llmSettings);
+
+    // Save language preference
+    const $settingsLang = document.getElementById('settingsLang');
+    if ($settingsLang) {
+      const lang = $settingsLang.value;
+      localStorage.setItem('ai_flight_planner_language', lang);
+      I18N.t(''); // trigger I18N to pick up new language on next refresh
+      // Force page language update
+      if (typeof I18N !== 'undefined' && I18N.refresh) {
+        I18N.refresh();
+      }
+    }
+
+    // Save timezone preference
+    const $settingsTimezone = document.getElementById('settingsTimezone');
+    if ($settingsTimezone) {
+      currentTimezone = $settingsTimezone.value;
+      localStorage.setItem('ai_flight_planner_timezone', currentTimezone);
+    }
+
     closeSettings();
     showToast(I18N.t('toast-settings-saved'));
   }

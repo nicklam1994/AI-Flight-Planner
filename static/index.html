@@ -16,20 +16,12 @@
     <h1 data-i18n="title-brand">🌍 <span>AI</span> 飛行計劃助手（AI Flight Planner）</h1>
     <div class="header-right">
       <div class="header-select">
-        <label for="langSelect">🌐</label>
-        <select id="langSelect">
-          <option value="zh-CN">简体</option>
-          <option value="zh-TW" selected>繁體</option>
-          <option value="en">EN</option>
-        </select>
-      </div>
-      <div class="header-select">
         <label for="cycleSelect" data-i18n="header-airac">AIRAC:</label>
         <select id="cycleSelect">
           <option value="">Loading...</option>
         </select>
       </div>
-      <button id="settingsBtn" class="btn btn-secondary" data-i18n="btn-settings">⚙️ LLM Settings</button>
+      <button id="settingsBtn" class="btn btn-secondary" title="Settings">⚙️</button>
     </div>
   </div>
 
@@ -97,6 +89,46 @@
   <div id="modalOverlay" class="modal-overlay">
     <div class="modal">
       <h2 data-i18n="modal-title">⚙️ LLM API Settings</h2>
+      <div class="form-group">
+        <label>🌐 Language</label>
+        <select id="settingsLang">
+          <option value="zh-CN">简体中文</option>
+          <option value="zh-TW">繁體中文</option>
+          <option value="en">English</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>🕐 Timezone</label>
+        <select id="settingsTimezone">
+          <option value="UTC-12">UTC-12</option>
+          <option value="UTC-11">UTC-11</option>
+          <option value="UTC-10">UTC-10</option>
+          <option value="UTC-9">UTC-9</option>
+          <option value="UTC-8">UTC-8 (America/Los_Angeles, America/Vancouver)</option>
+          <option value="UTC-7">UTC-7</option>
+          <option value="UTC-6">UTC-6</option>
+          <option value="UTC-5">UTC-5 (America/New_York, America/Toronto)</option>
+          <option value="UTC-4">UTC-4</option>
+          <option value="UTC-3">UTC-3</option>
+          <option value="UTC-2">UTC-2</option>
+          <option value="UTC-1">UTC-1</option>
+          <option value="UTC+0">UTC+0 (Europe/London)</option>
+          <option value="UTC+1">UTC+1 (Europe/Paris, Europe/Berlin)</option>
+          <option value="UTC+2">UTC+2</option>
+          <option value="UTC+3">UTC+3</option>
+          <option value="UTC+4">UTC+4</option>
+          <option value="UTC+5">UTC+5</option>
+          <option value="UTC+6">UTC+6</option>
+          <option value="UTC+7">UTC+7 (Asia/Bangkok, Asia/Ho_Chi_Minh)</option>
+          <option value="UTC+8" selected>UTC+8 (Asia/Shanghai, Asia/Taipei, Asia/Hong_Kong)</option>
+          <option value="UTC+9">UTC+9 (Asia/Tokyo, Asia/Seoul)</option>
+          <option value="UTC+10">UTC+10</option>
+          <option value="UTC+11">UTC+11</option>
+          <option value="UTC+12">UTC+12</option>
+          <option value="UTC+13">UTC+13</option>
+          <option value="UTC+14">UTC+14</option>
+        </select>
+      </div>
       <div class="form-group">
         <label data-i18n="label-provider">Provider</label>
         <select id="llmProvider">
