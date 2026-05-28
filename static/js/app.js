@@ -563,39 +563,32 @@
   }
 
   // ── Route Description (before airport grid) ─────────────
-  function renderRouteDescription(candidate, parsed) {
-    const dep = parsed?.origin || '';
-    const arr = parsed?.destination || '';
-    const n = candidate.segments ? candidate.segments.length + 2 : '?'; // segments + SID + STAR
-    const distance = candidate.total_distance_nm?.toFixed(0) || '?';
+    function renderRouteDescription(candidate, parsed) {
+    var dep = parsed?.origin || '';
+    var arr = parsed?.destination || '';
+    var depName = state._depAirportName || dep;
+    var arrName = state._arrAirportName || arr;
+    var n = candidate.segments ? candidate.segments.length + 2 : '?';
+    var distance = candidate.total_distance_nm?.toFixed(0) || '?';
+    var bearingId = 'route-bearing-' + candidate.index;
 
-    // Direct bearing placeholder — updated after airport details load
-    const bearingId = `route-bearing-${candidate.index}`;
+    var html = '<div class="card route-description-card">';
+    html += '<div class="card-title">\u2708\uFE0F \u822A\u7DDA\u8A73\u60C5</div>';
+    html += '<div class="route-string-box" title="\u9EDE\u64CA\u5373\u53EF\u590D\u5236" onclick="var t=this.querySelector(\'.route-string-text\');if(t)navigator.clipboard.writeText(t.textContent.trim());this.classList.add(\'copied\');setTimeout(function(){this.classList.remove(\'copied\')}.bind(this),1500)">';
+    html += '<span class="route-string-text">' + escapeHtml(candidate.route_string) + '</span></div>';
+    html += '<table class="data-table">';
+    html += '<tr><td class="intent-label">\u7DDA\u8DEF\u63CF\u8FF0</td><td class="intent-value">\u51FA\u767C\u5730 ' + escapeHtml(dep) + '\uFF08' + escapeHtml(depName) + '\uFF09\uFF0C\u76EE\u7684\u5730 ' + escapeHtml(arr) + '\uFF08' + escapeHtml(arrName) + '\uFF09</td></tr>';
+    html += '<tr><td class="intent-label">\u5168\u7A0B\u6578\u64DA</td><td class="intent-value">\u5168\u7A0B\u5171 ' + n + ' \u500B\u5C0E\u822A\u9EDE\uFF0C\u76F4\u98DB\u822A\u5411 <span id="' + bearingId + '">\u2014</span>\u00B0\uFF0C\u822A\u8DEF\u91CC\u7A0B ' + distance + ' \u6D77\u91CC</td></tr>';
+    html += '<tr><td class="intent-label">\u4E2D\u570B RVSM</td><td class="intent-value">9200\u7C73(FL301)\u30019800\u7C73(FL321)\u300110400\u7C73(FL341) \u6216\u4EE5\u4E0A</td></tr>';
+    html += '<tr><td class="intent-label">\u570B\u969B RVSM</td><td class="intent-value">FL290\u3001FL310\u3001FL330 \u6216\u4EE5\u4E0A</td></tr>';
+    html += '</table></div>';
 
-    let html = `
-      <div class="card route-description-card">
-        <div class="card-title">\u2708\uFE0F \u6700\u4F73\u822A\u7DDA</div>
-        <div class="route-desc-string">${escapeHtml(candidate.route_string)}</div>
-        <div class="route-desc-text">
-          <p>\u8DEF\u7DDA\u63CF\u8FF0\uFF1A\u5F9E ${escapeHtml(dep)} \u5230 ${escapeHtml(arr)}</p>
-          <p>\u5168\u7A0B\u6578\u64DA\uFF1A\u5168\u7A0B\u5171 ${n} \u500B\u5C0E\u822A\u9EDE\uFF0C\u76F4\u98DB\u822A\u5411 <span id="${bearingId}">\u2014</span>\u00B0\uFF0C\u822A\u8DEF\u91CC\u7A0B ${distance} \u6D77\u91CC\u3002</p>
-          <p>\u9AD8\u5EA6\u5EFA\u8B70\uFF1A\u4E2D\u570B RVSM \u5EFA\u8B70\u9AD8\u5EA6\uFF1A9200\u7C73(FL301)\u30019800\u7C73(FL321)\u300110400\u7C73(FL341) \u6216\u4EE5\u4E0A<br>\u3000\u3000\u3000\u3000\u3000\u3000 \u570B\u969B RVSM \u5EFA\u8B70\u9AD8\u5EA6\uFF1AFL290\u3001FL310\u3001FL330 \u6216\u4EE5\u4E0A</p>
-        </div>
-      </div>`;
-
-    // Insert route description before the airport grid
-    const $airportGrid = document.getElementById('airportGrid');
-    // Remove existing route description card if any
-    const existing = document.querySelector('.route-description-card');
+    var airportGrid = document.getElementById('airportGrid');
+    var existing = document.querySelector('.route-description-card');
     if (existing) existing.remove();
-    if ($airportGrid) {
-      $airportGrid.insertAdjacentHTML('beforebegin', html);
-    }
-
-    // Store bearing element ID for later update
+    if (airportGrid) airportGrid.insertAdjacentHTML('beforebegin', html);
     state._bearingElId = bearingId;
   }
-
   // ── Airport Card ─────────────────────────────────────────
   function renderAirportCard(container, icao, fix, data, weatherData, icon) {
     if (!data) {
