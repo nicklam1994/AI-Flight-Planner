@@ -228,6 +228,10 @@
             <td class="intent-label">航路規避</td><td class="intent-value">${escapeHtml(avoidStr)}</td>
           </tr>
           <tr>
+            <td class="intent-label">執飛機型</td><td class="intent-value">Boeing 737-800</td>
+            <td class="intent-label">燃料單位</td><td class="intent-value">kgs</td>
+          </tr>
+          <tr>
             <td class="intent-label">Use SIDs</td><td class="intent-value">${parsed.use_sids !== false ? '✅️' : '❌'}</td>
             <td class="intent-label">Use STARs</td><td class="intent-value">${parsed.use_stars !== false ? '✅️' : '❌'}</td>
           </tr>
@@ -318,6 +322,19 @@
 
     const depData = depResult.status === 'fulfilled' ? depResult.value : null;
     const arrData = arrResult.status === 'fulfilled' ? arrResult.value : null;
+
+    // Store airport names for route description
+    if (depData?.airport?.name) state._depAirportName = depData.airport.name;
+    if (arrData?.airport?.name) state._arrAirportName = arrData.airport.name;
+
+    // Update route description with real airport names
+    const descText = document.querySelector('.route-desc-text');
+    if (descText) {
+      const dn = state._depAirportName || dep;
+      const an = state._arrAirportName || arr;
+      descText.querySelector('p:first-child').textContent =
+        `出發地 ${dep}（${dn}），目的地 ${arr}（${an}）`;
+    }
     const wpData = wpResult.status === 'fulfilled' ? wpResult.value : null;
     const wxData = wxResult.status === 'fulfilled' ? wxResult.value : null;
 
@@ -365,20 +382,26 @@
   function renderRouteDescription(candidate, parsed) {
     const dep = parsed?.origin || '';
     const arr = parsed?.destination || '';
-    const n = candidate.segments ? candidate.segments.length + 2 : '?'; // segments + SID + STAR
+    const depName = state._depAirportName || dep;
+    const arrName = state._arrAirportName || arr;
+    const n = candidate.segments ? candidate.segments.length + 2 : '?';
     const distance = candidate.total_distance_nm?.toFixed(0) || '?';
-
-    // Direct bearing placeholder — updated after airport details load
     const bearingId = `route-bearing-${candidate.index}`;
 
     let html = `
       <div class="card route-description-card">
-        <div class="card-title">\u2708\uFE0F \u6700\u4F73\u822A\u7DDA</div>
-        <div class="route-desc-string">${escapeHtml(candidate.route_string)}</div>
+        <div class="card-title">✈️ 航線詳情</div>
+        <div class="route-string-box" onclick="navigator.clipboard.writeText(this.textContent);this.classList.add('copied');setTimeout(()=>this.classList.remove('copied'),1500)" title="點擊即可复制">
+          <span class="copy-tip">📋 點擊即可复制</span>
+          ${escapeHtml(candidate.route_string)}
+        </div>
         <div class="route-desc-text">
-          <p>\u8DEF\u7DDA\u63CF\u8FF0\uFF1A\u5F9E ${escapeHtml(dep)} \u5230 ${escapeHtml(arr)}</p>
-          <p>\u5168\u7A0B\u6578\u64DA\uFF1A\u5168\u7A0B\u5171 ${n} \u500B\u5C0E\u822A\u9EDE\uFF0C\u76F4\u98DB\u822A\u5411 <span id="${bearingId}">\u2014</span>\u00B0\uFF0C\u822A\u8DEF\u91CC\u7A0B ${distance} \u6D77\u91CC\u3002</p>
-          <p>\u9AD8\u5EA6\u5EFA\u8B70\uFF1A\u4E2D\u570B RVSM \u5EFA\u8B70\u9AD8\u5EA6\uFF1A9200\u7C73(FL301)\u30019800\u7C73(FL321)\u300110400\u7C73(FL341) \u6216\u4EE5\u4E0A<br>\u3000\u3000\u3000\u3000\u3000\u3000 \u570B\u969B RVSM \u5EFA\u8B70\u9AD8\u5EA6\uFF1AFL290\u3001FL310\u3001FL330 \u6216\u4EE5\u4E0A</p>
+          <p>出發地 ${escapeHtml(dep)}（${escapeHtml(depName)}），目的地 ${escapeHtml(arr)}（${escapeHtml(arrName)}）</p>
+          <p>全程數據：全程共 ${n} 個導航點，直飛航向 <span id="${bearingId}">—</span>°，航路里程 ${distance} 海里。</p>
+          <table class="data-table" style="margin-top:6px">
+            <tr><td class="intent-label">中國 RVSM</td><td class="intent-value">9200米(FL301)、9800米(FL321)、10400米(FL341) 或以上</td></tr>
+            <tr><td class="intent-label">國際 RVSM</td><td class="intent-value">FL290、FL310、FL330 或以上</td></tr>
+          </table>
         </div>
       </div>`;
 

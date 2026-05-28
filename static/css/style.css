@@ -741,6 +741,24 @@ textarea#routeInput:focus { outline: none; border-color: var(--accent); }
 .section-toggle .arrow.open { transform: rotate(90deg); }
 .section-body.collapsed { display: none; }
 
+/* ── v3: Route String Box (click to copy) ────────────────── */
+.route-string-box {
+  position: relative;
+  background: var(--bg-input); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 14px;
+  font-family: 'Consolas', monospace; font-size: 0.78rem;
+  color: var(--accent); word-break: break-all; cursor: pointer;
+  margin-bottom: 8px; transition: background 0.2s;
+}
+.route-string-box:hover { background: rgba(59,130,246,0.1); border-color: var(--accent); }
+.route-string-box.copied { background: rgba(34,197,94,0.1); border-color: var(--success); }
+.copy-tip {
+  position: absolute; top: 4px; right: 8px;
+  font-size: 0.65rem; color: var(--text-muted);
+  opacity: 0; transition: opacity 0.2s;
+}
+.route-string-box:hover .copy-tip { opacity: 1; }
+
 /* ── Result action buttons ─────────────────────────────── */
 .result-actions {
   display: flex;
