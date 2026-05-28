@@ -577,8 +577,7 @@
         var end = ctx.indexOf('）', start);
         if (start > 0 && end > start) {
           var full = ctx.substring(start + 1, end);
-          var comma = full.indexOf('，');
-          return comma > 0 ? full.substring(0, comma) : full;
+          return full;
         }
       }
       return '';
@@ -586,8 +585,8 @@
     var depCn = extractCnName(dep, ctx);
     var arrCn = extractCnName(arr, ctx);
     var useCn = (I18N.currentLang || '').startsWith('zh');
-    var depDisplay = useCn ? (depCn || depName) : depName;
-    var arrDisplay = useCn ? (arrCn || arrName) : arrName;
+    var depDisplay = depCn || depName;
+    var arrDisplay = arrCn || arrName;
     var n = candidate.segments ? candidate.segments.length + 2 : '?';
     var distance = candidate.total_distance_nm?.toFixed(0) || '?';
     var bearingId = 'route-bearing-' + candidate.index;
