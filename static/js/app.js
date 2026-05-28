@@ -353,13 +353,14 @@
     // Render route description right away (before airport grid)
     renderRouteDescription(candidate, parsed);
 
-    // Parallel requests
-    const [depResult, arrResult, wpResult, wxResult] = await Promise.allSettled([
+    // Fetch airport + waypoint data (fast), weather async (slow)
+    const [depResult, arrResult, wpResult] = await Promise.allSettled([
       API.getAirportDetail(dep, depFix),
       API.getAirportDetail(arr, arrFix),
       API.getRouteWaypoints(candidateIndex),
-      API.getWeather(dep, arr),
     ]);
+    // Weather loads independently
+    const wxPromise = API.getWeather(dep, arr);
 
     clearInterval(loadTimer);
 
