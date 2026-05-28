@@ -1093,7 +1093,7 @@
         var timeMatch = rest.match(/(\d{4})\/(\d{4})/);
         var timeStr = '';
         if (timeMatch) {
-          timeStr = timeMatch[1].substring(0,2)+'\u65E5 '+timeMatch[1].substring(2,4)+':'+timeMatch[1].substring(4,6)+' \u2013 '+timeMatch[2].substring(0,2)+'\u65E5 '+timeMatch[2].substring(2,4)+':'+timeMatch[2].substring(4,6)+' (UTC)';
+          timeStr = timeMatch[1].substring(0,2)+'\u65E5 '+timeMatch[1].substring(2,4)+':00 \u2013 '+timeMatch[2].substring(0,2)+'\u65E5 '+timeMatch[2].substring(2,4)+':00 (UTC)';
           rest = rest.replace(timeMatch[0], '').trim();
         }
 
@@ -1127,7 +1127,7 @@
         else if (kindStr.indexOf('PROB') === 0) label = 'PROB' + kindStr.substring(4) + '\uFF05';
         // Include time in label
         var contentStr = desc.trim();
-        h += '<tr><td class="intent-label">' + label + '</td><td class="intent-value">' + (timeStr || '\u2014') + '</td><td class="intent-value">' + contentStr + '</td></tr>';
+        h += '<tr><td class="intent-label">' + label + '</td><td class="intent-value" style="white-space:nowrap">' + (timeStr || '\u2014') + '</td><td class="intent-value" style="width:100%">' + contentStr + '</td></tr>';
       }
 
       h += '</tbody></table></div>';
