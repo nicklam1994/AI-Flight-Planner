@@ -1005,18 +1005,14 @@
 
       // TEMPO lines
       var tempoMatch = rawText.match(/TEMPO\s+(.+)/i);
+      var tempoMatch = rawText.match(/TEMPO\s+(.+)/i);
       if (tempoMatch) {
-        var tempoItems = tempoMatch[1].trim().split(/\s+/);
-        for (var ti = 0; ti < tempoItems.length; ti++) {
-          var item = tempoItems[ti];
-          var itemLabel = '\u81E8\u6642\u8B8A\u5316' + (tempoItems.length > 1 ? (' ' + (ti+1)) : '');
-          var itemStr = item;
-          itemStr = itemStr.replace(/^FEW(\d{3})$/i, function(_,h){return '\u5C11\u96F2 (FEW) \u4F4E\u81F3 '+(parseInt(h)*10)+'\u82F1\u5C3A';});
-          itemStr = itemStr.replace(/^BKN(\d{3})$/i, function(_,h){return '\u88C2\u96F2 (BKN) \u4F4E\u81F3 '+(parseInt(h)*10)+'\u82F1\u5C3A';});
-          itemStr = itemStr.replace(/^SCT(\d{3})$/i, function(_,h){return '\u758F\u96F2 (SCT) \u4F4E\u81F3 '+(parseInt(h)*10)+'\u82F1\u5C3A';});
-          itemStr = itemStr.replace(/^OVC(\d{3})$/i, function(_,h){return '\u9670\u5929 (OVC) \u4F4E\u81F3 '+(parseInt(h)*10)+'\u82F1\u5C3A';});
-          h += '<tr><td class="intent-label">' + itemLabel + '</td><td class="intent-value">' + itemStr + '</td></tr>';
-        }
+        var tempoStr = tempoMatch[1].trim();
+        tempoStr = tempoStr.replace(/(FEW|SCT|BKN|OVC)(\d{3})/gi, function(_,c,h){
+          var cn = {FEW:"\u5C11\u96F2", SCT:"\u758F\u96F2", BKN:"\u88C2\u96F2", OVC:"\u9670\u5929"};
+          return cn[c.toUpperCase()] + " (" + c.toUpperCase() + ") \u4F4E\u81F3 " + (parseInt(h) * 100) + "\u82F1\u5C3A";
+        });
+        h += '<tr><td class="intent-label">\u81E8\u6642\u8B8A\u5316</td><td class="intent-value">' + tempoStr + '</td></tr>';
       }
 
       h += '</tbody></table></div>';
