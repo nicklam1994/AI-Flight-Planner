@@ -630,18 +630,18 @@
     }
 
     // Procedures (already filtered by fix from backend)
-    var procs = isDeparture ? (data.sids || []) : (data.stars || []);
+    var allProcs = isDeparture ? (data.sids || []) : (data.stars || []); var procs = fix ? allProcs.filter(function(p) { return p.exit_fix && p.exit_fix.toUpperCase() === fix.toUpperCase(); }) : allProcs;
     var procTitle = isDeparture ? '\u96E2\u5834\u7A0B\u5E8F (SID)' : '\u9032\u5834\u7A0B\u5E8F (STAR)';
     var fixCol = isDeparture ? '\u96E2\u5834\u9EDE' : '\u9032\u5834\u9EDE';
     var refRunways = {};
 
     if (procs.length > 0) {
       html += '<div class="airport-section"><div class="airport-section-title">' + procTitle + '</div>';
-      html += '<table class="data-table"><thead><tr><th>\u7A0B\u5E8F</th><th>\u4F7F\u7528\u8DD1\u9053</th><th>' + fixCol + '</th></tr></thead><tbody>';
+      html += '<table class="data-table"><thead><tr>' + (isDeparture ? '<th>\u96E2\u5834\u7A0B\u5E8F</th><th>\u4F7F\u7528\u8DD1\u9053</th><th>\u904E\u6E21</th><th>\u96E2\u5834\u9EDE</th>' : '<th>\u9032\u5834\u7A0B\u5E8F</th><th>\u4F7F\u7528\u8DD1\u9053</th><th>\u9032\u5834\u9EDE</th>') + '</tr></thead><tbody>';
       procs.forEach(function(p) {
         var rwy = p.runway || '';
         if (rwy) refRunways[rwy.toUpperCase()] = true;
-        var fix = isDeparture ? (p.exit_fix || '\u2014') : ((p.fix_waypoints && p.fix_waypoints[0]) || '\u2014'); var transRaw = p.runway || ''; var trans = transRaw && !/^RW/i.test(transRaw) ? transRaw : '\u2014';
+        var fix = isDeparture ? (p.exit_fix || '\u2014') : ((p.fix_waypoints && p.fix_waypoints[0]) || '\u2014'); var trans = (p.transition || '\u2014');
         if (isDeparture) { html += '<tr><td>' + escapeHtml(p.name) + '</td><td>' + escapeHtml(rwy || '\u2014') + '</td><td>' + escapeHtml(trans) + '</td><td>' + escapeHtml(fix) + '</td></tr>'; } else { html += '<tr><td>' + escapeHtml(p.name) + '</td><td>' + escapeHtml(rwy || '\u2014') + '</td><td>' + escapeHtml(fix) + '</td></tr>'; }
       });
       html += '</tbody></table></div>';
