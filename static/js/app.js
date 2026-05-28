@@ -1003,7 +1003,7 @@
     }
     // Simple inline weather display
     let wxHtml = '<div class="collapsible-section">';
-    wxHtml += '<div class="section-toggle" onclick="this.nextElementSibling.classList.toggle('collapsed');this.querySelector('.arrow').classList.toggle('open')">Weather <span class="arrow">▶</span></div>';
+    wxHtml += '<div class="section-toggle" onclick="var s=this.nextElementSibling;var a=this.querySelector(\'.arrow\');s.classList.toggle(\'collapsed\');a.classList.toggle(\'open\')">Weather <span class="arrow">▶</span></div>';
     wxHtml += '<div class="section-body collapsed">';
     const m = weatherData.metar;
     if (m) {
