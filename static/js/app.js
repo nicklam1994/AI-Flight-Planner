@@ -686,6 +686,19 @@
       html += '</tbody></table></div>';
     }
 
+    // COM Frequencies table
+    var coms = data.coms || [];
+    if (coms.length > 0) {
+      html += '<div class="airport-section"><div class="airport-section-title">COM 通訊頻率</div>';
+      html += '<table class="data-table"><thead><tr><th>Type</th><th>Frequency(MHz)</th><th>Name</th></tr></thead><tbody>';
+      coms.forEach(function(c) {
+        var typeMap = {T:'Tower',A:'Approach',G:'Ground',D:'Departure',C:'Clearance',ATIS:'ATIS',RMP:'Ramp',RDR:'Radar',TCA:'TCA',CTR:'Center',DIR:'Director',INF:'Info',MC:'Multicom',UC:'Unicom',AWOS:'AWOS',ASOS:'ASOS',FSS:'FSS'};
+        var typeLabel = typeMap[c.type] || c.type;
+        html += '<tr><td>' + escapeHtml(typeLabel) + '</td><td>' + (c.frequency_khz/1000).toFixed(3) + '</td><td>' + escapeHtml(c.name || '—') + '</td></tr>';
+      });
+      html += '</tbody></table></div>';
+    }
+
     // Weather section (collapsible)
     if (weatherData && (weatherData.metar || weatherData.taf || weatherData.metar_raw || weatherData.taf_raw)) {
       var wxId = 'wx-' + icao + '-' + Date.now();
