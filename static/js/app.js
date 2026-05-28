@@ -1029,17 +1029,91 @@
       h += '<div class="weather-section"><div class="weather-section-title">\uD83D\uDCE1 TAF \u5929\u6C23\u9810\u5831</div>';
       h += '<pre class="weather-raw">' + escapeHtml(stripTafPrefix(t.raw || wx.taf_raw || '')) + '</pre>';
       h += '<table class="data-table"><tbody>';
+
+      // Airport + update time
       h += '<tr><td class="intent-label">\u6A5F\u5834\u4EE3\u78BC</td><td class="intent-value">' + escapeHtml(icao) + ' (' + escapeHtml(apName) + ')</td>';
-      h += '<td class="intent-label">\u9810\u5831\u6642\u6548</td><td class="intent-value">' + (t.time_from||'\u2014') + ' \u81F3 ' + (t.time_to||'\u2014') + ' (UTC)</td></tr>';
+      h += '<td class="intent-label">\u66F4\u65B0\u6642\u9593</td><td class="intent-value">' + (wx.updated_iso || '\u2014') + '</td></tr>';
+
+      // Validity
+      h += '<tr><td class="intent-label">\u9810\u5831\u6642\u6548</td><td class="intent-value" colspan="3">' + (t.time_from||'\u2014') + ' \u81F3 ' + (t.time_to||'\u2014') + ' (UTC)</td></tr>';
+
+      // Base weather: wind + vis + clouds
+      var baseStr = '';
+      var tw = t.wind || {};
+      if (tw.dir_cn && tw.dir != null) {
+        baseStr += '(' + (tw.arrow||'') + ' ' + tw.dir_cn + ') ' + tw.dir + '\u00B0 @ ' + (tw.speed_kts||'?') + ' KT';
+      } else if (t.wind_text) { baseStr += t.wind_text; }
+      if (t.visibility_str) baseStr += (baseStr?'\uFF1B':'') + '\u80FD\u898B\u5EA6' + t.visibility_str;
+      else if (t.visibility_m != null && t.visibility_m < 9999) baseStr += (baseStr?'\uFF1B':'') + '\u80FD\u898B\u5EA6' + t.visibility_m + 'm';
+      if (t.clouds && t.clouds.length > 0) {
+        baseStr += (baseStr?'\uFF1B':'');
+        t.clouds.forEach(function(c){ baseStr += (c.emoji||'')+' '+(c.cover_cn||c.cover)+'\u9AD8 '+c.height_ft+' \u82F1\u5C3A'; });
+      }
+      if (baseStr) h += '<tr><td class="intent-label">\u57FA\u790E\u5929\u6C23</td><td class="intent-value" colspan="3">' + baseStr + '</td></tr>';
+
+      // Max/Min temp
       if (t.max_temp_c != null || t.min_temp_c != null) {
         h += '<tr><td class="intent-label">\u6700\u9AD8\u6EAB\u5EA6</td><td class="intent-value">' + (t.max_temp_c!=null?t.max_temp_c+'\u00B0C'+(t.max_temp_time?' ('+t.max_temp_time+')':''):'\u2014') + '</td>';
         h += '<td class="intent-label">\u6700\u4F4E\u6EAB\u5EA6</td><td class="intent-value">' + (t.min_temp_c!=null?t.min_temp_c+'\u00B0C'+(t.min_temp_time?' ('+t.min_temp_time+')':''):'\u2014') + '</td></tr>';
       }
-      var tw = t.wind || {};
-      var twStr = tw.dir_cn ? (tw.arrow||'')+' '+tw.dir_cn+' @ '+(tw.speed_kts||'?')+' \u7BC0' : (t.wind_text || '\u2014');
-      h += '<tr><td class="intent-label">\u4E3B\u5C0E\u98A8\u5411\u98A8\u901F</td><td class="intent-value">' + twStr + '</td>';
-      h += '<td class="intent-label">\u80FD\u898B\u5EA6</td><td class="intent-value">' + (t.visibility_str||'\u2014') + '</td></tr>';
+
+      // Trends from raw TAF text
+      var rawTaf = (t.raw || wx.taf_raw || '').toUpperCase();
+      // Remove base part (before first trend keyword)
+      var trendSection = rawTaf.replace(/^[\s\S]*?(?=TEMPO|BECMG|PROB)/i, '');
+      // Split by trend keywords
+      var trendParts = trendSection.split(/\b(?=TEMPO|BECMG|PROB)/gi);
+      var tempoNum = 0;
+      for (var ti = 0; ti < trendParts.length; ti++) {
+        var tp = trendParts[ti].trim();
+        if (!tp) continue;
+        var kind = tp.match(/^(TEMPO|BECMG|PROB\d+)/i);
+        if (!kind) continue;
+        var kindStr = kind[1].toUpperCase();
+        var rest = tp.substring(kind[0].length).trim();
+
+        // Parse time range
+        var timeMatch = rest.match(/(\d{4})\/(\d{4})/);
+        var timeStr = '';
+        if (timeMatch) {
+          timeStr = timeMatch[1][0]+timeMatch[1][1]+'\u65E5'+timeMatch[1][2]+timeMatch[1][3]+'Z\u2013'+timeMatch[2][0]+timeMatch[2][1]+'\u65E5'+timeMatch[2][2]+timeMatch[2][3]+'Z';
+          rest = rest.replace(timeMatch[0], '').trim();
+        }
+
+        var desc = rest;
+        // Translate clouds
+        desc = desc.replace(/FEW(\d{3})/gi, '\u5C11\u91CF\u96F2 $1\u82F1\u5C3A');
+        desc = desc.replace(/SCT(\d{3})/gi, '\u758F\u6563\u96F2 $1\u82F1\u5C3A');
+        desc = desc.replace(/BKN(\d{3})/gi, '\u591A\u96F2 $1\u82F1\u5C3A');
+        desc = desc.replace(/OVC(\d{3})/gi, '\u9670\u5929 $1\u82F1\u5C3A');
+        // Translate visibility
+        desc = desc.replace(/\b(\d{4})\b/g, '\u80FD\u898B\u5EA6 $1\u7C73');
+        // Translate weather
+        desc = desc.replace(/\bBR\b/gi, '\u8F15\u9727');
+        desc = desc.replace(/\bFG\b/gi, '\u5927\u9727');
+        desc = desc.replace(/\bBCFG\b/gi, '\u7247\u72C0\u9727');
+        desc = desc.replace(/\bRA\b/gi, '\u96E8');
+        desc = desc.replace(/\bTS\b/gi, '\u96F7\u66B4');
+        desc = desc.replace(/\bSHRA\b/gi, '\u9663\u96E8');
+        desc = desc.replace(/\bDZ\b/gi, '\u6BDB\u6BDB\u96E8');
+        desc = desc.replace(/\bHZ\b/gi, '\u973E');
+        // Translate wind
+        var windM = desc.match(/(\d{3})(\d{2,3})(G\d{2,3})?KT/);
+        if (windM) {
+          var wd = windM[1], ws = windM[2], wg = windM[3];
+          desc = desc.replace(windM[0], wd+'\u00B0'+(ws?'\uFF0C\u98CE\u901F '+parseInt(ws)+' \u7BC0':'')+(wg?'\uFF0C\u9663\u98CE'+wg.substring(1)+'\u7BC0':''));
+        }
+
+        var label = kindStr;
+        if (kindStr === 'TEMPO') { tempoNum++; label = '\u77ED\u66AB\u6CE2\u52D5' + tempoNum; }
+        else if (kindStr === 'BECMG') label = '\u9010\u6F38\u8F49\u8B8A';
+        else if (kindStr.indexOf('PROB') === 0) label = '\u6982\u7387' + kindStr.substring(4) + '\uFF05';
+        if (timeStr) label += ' (' + timeStr + ')';
+        h += '<tr><td class="intent-label">' + label + '</td><td class="intent-value" colspan="3">' + desc.trim() + '</td></tr>';
+      }
+
       h += '</tbody></table></div>';
+    } else if (wx.taf_raw) {
     } else if (wx.taf_raw) {
       h += '<div class="weather-section"><div class="weather-section-title">\uD83D\uDCE1 TAF</div>';
       h += '<pre class="weather-raw">' + escapeHtml(stripTafPrefix(wx.taf_raw)) + '</pre></div>';
