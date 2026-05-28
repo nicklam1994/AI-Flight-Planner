@@ -88,9 +88,9 @@
   <!-- LLM Settings Modal -->
   <div id="modalOverlay" class="modal-overlay">
     <div class="modal">
-      <h2 data-i18n="modal-title">⚙️ Settings</h2>
+      <h2>⚙️ Settings</h2>
       <div class="form-group">
-        <label>🌐 Language</label>
+        <label>Language</label>
         <select id="settingsLang">
           <option value="zh-CN">简体中文</option>
           <option value="zh-TW">繁體中文</option>
@@ -98,7 +98,7 @@
         </select>
       </div>
       <div class="form-group">
-        <label>🕐 Timezone</label>
+        <label>Timezone</label>
         <select id="settingsTimezone">
           <option value="UTC-12">UTC-12</option>
           <option value="UTC-11">UTC-11</option>
@@ -132,38 +132,38 @@
       <hr style="border-color:var(--border);margin:12px 0">
       <h3 style="font-size:0.85rem;color:var(--accent);margin-bottom:8px">LLM API</h3>
       <div class="form-group">
-        <label data-i18n="label-provider">Provider</label>
+        <label>Provider</label>
         <select id="llmProvider">
           <option value="ollama">Ollama</option>
           <option value="openai">OpenAI</option>
           <option value="deepseek">DeepSeek</option>
           <option value="nvidia">Nvidia NIM</option>
-          <option value="custom">Custom (OpenAI-compatible)</option>
+          <option value="custom">Custom</option>
         </select>
       </div>
       <div class="form-group">
-        <label data-i18n="label-base-url">Base URL</label>
+        <label>Base URL</label>
         <input type="text" id="llmBaseUrl" placeholder="http://localhost:11434/v1">
       </div>
       <div class="form-group">
-        <label data-i18n="label-api-key">API Key</label>
+        <label>API Key</label>
         <div class="api-key-wrapper">
           <input type="password" id="llmApiKey" placeholder="ollama">
           <button id="toggleKey" class="toggle-key">👁</button>
         </div>
       </div>
       <div class="form-group">
-        <label data-i18n="label-model">Model</label>
+        <label>Model</label>
         <div class="model-row">
-          <input type="text" id="llmModel" list="llmModelList" placeholder="gemma4:e4b" style="flex:1;padding:8px 12px;background:var(--bg-input);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);font-size:0.9rem;">
+          <input type="text" id="llmModel" list="llmModelList" placeholder="gemma4:e4b" style="flex:1;padding:8px 12px;background:var(--bg-input);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);font-size:0.9rem">
           <datalist id="llmModelList">
             <option value="gemma4:e4b"><option value="qwen3.6:27b"><option value="deepseek-chat"><option value="gpt-4o">
           </datalist>
-          <button id="fetchModelsBtn" class="btn btn-secondary" title="Fetch model list">🔄</button>
+          <button id="fetchModelsBtn" class="btn btn-secondary" title="Fetch">🔄</button>
         </div>
       </div>
       <div class="form-group">
-        <label data-i18n="label-temperature">Temperature</label>
+        <label>Temperature</label>
         <div class="form-row">
           <input type="range" id="llmTemperature" min="0" max="1" step="0.05" value="0.3" style="flex:1">
           <span id="tempValue">0.3</span>
@@ -177,10 +177,3 @@
       </div>
     </div>
   </div>
-
-  <script src="/js/settings.js"></script>
-  <script src="/js/i18n.js"></script>
-  <script src="/js/api.js"></script>
-  <script src="/js/app.js"></script>
-</body>
-</html>
