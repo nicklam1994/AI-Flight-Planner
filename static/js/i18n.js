@@ -562,18 +562,17 @@ const I18N = (() => {
 
     // Update LLM API labels inside the modal (skip Language/Timezone which are hardcoded)
     const labelKeys = ['label-language', 'label-timezone'];
-    const langLabel = document.querySelector('.modal .form-group:nth-child(2) > label');
-    const tzLabel = document.querySelector('.modal .form-group:nth-child(3) > label');
+    const langLabel = document.querySelector('.modal .form-group:nth-of-type(1) label');
+    const tzLabel = document.querySelector('.modal .form-group:nth-of-type(2) label');
     if (langLabel) langLabel.textContent = t('label-language');
     if (tzLabel) tzLabel.textContent = t('label-timezone');
 
-    const apiLabels = document.querySelectorAll('.modal .form-group > label');
+    // Only update LLM API labels (marked with class 'llm-label')
+    const apiLabels = document.querySelectorAll('.modal .llm-label');
     const apiLabelKeys = ['label-provider', 'label-base-url', 'label-api-key', 'label-model', 'label-temperature'];
-    // Skip first 2 labels (Language, Timezone), apply LLM keys to the rest
-    let apiIdx = 0;
-    for (let i = 2; i < apiLabels.length && apiIdx < apiLabelKeys.length; i++, apiIdx++) {
-      apiLabels[i].textContent = t(apiLabelKeys[apiIdx]);
-    }
+    apiLabels.forEach((label, i) => {
+      if (i < apiLabelKeys.length) label.textContent = t(apiLabelKeys[i]);
+    });
   }
 
   /** Initialize: load persisted lang, apply, attach change listener. */

@@ -135,10 +135,14 @@
           Route Evaluator (AI) — slower but better ranking
         </label>
       </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+        <input type="checkbox" id="settingsEval" style="width:auto;margin:0;accent-color:var(--accent)">
+        <label for="settingsEval" style="margin:0;font-size:0.82rem;color:var(--text);text-transform:none;letter-spacing:0">Route Evaluator (AI) — slower but better ranking</label>
+      </div>
 <hr style="border-color:var(--border);margin:12px 0">
       <h3 style="font-size:0.85rem;color:var(--accent);margin-bottom:8px">LLM API</h3>
       <div class="form-group">
-        <label>Provider</label>
+        <label class="llm-label">Provider</label>
         <select id="llmProvider">
           <option value="ollama">Ollama</option>
           <option value="openai">OpenAI</option>
@@ -148,18 +152,18 @@
         </select>
       </div>
       <div class="form-group">
-        <label>Base URL</label>
+        <label class="llm-label">Base URL</label>
         <input type="text" id="llmBaseUrl" placeholder="http://localhost:11434/v1">
       </div>
       <div class="form-group">
-        <label>API Key</label>
+        <label class="llm-label">API Key</label>
         <div class="api-key-wrapper">
           <input type="password" id="llmApiKey" placeholder="ollama">
           <button id="toggleKey" class="toggle-key">👁</button>
         </div>
       </div>
       <div class="form-group">
-        <label>Model</label>
+        <label class="llm-label">Model</label>
         <div class="model-row">
           <input type="text" id="llmModel" list="llmModelList" placeholder="gemma4:e4b" style="flex:1;padding:8px 12px;background:var(--bg-input);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);font-size:0.9rem">
           <datalist id="llmModelList">
@@ -169,7 +173,7 @@
         </div>
       </div>
       <div class="form-group">
-        <label>Temperature</label>
+        <label class="llm-label">Temperature</label>
         <div class="form-row">
           <input type="range" id="llmTemperature" min="0" max="1" step="0.05" value="0.3" style="flex:1">
           <span id="tempValue">0.3</span>
