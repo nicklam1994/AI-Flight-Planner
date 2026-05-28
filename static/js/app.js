@@ -212,12 +212,26 @@
       ${parsed.context ? '<div style="color:var(--accent); font-size:0.82rem; margin-bottom:8px; padding:6px 10px; background:rgba(59,130,246,0.08); border-radius:4px;">' + escapeHtml(parsed.context) + '</div>' : ''}
       <table class="parsed-table">
         <tbody>
-          <tr><td class="intent-label">${I18N.t('label-origin')}</td><td class="intent-value">${escapeHtml(parsed.origin || '?')}</td></tr>
-          <tr><td class="intent-label">${I18N.t('label-destination')}</td><td class="intent-value">${escapeHtml(parsed.destination || '?')}</td></tr>
-          <tr><td class="intent-label">${I18N.t('label-airway-type')}</td><td class="intent-value">${escapeHtml(parsed.airway_type || I18N.t('any'))}</td></tr>
-          <tr><td class="intent-label">${I18N.t('label-cruise-alt')}</td><td class="intent-value">${escapeHtml(altStr)}</td></tr>
-          <tr><td class="intent-label">航線規避</td><td class="intent-value">${escapeHtml(avoidStr)}</td></tr>
-          <tr><td class="intent-label">${I18N.t('label-confidence')}</td><td class="intent-value">${Math.round((parsed.confidence || 0) * 100)}%</td></tr>
+          <tr>
+            <td class="intent-label">出發(ICAO/IATA)</td><td class="intent-value">${escapeHtml(parsed.origin || '?')}${parsed.origin_iata ? '/' + escapeHtml(parsed.origin_iata) : ''}</td>
+            <td class="intent-label">到達(ICAO/IATA)</td><td class="intent-value">${escapeHtml(parsed.destination || '?')}${parsed.dest_iata ? '/' + escapeHtml(parsed.dest_iata) : ''}</td>
+          </tr>
+          <tr>
+            <td class="intent-label">巡航高度(MIN)</td><td class="intent-value">${escapeHtml(altStr)}</td>
+            <td class="intent-label">巡航高度(MAX)</td><td class="intent-value">${escapeHtml(altStr)}</td>
+          </tr>
+          <tr>
+            <td class="intent-label">航路類型</td><td class="intent-value">${escapeHtml(parsed.airway_type === 'J' ? 'High' : parsed.airway_type === 'B' || parsed.airway_type === 'V' ? 'Low' : 'Both')}</td>
+            <td class="intent-label">航路規避</td><td class="intent-value">${escapeHtml(avoidStr)}</td>
+          </tr>
+          <tr>
+            <td class="intent-label">Use SIDs</td><td class="intent-value">${parsed.use_sids !== false ? '✅️' : '❌'}</td>
+            <td class="intent-label">Use STARs</td><td class="intent-value">${parsed.use_stars !== false ? '✅️' : '❌'}</td>
+          </tr>
+          <tr>
+            <td class="intent-label">RNAV equipped</td><td class="intent-value">${parsed.rnav_capable !== false ? '✅️' : '❌'}</td>
+            <td class="intent-label">置信度</td><td class="intent-value">${Math.round((parsed.confidence || 0) * 100)}%</td>
+          </tr>
         </tbody>
       </table>`;
     $parsedCard.style.display = 'block';

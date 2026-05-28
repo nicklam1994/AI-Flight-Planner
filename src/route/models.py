@@ -59,6 +59,11 @@ class ParsedIntent:
     cruise_altitude: int | None = None
     confidence: float = 0.0
     context: str | None = None     # AI reasoning/explanation about the parsed intent
+    origin_iata: str | None = None
+    dest_iata: str | None = None
+    use_sids: bool = True
+    use_stars: bool = True
+    rnav_capable: bool = True
 
 
 @dataclass

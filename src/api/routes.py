@@ -145,10 +145,22 @@ async def plan_route(request: PlanRequest):
         raise HTTPException(status_code=400, detail=f"Cannot parse input: {e}")
 
     if not intent.origin or not intent.destination:
-        raise HTTPException(
-            status_code=400,
-            detail="Could not determine origin and/or destination airport. Please specify ICAO codes (e.g., VHHH, RJTT)."
-        )
+        raise HTTPException(status_code=400, detail="Cannot determine origin/destination. Please specify ICAO codes explicitly.")
+
+    # Look up IATA codes from LNM DB
+    try:
+        from src.db.connection import get_db
+        db = get_db()
+        row = db.execute("SELECT iata FROM airport WHERE upper(ident)=? OR upper(icao)=?",
+                         (intent.origin.upper(), intent.origin.upper())).fetchone()
+        if row and row["iata"]:
+            intent.origin_iata = row["iata"]
+        row = db.execute("SELECT iata FROM airport WHERE upper(ident)=? OR upper(icao)=?",
+                         (intent.destination.upper(), intent.destination.upper())).fetchone()
+        if row and row["iata"]:
+            intent.dest_iata = row["iata"]
+    except Exception:
+        pass
 
     # --- Step 2: Find routes ---
     from src.route.graph_search import find_routes
@@ -1057,6 +1069,11 @@ def _intent_to_response(intent: ParsedIntent) -> ParsedIntentResponse:
         cruise_altitude=intent.cruise_altitude,
         confidence=intent.confidence,
         context=intent.context,
+        origin_iata=intent.origin_iata,
+        dest_iata=intent.dest_iata,
+        use_sids=intent.use_sids,
+        use_stars=intent.use_stars,
+        rnav_capable=intent.rnav_capable,
     )
 
 
