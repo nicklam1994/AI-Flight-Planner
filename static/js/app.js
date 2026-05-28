@@ -16,7 +16,7 @@
   let llmSettings = LLMSettings.load();
   let currentCycle = localStorage.getItem('ai_flight_planner_cycle') || null;
   let currentTimezone = localStorage.getItem('ai_flight_planner_timezone') || 'UTC+8';
-  let useEvaluator = localStorage.getItem('ai_flight_planner_evaluator') === 'true'; // default off
+  let useEvaluator = localStorage.getItem('ai_flight_planner_evaluator') === 'true';
 
   let state = {
     planResult: null,       // POST /api/plan response
@@ -138,17 +138,12 @@
     }
 
     hideAllCards();
-    setLoading(true);
 
-    const startTime = Date.now();
-    const timerInterval = setInterval(() => {
-      const elapsed = Math.round((Date.now() - startTime) / 1000);
-      showStatus(`Planning route... ${elapsed}s`, 'loading');
-    }, 1000);
+    setLoading(true);
+    showStatus('Planning route...', 'loading');
 
     try {
-      showStatus('Planning route...', 'loading');
-      const result = await API.plan(input, 3, llmSettings, currentCycle, useEvaluator);
+      const result = await API.plan(input, 3, llmSettings, currentCycle);
       state.planResult = result;
       state.selectedRoute = null;
       state.candidateIndex = null;
@@ -174,7 +169,6 @@
     } catch (e) {
       showStatus(e.message || I18N.t('error-plan-failed'), 'error');
     } finally {
-      clearInterval(timerInterval);
       setLoading(false);
     }
   }
@@ -202,38 +196,10 @@
   }
 
   // ── Rendering: Parsed Intent (TABLE) ─────────────────────
-  function normalizeAircraft(raw) {
-    if (!raw) return '';
-    const s = raw.trim();
-    const map = {
-      'B738': 'Boeing 737-800', 'B737': 'Boeing 737', 'B739': 'Boeing 737-900',
-      'B738W': 'Boeing 737-800W', 'B77W': 'Boeing 777-300ER', 'B772': 'Boeing 777-200',
-      'B773': 'Boeing 777-300', 'B788': 'Boeing 787-8', 'B789': 'Boeing 787-9',
-      'B78X': 'Boeing 787-10', 'B744': 'Boeing 747-400', 'B748': 'Boeing 747-8',
-      'B748F': 'Boeing 747-8F', 'B763': 'Boeing 767-300', 'B764': 'Boeing 767-400',
-      'B752': 'Boeing 757-200', 'B753': 'Boeing 757-300',
-      'A320': 'Airbus A320', 'A319': 'Airbus A319', 'A321': 'Airbus A321',
-      'A332': 'Airbus A330-200', 'A333': 'Airbus A330-300', 'A339': 'Airbus A330-900',
-      'A342': 'Airbus A340-200', 'A343': 'Airbus A340-300', 'A345': 'Airbus A340-500',
-      'A346': 'Airbus A340-600', 'A359': 'Airbus A350-900', 'A35K': 'Airbus A350-1000',
-      'A388': 'Airbus A380-800',
-      'CRJ2': 'Bombardier CRJ200', 'CRJ7': 'Bombardier CRJ700', 'CRJ9': 'Bombardier CRJ900',
-      'E170': 'Embraer E170', 'E175': 'Embraer E175', 'E190': 'Embraer E190', 'E195': 'Embraer E195',
-    };
-    const upper = s.toUpperCase();
-    if (map[upper]) return map[upper];
-    // Already a full name like "Boeing 737-800" — keep as-is
-    if (/^(boeing|airbus|bombardier|embraer)/i.test(s)) return s;
-    return s;
-  }
-
   function renderParsedTable(parsed) {
-    const altMin = parsed.cruise_altitude_min
-      ? `FL${Math.round(parsed.cruise_altitude_min / 100)}`
-      : parsed.cruise_altitude ? `FL${Math.round(parsed.cruise_altitude / 100)}` : '\u2014';
-    const altMax = parsed.cruise_altitude_max
-      ? `FL${Math.round(parsed.cruise_altitude_max / 100)}`
-      : parsed.cruise_altitude ? `FL${Math.round(parsed.cruise_altitude / 100)}` : '\u2014';
+    const altStr = parsed.cruise_altitude
+      ? `FL${Math.round(parsed.cruise_altitude / 100)}`
+      : '\u2014';
 
     const avoidParts = [];
     if (parsed.avoid_waypoints && parsed.avoid_waypoints.length > 0) {
@@ -245,33 +211,15 @@
     const avoidStr = avoidParts.length > 0 ? avoidParts.join('; ') : '\u2014';
 
     $parsedContent.innerHTML = `
-      ${parsed.context ? '<div style="color:var(--accent); font-size:0.82rem; margin-bottom:8px; padding:6px 10px; background:rgba(59,130,246,0.08); border-radius:4px;">' + escapeHtml(parsed.context) + '</div>' : ''}
       <table class="parsed-table">
+        <thead><tr><th>\u9805\u76EE</th><th>\u5167\u5BB9</th></tr></thead>
         <tbody>
-          <tr>
-            <td class="intent-label">出發(ICAO/IATA)</td><td class="intent-value">${escapeHtml(parsed.origin || '?')}${parsed.origin_iata ? '/' + escapeHtml(parsed.origin_iata) : ''}</td>
-            <td class="intent-label">到達(ICAO/IATA)</td><td class="intent-value">${escapeHtml(parsed.destination || '?')}${parsed.dest_iata ? '/' + escapeHtml(parsed.dest_iata) : ''}</td>
-          </tr>
-          <tr>
-            <td class="intent-label">巡航高度(MIN)</td><td class="intent-value">${escapeHtml(altMin)}</td>
-            <td class="intent-label">巡航高度(MAX)</td><td class="intent-value">${escapeHtml(altMax)}</td>
-          </tr>
-          <tr>
-            <td class="intent-label">航路類型</td><td class="intent-value">${escapeHtml(parsed.airway_type === 'J' ? 'High' : parsed.airway_type === 'B' || parsed.airway_type === 'V' ? 'Low' : 'Both')}</td>
-            <td class="intent-label">航路規避</td><td class="intent-value">${escapeHtml(avoidStr)}</td>
-          </tr>
-          <tr>
-            <td class="intent-label">執飛機型</td><td class="intent-value">${escapeHtml(normalizeAircraft(parsed.aircraft_type) || '—')}</td>
-            <td class="intent-label">燃料單位</td><td class="intent-value">${escapeHtml(parsed.fuel_unit || '—')}</td>
-          </tr>
-          <tr>
-            <td class="intent-label">Use SIDs</td><td class="intent-value">${parsed.use_sids !== false ? '✅️' : '❌'}</td>
-            <td class="intent-label">Use STARs</td><td class="intent-value">${parsed.use_stars !== false ? '✅️' : '❌'}</td>
-          </tr>
-          <tr>
-            <td class="intent-label">RNAV equipped</td><td class="intent-value">${parsed.rnav_capable !== false ? '✅️' : '❌'}</td>
-            <td class="intent-label">置信度</td><td class="intent-value">${Math.round((parsed.confidence || 0) * 100)}%</td>
-          </tr>
+          <tr><td>${I18N.t('label-origin')}</td><td>${escapeHtml(parsed.origin || '?')}</td></tr>
+          <tr><td>${I18N.t('label-destination')}</td><td>${escapeHtml(parsed.destination || '?')}</td></tr>
+          <tr><td>${I18N.t('label-airway-type')}</td><td>${escapeHtml(parsed.airway_type || I18N.t('any'))}</td></tr>
+          <tr><td>${I18N.t('label-cruise-alt')}</td><td>${escapeHtml(altStr)}</td></tr>
+          <tr><td>\u822A\u7DDA\u898F\u907F</td><td>${escapeHtml(avoidStr)}</td></tr>
+          <tr><td>${I18N.t('label-confidence')}</td><td>${Math.round((parsed.confidence || 0) * 100)}%</td></tr>
         </tbody>
       </table>`;
     $parsedCard.style.display = 'block';
@@ -285,7 +233,7 @@
       '\u25CB \u5019\u9078\u7DDA\u8DEF2',      // ○ 候選線路2
     ];
 
-    $candidatesContent.innerHTML = result.candidates.slice(0, 3).map((c, i) => {
+    $candidatesContent.innerHTML = result.candidates.map((c, i) => {
       const label = labels[i] || `\u25CB \u5019\u9078\u7DDA\u8DEF${i + 1}`;
       const isBest = i === 0 || (c.index === (result.candidate_index ?? result.candidates[0]?.index ?? 0));
 
@@ -353,23 +301,8 @@
       API.getWeather(dep, arr),
     ]);
 
-    clearInterval(loadTimer);
-
     const depData = depResult.status === 'fulfilled' ? depResult.value : null;
     const arrData = arrResult.status === 'fulfilled' ? arrResult.value : null;
-
-    // Store airport names for route description
-    if (depData?.airport?.name) state._depAirportName = depData.airport.name;
-    if (arrData?.airport?.name) state._arrAirportName = arrData.airport.name;
-
-    // Update route description with real airport names
-    const descTable = document.querySelector('.route-desc-text .data-table:first-child');
-    if (descTable) {
-      const dn = state._depAirportName || dep;
-      const an = state._arrAirportName || arr;
-      const td = descTable.querySelectorAll('td')[1];
-      if (td) td.textContent = `出發地 ${dep}（${dn}），目的地 ${arr}（${an}）`;
-    }
     const wpData = wpResult.status === 'fulfilled' ? wpResult.value : null;
     const wxData = wxResult.status === 'fulfilled' ? wxResult.value : null;
 
@@ -417,25 +350,20 @@
   function renderRouteDescription(candidate, parsed) {
     const dep = parsed?.origin || '';
     const arr = parsed?.destination || '';
-    const depName = state._depAirportName || dep;
-    const arrName = state._arrAirportName || arr;
-    const n = candidate.segments ? candidate.segments.length + 2 : '?';
+    const n = candidate.segments ? candidate.segments.length + 2 : '?'; // segments + SID + STAR
     const distance = candidate.total_distance_nm?.toFixed(0) || '?';
+
+    // Direct bearing placeholder — updated after airport details load
     const bearingId = `route-bearing-${candidate.index}`;
 
     let html = `
       <div class="card route-description-card">
-        <div class="card-title">✈️ 航線詳情</div>
-        <div class="route-string-box" title="點擊即可复制">
-          <span class="route-string-text" onclick="event.stopPropagation();navigator.clipboard.writeText(this.textContent.trim());this.parentElement.classList.add('copied');setTimeout(()=>this.parentElement.classList.remove('copied'),1500)">${escapeHtml(candidate.route_string)}</span>
-        </div>
+        <div class="card-title">\u2708\uFE0F \u6700\u4F73\u822A\u7DDA</div>
+        <div class="route-desc-string">${escapeHtml(candidate.route_string)}</div>
         <div class="route-desc-text">
-          <table class="data-table">
-            <tr><td class="intent-label">線路描述</td><td class="intent-value">出發地 ${escapeHtml(dep)}（${escapeHtml(depName)}），目的地 ${escapeHtml(arr)}（${escapeHtml(arrName)}）</td></tr>
-            <tr><td class="intent-label">全程數據</td><td class="intent-value">全程共 ${n} 個導航點，直飛航向 <span id="${bearingId}">—</span>°，航路里程 ${distance} 海里</td></tr>
-            <tr><td class="intent-label">中國 RVSM</td><td class="intent-value">9200米(FL301)、9800米(FL321)、10400米(FL341) 或以上</td></tr>
-            <tr><td class="intent-label">國際 RVSM</td><td class="intent-value">FL290、FL310、FL330 或以上</td></tr>
-          </table>
+          <p>\u8DEF\u7DDA\u63CF\u8FF0\uFF1A\u5F9E ${escapeHtml(dep)} \u5230 ${escapeHtml(arr)}</p>
+          <p>\u5168\u7A0B\u6578\u64DA\uFF1A\u5168\u7A0B\u5171 ${n} \u500B\u5C0E\u822A\u9EDE\uFF0C\u76F4\u98DB\u822A\u5411 <span id="${bearingId}">\u2014</span>\u00B0\uFF0C\u822A\u8DEF\u91CC\u7A0B ${distance} \u6D77\u91CC\u3002</p>
+          <p>\u9AD8\u5EA6\u5EFA\u8B70\uFF1A\u4E2D\u570B RVSM \u5EFA\u8B70\u9AD8\u5EA6\uFF1A9200\u7C73(FL301)\u30019800\u7C73(FL321)\u300110400\u7C73(FL341) \u6216\u4EE5\u4E0A<br>\u3000\u3000\u3000\u3000\u3000\u3000 \u570B\u969B RVSM \u5EFA\u8B70\u9AD8\u5EA6\uFF1AFL290\u3001FL310\u3001FL330 \u6216\u4EE5\u4E0A</p>
         </div>
       </div>`;
 
@@ -463,15 +391,15 @@
     const name = ap.name || icao;
     const city = ap.city || '';
     const country = ap.country || '';
-    const isDeparture = (icon === '\uD83D\uDEEB');
 
     let html = '';
 
-    // Airport name header: "🛫 Narita Intl（RJAA）"
-    html += `<div class="airport-header">${icon} <strong>${escapeHtml(name)}\uFF08${escapeHtml(icao)}\uFF09</strong></div>`;
+    // Airport name header
+    html += `<div class="airport-header">${icon} <strong>${escapeHtml(icao)} — ${escapeHtml(name)}</strong>`;
     if (city || country) {
-      html += `<div class="airport-location">${escapeHtml(city)}${city && country ? ', ' : ''}${escapeHtml(country)}</div>`;
+      html += ` <span class="airport-location">${escapeHtml(city)}${city && country ? ', ' : ''}${escapeHtml(country)}</span>`;
     }
+    html += '</div>';
 
     // Update route description bearing if we have coordinates
     if (ap.lat != null && ap.lon != null) {
@@ -479,105 +407,63 @@
       updateRouteBearing();
     }
 
-    // Filter procedures by fix
-    const procedures = isDeparture ? (data.sids || []) : (data.stars || []);
-    const filteredProcs = fix
-      ? procedures.filter(function(p) {
-          if (isDeparture) {
-            return p.exit_fix && p.exit_fix.toUpperCase() === fix.toUpperCase();
-          } else {
-            const entryFix = (p.fix_waypoints && p.fix_waypoints.length > 0) ? p.fix_waypoints[0] : null;
-            return entryFix && entryFix.toUpperCase() === fix.toUpperCase();
-          }
-        })
-      : procedures;
+    // SID/STAR table
+    const hasProcedures = (data.sids && data.sids.length > 0) || (data.stars && data.stars.length > 0);
+    if (hasProcedures) {
+      html += '<div class="airport-section"><div class="airport-section-title">\u25B6 \u9032/\u96E2\u5834\u7A0B\u5E8F</div>';
+      html += '<table class="proc-table"><thead><tr><th>\u7A0B\u5E8F</th><th>\u4F7F\u7528\u8DD1\u9053</th><th>\u9032/\u96E2\u5834\u9EDE</th></tr></thead><tbody>';
 
-    // Collect referenced runway names from filtered procedures
-    // Strip "RW" prefix for matching
-    const refRunways = new Set();
-    filteredProcs.forEach(function(p) {
-      const rwy = p.runway;
-      if (rwy) {
-        const clean = rwy.replace(/^RW/i, '');
-        refRunways.add(clean.toUpperCase());
+      if (data.sids) {
+        data.sids.forEach(s => {
+          html += `<tr><td>SID ${escapeHtml(s.name)}</td><td>${escapeHtml((s.runways || []).join(', '))}</td><td>${escapeHtml(s.transition_fix || s.transition || '\u2014')}</td></tr>`;
+        });
       }
-    });
-
-    // SID / STAR table
-    if (filteredProcs.length > 0) {
-      const sectionTitle = isDeparture ? '\u96E2\u5834\u7A0B\u5E8F (SID)' : '\u9032\u5834\u7A0B\u5E8F (STAR)';
-      const colHeader = isDeparture ? '\u96E2\u5834\u9EDE' : '\u9032\u5834\u9EDE';
-      html += '<div class="airport-section"><div class="airport-section-title">' + sectionTitle + '</div>';
-      html += '<table class="data-table"><thead><tr><th>程序</th><th>使用跑道</th><th>' + colHeader + '</th></tr></thead><tbody>';
-
-      filteredProcs.forEach(function(p) {
-        const rwyClean = (p.runway || '').replace(/^RW/i, '');
-        if (isDeparture) {
-          html += '<tr><td>' + escapeHtml(p.name) + '</td><td>' + escapeHtml(rwyClean) + '</td><td>' + escapeHtml(p.exit_fix || '\u2014') + '</td></tr>';
-        } else {
-          const entryFix = (p.fix_waypoints && p.fix_waypoints.length > 0) ? p.fix_waypoints[0] : '\u2014';
-          html += '<tr><td>' + escapeHtml(p.name) + '</td><td>' + escapeHtml(rwyClean) + '</td><td>' + escapeHtml(entryFix) + '</td></tr>';
-        }
-      });
+      if (data.stars) {
+        data.stars.forEach(s => {
+          html += `<tr><td>STAR ${escapeHtml(s.name)}</td><td>${escapeHtml((s.runways || []).join(', '))}</td><td>${escapeHtml(s.transition_fix || s.transition || '\u2014')}</td></tr>`;
+        });
+      }
 
       html += '</tbody></table></div>';
-    } else if (procedures.length > 0 && fix) {
-      html += '<p class="no-data">' + I18N.t('info-no-procedure-for-fix') + '</p>';
     } else {
       html += '<p class="no-data">No SID/STAR procedures available</p>';
     }
 
-    // Runway table — filtered by SID/STAR references
+    // Runway table
     if (data.runways && data.runways.length > 0) {
-      // Filter runways to only those referenced by procedures (if we have refs)
-      let displayRunways = data.runways;
-      if (refRunways.size > 0) {
-        displayRunways = data.runways.filter(function(r) {
-          const rname = (r.name || r.ident || '').replace(/^RW/i, '').toUpperCase();
-          return refRunways.has(rname);
-        });
-      }
+      html += '<div class="airport-section"><div class="airport-section-title">\u25B6 \u8DD1\u9053\u4FE1\u606F</div>';
+      html += '<table class="runway-table"><thead><tr>';
+      html += '<th>\u8DD1\u9053</th><th>\u9577\u5EA6(ft)</th><th>\u5BEC\u5EA6(ft)</th><th>\u9AD8\u5EA6(ft)</th><th>\u822A\u5411(\u00B0)</th><th>GP\u4E0B\u6ED1(\u00B0)</th><th>ILS\u983B\u7387</th><th>\u6A19\u8B58</th><th>CAT</th><th>DME</th><th>\u904E\u6E21\u9AD8\u5EA6(ft)</th>';
+      html += '</tr></thead><tbody>';
 
-      if (displayRunways.length > 0) {
-        // Find max length for 推薦 marking
-        const maxLen = Math.max.apply(null, displayRunways.map(function(r) { return r.length_ft || 0; }));
+      data.runways.forEach(r => {
+        html += '<tr>';
+        html += `<td>${escapeHtml(r.name || r.ident || '\u2014')}</td>`;
+        html += `<td>${r.length_ft != null ? r.length_ft.toLocaleString() : '\u2014'}</td>`;
+        html += `<td>${r.width_ft != null ? r.width_ft : '\u2014'}</td>`;
+        html += `<td>${r.elevation_ft != null ? r.elevation_ft : '\u2014'}</td>`;
+        html += `<td>${r.heading_deg != null ? r.heading_deg : '\u2014'}</td>`;
+        html += `<td>${r.glidepath_deg != null ? r.glidepath_deg.toFixed(1) : '\u2014'}</td>`;
+        html += `<td>${escapeHtml(r.ils_freq || '\u2014')}</td>`;
+        html += `<td>${escapeHtml(r.ils_ident || '\u2014')}</td>`;
+        html += `<td>${escapeHtml(r.ils_cat || '\u2014')}</td>`;
+        html += `<td>${r.dme != null ? (r.dme ? '\u2713' : '\u2717') : '\u2014'}</td>`;
+        html += `<td>${r.transition_alt_ft != null ? r.transition_alt_ft : '\u2014'}</td>`;
+        html += '</tr>';
+      });
 
-        html += '<div class="airport-section"><div class="airport-section-title">\u25B6 \u8DD1\u9053\u4FE1\u606F</div>';
-        html += '<table class="data-table"><thead><tr>';
-        html += '<th>\u8DD1\u9053</th><th>\u9577\u5EA6(ft)</th><th>\u5BEC\u5EA6(ft)</th><th>\u9AD8\u5EA6(ft)</th><th>\u822A\u5411(\u00B0)</th><th>GP\u4E0B\u6ED1(\u00B0)</th><th>ILS\u983B\u7387</th><th>\u6A19\u8B58</th><th>CAT</th><th>DME</th><th>\u904E\u6E21\u9AD8\u5EA6(ft)</th><th title="ILS CAT II/III + 最長 — 優先精確進場">推薦</th>';
-        html += '</tr></thead><tbody>';
-
-        displayRunways.forEach(function(r) {
-          const isRec = (r.ils_cat && (r.ils_cat.includes('II') || r.ils_cat.includes('III'))) && (r.length_ft != null && r.length_ft === maxLen && maxLen > 0);
-          html += '<tr>';
-          html += '<td>' + escapeHtml(r.name || r.ident || '\u2014') + '</td>';
-          html += '<td>' + (r.length_ft != null ? r.length_ft.toLocaleString() : '\u2014') + '</td>';
-          html += '<td>' + (r.width_ft != null ? r.width_ft : '\u2014') + '</td>';
-          html += `<td>${r.elevation_ft != null ? r.elevation_ft : '—'}</td>`;
-          html += `<td>${r.heading_deg != null ? r.heading_deg.toFixed(0) : '—'}</td>`;
-          html += `<td>${r.glidepath_deg != null ? r.glidepath_deg.toFixed(1) : '—'}</td>`;
-          html += '<td>' + escapeHtml(r.ils_freq || '\u2014') + '</td>';
-          html += '<td>' + escapeHtml(r.ils_ident || '\u2014') + '</td>';
-          html += '<td>' + escapeHtml(r.ils_cat || '\u2014') + '</td>';
-          html += '<td>' + (r.dme != null ? (r.dme ? '\u652F\u6301' : '\u2014') : '\u2014') + '</td>';
-          html += '<td>' + (r.transition_alt_ft != null ? r.transition_alt_ft : '\u2014') + '</td>';
-          html += '<td>' + (isLongest ? '\u2705\uFE0F' : '') + '</td>';
-          html += '</tr>';
-        });
-
-        html += '</tbody></table></div>';
-      }
+      html += '</tbody></table></div>';
     }
 
     // Weather section (collapsible)
     if (weatherData && (weatherData.metar || weatherData.taf || weatherData.metar_raw || weatherData.taf_raw)) {
       const wxId = 'wx-' + icao + '-' + Date.now();
       html += '<div class="airport-section weather-toggle-section">';
-      html += '<div class="airport-section-title collapsible-header" onclick="document.getElementById(\'' + wxId + '\').classList.toggle(\'collapsed\');this.classList.toggle(\'expanded\')">';
-      html += '\u25B6 \u6C23\u8C61\u4FE1\u606F (\u9EDE\u64CA\u5C55\u958B/\u6536\u5408)';
-      html += '<button class="btn btn-small weather-refresh-btn" onclick="event.stopPropagation();app.refreshWeather(\'' + escapeAttr(icao) + '\', ' + state.candidateIndex + ')" style="margin-left:12px">\uD83D\uDD04</button>';
+      html += `<div class="airport-section-title collapsible-header" onclick="document.getElementById('${wxId}').classList.toggle('collapsed');this.classList.toggle('expanded')">`;
+      html += `\u25B6 \u6C23\u8C61\u4FE1\u606F (\u9EDE\u64CA\u5C55\u958B/\u6536\u5408)`;
+      html += `<button class="btn btn-small weather-refresh-btn" onclick="event.stopPropagation();app.refreshWeather('${escapeAttr(icao)}', ${state.candidateIndex})" style="margin-left:12px">\uD83D\uDD04</button>`;
       html += '</div>';
-      html += '<div id="' + wxId + '" class="collapsible-content collapsed">';
+      html += `<div id="${wxId}" class="collapsible-content collapsed">`;
       html += renderWeatherContent(icao, weatherData);
       html += '</div></div>';
     }
@@ -615,9 +501,8 @@
   function renderRouteDetailTable(candidate, dep, arr, depFix, arrFix, wpData) {
     const waypoints = wpData?.waypoints || [];
     const segments = candidate.segments || [];
-    let html = '';
 
-    html += '<table class="data-table"><thead><tr>';
+    let html = '<table class="route-detail-table"><thead><tr>';
     html += '<th>\u822A\u8DEF</th><th>\u8D77\u9EDE</th><th>\u7D42\u9EDE</th><th>\u8DDD\u96E2(\u6D77\u91CC)</th><th>\u822A\u5411</th>';
     html += '</tr></thead><tbody>';
 
@@ -707,7 +592,7 @@
       return (w.frequency / 1000).toFixed(2) + ' MHz';
     }
 
-    html += '<table class="data-table"><thead><tr>';
+    let html = '<table class="nav-table"><thead><tr>';
     html += '<th>\u5C0E\u822A\u9EDE</th><th>\u985E\u578B</th><th>\u983B\u7387</th><th>\u7DEF\u5EA6</th><th>\u7D93\u5EA6</th>';
     html += '</tr></thead><tbody>';
 
@@ -985,7 +870,6 @@
   }
 
   // ── Helpers ───────────────────────────────────────────────
-
   function renderError(msg) {
     return `<p class="no-data error">\u26A0\uFE0F ${escapeHtml(msg)}</p>`;
   }
@@ -1007,20 +891,6 @@
   // ── Settings modal ────────────────────────────────────────
   function openSettings() {
     LLMSettings.populateForm(llmSettings);
-    // Populate language
-    const $settingsLang = document.getElementById('settingsLang');
-    if ($settingsLang) {
-      const lang = localStorage.getItem('ai_flight_planner_language') || 'zh-TW';
-      $settingsLang.value = lang;
-    }
-    // Populate timezone
-    const $settingsTimezone = document.getElementById('settingsTimezone');
-    if ($settingsTimezone) {
-      $settingsTimezone.value = currentTimezone;
-    }
-    // Populate evaluator toggle
-    const $settingsEval = document.getElementById('settingsEval');
-    if ($settingsEval) $settingsEval.checked = useEvaluator;
     $modalOverlay.classList.add('show');
   }
 
@@ -1031,30 +901,6 @@
   function saveSettings() {
     llmSettings = LLMSettings.readForm();
     LLMSettings.save(llmSettings);
-
-    // Save language preference
-    const $settingsLang = document.getElementById('settingsLang');
-    if ($settingsLang) {
-      const lang = $settingsLang.value;
-      localStorage.setItem('ai_flight_planner_language', lang);
-      I18N.t(''); // trigger I18N to pick up new language on next refresh
-      // Force page language update
-      if (typeof I18N !== 'undefined' && I18N.refresh) {
-        I18N.refresh();
-      }
-    }
-
-    // Save timezone preference
-    const $settingsTimezone = document.getElementById('settingsTimezone');
-    if ($settingsTimezone) {
-      currentTimezone = $settingsTimezone.value;
-      localStorage.setItem('ai_flight_planner_timezone', currentTimezone);
-    }
-    const $settingsEval = document.getElementById('settingsEval');
-    if ($settingsEval) {
-      useEvaluator = $settingsEval.checked;
-      localStorage.setItem('ai_flight_planner_evaluator', useEvaluator ? 'true' : 'false');
-    }
     closeSettings();
     showToast(I18N.t('toast-settings-saved'));
   }
