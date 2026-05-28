@@ -942,45 +942,12 @@
       h += '<div class="weather-section"><div class="weather-section-title">\uD83D\uDCE1 METAR \u5929\u6C23\u5831\u544A</div>';
       h += '<pre class="weather-raw">' + escapeHtml(stripMetarPrefix(m.raw || wx.metar_raw || '')) + '</pre>';
       h += '<div class="weather-section-title">\uD83D\uDCCB METAR \u5831\u6587\u89E3\u6790</div>';
+      h += '<div class="weather-section-title">\uD83D\uDCCB METAR \u5831\u6587\u89E3\u6790</div>';
       h += '<table class="data-table"><tbody>';
 
       // Airport code + Update time
       h += '<tr><td class="intent-label">\u6A5F\u5834\u4EE3\u78BC</td><td class="intent-value">' + escapeHtml(icao) + ' (' + escapeHtml(apName) + ')</td>';
       h += '<td class="intent-label">\u66F4\u65B0\u6642\u9593</td><td class="intent-value">' + (wx.updated_iso || '\u2014') + '</td></tr>';
-
-      // Compute local time using airport's ICAO region for timezone
-      var localTime = '';
-      if (wx.updated_iso) {
-        try {
-          var utc = new Date(wx.updated_iso);
-          var tz = currentTimezone || 'UTC+8';
-          var off = parseInt(tz.replace(/[^0-9+-]/g,'')) || 8;
-          var local = new Date(utc.getTime() + off * 3600000);
-          localTime = local.getFullYear()+'-'+String(local.getMonth()+1).padStart(2,'0')+'-'+String(local.getDate()).padStart(2,'0')+' '+String(local.getHours()).padStart(2,'0')+':'+String(local.getMinutes()).padStart(2,'0')+' '+tz;
-        } catch(e) {}
-      }
-
-      // Visibility + Local time
-      var visStr = m.visibility_str || (m.visibility_m!=null?(m.visibility_m>=10000?'\uD83D\uDD2D \u80FD\u898B\u5EA6\u826F\u597D':m.visibility_m+'m'):'\u2014');
-      h += '<tr><td class="intent-label">\u80FD\u898B\u5EA6</td><td class="intent-value">' + visStr + '</td>';
-      h += '<td class="intent-label">\u7576\u5730\u6642\u9593</td><td class="intent-value">' + (localTime || '\u2014') + '</td></tr>';
-
-      // Temp/Dew + Pressure
-      var tempStr = (m.temp_c!=null?m.temp_c+' \u00B0C':'\u2014')+' / '+(m.dewpt_c!=null?m.dewpt_c+' \u00B0C':'\u2014');
-      h += '<tr><td class="intent-label">\u6EAB\u5EA6/\u9732\u9EDE</td><td class="intent-value">' + tempStr + '</td>';
-      h += '<td class="intent-label">\u4FEE\u6B63\u6D77\u58D3</td><td class="intent-value">' + (m.pressure_hpa!=null?m.pressure_hpa+' hPa':'\u2014') + '</td></tr>';
-
-      // Close first table, open second 2-column table for full-width items
-      h += '</tbody></table>';
-      h += '<table class="data-table"><tbody>';
-
-      // Clouds
-      var cloudStr = '\u2014';
-      if (m.clouds && m.clouds.length > 0) {
-        cloudStr = '';
-        m.clouds.forEach(function(c) { cloudStr += (c.emoji||'')+' '+(c.cover_cn||c.cover)+', \u4E91\u5E95\u9AD8\u5EA6 '+c.height_ft+' FT '; });
-      }
-      h += '<tr><td class="intent-label">\u96F2\u5C64\u72C0\u6CC1</td><td class="intent-value">' + cloudStr + '</td></tr>';
 
       // Wind
       var wind = m.wind || {};
@@ -992,27 +959,58 @@
       var rawText = m.raw || '';
       var varMatch = rawText.match(/(\d{3})V(\d{3})/);
       if (varMatch) windStr += ', \u98A8\u5411\u5728 ' + varMatch[1] + '\u00B0 \u5230 ' + varMatch[2] + '\u00B0 \u4E4B\u9593\u6CE2\u52D5';
-      h += '<tr><td class="intent-label">\u98A8\u901F\u98A8\u5411</td><td class="intent-value">' + windStr + '</td></tr>';
+      // Visibility
+      var visStr = m.visibility_str || (m.visibility_m!=null?(m.visibility_m>=10000?'\uD83D\uDD2D \u80FD\u898B\u5EA6\u826F\u597D':m.visibility_m+'m'):'\u2014');
+      h += '<tr><td class="intent-label">\u98A8\u901F\u98A8\u5411</td><td class="intent-value">' + windStr + '</td>';
+      h += '<td class="intent-label">\u80FD\u898B\u5EA6</td><td class="intent-value">' + visStr + '</td></tr>';
+
+      // Clouds + Temp/Dew
+      var cloudStr = '\u2014';
+      if (m.clouds && m.clouds.length > 0) {
+        cloudStr = '';
+        m.clouds.forEach(function(c) { cloudStr += (c.emoji||'')+' '+(c.cover_cn||c.cover)+', \u4E91\u5E95\u9AD8\u5EA6 '+c.height_ft+' FT '; });
+      }
+      var tempStr = (m.temp_c!=null?m.temp_c+' \u00B0C':'\u2014')+' / '+(m.dewpt_c!=null?m.dewpt_c+' \u00B0C':'\u2014');
+      h += '<tr><td class="intent-label">\u96F2\u5C64\u72C0\u6CC1</td><td class="intent-value">' + cloudStr + '</td>';
+      h += '<td class="intent-label">\u6EAB\u5EA6/\u9732\u9EDE</td><td class="intent-value">' + tempStr + '</td></tr>';
+
+      // Pressure + Local time
+      var localTime = '';
+      if (wx.updated_iso) {
+        try {
+          var utc = new Date(wx.updated_iso);
+          var tz = currentTimezone || 'UTC+8';
+          var off = parseInt(tz.replace(/[^0-9+-]/g,'')) || 8;
+          var local = new Date(utc.getTime() + off * 3600000);
+          localTime = local.getFullYear()+'-'+String(local.getMonth()+1).padStart(2,'0')+'-'+String(local.getDate()).padStart(2,'0')+' '+String(local.getHours()).padStart(2,'0')+':'+String(local.getMinutes()).padStart(2,'0')+' '+tz;
+        } catch(e) {}
+      }
+      h += '<tr><td class="intent-label">\u4FEE\u6B63\u6D77\u58D3</td><td class="intent-value">' + (m.pressure_hpa!=null?m.pressure_hpa+' hPa':'\u2014') + '</td>';
+      h += '<td class="intent-label">\u7576\u5730\u6642\u9593</td><td class="intent-value">' + (localTime || '\u2014') + '</td></tr>';
+
+      h += '</tbody></table>';
+
+      // Second table: trends + TEMPO (2-column)
+      h += '<table class="data-table"><tbody>';
 
       // Trend
       var rawUpper = rawText.toUpperCase();
       var trendParts = [];
       if (rawUpper.indexOf('NOSIG') >= 0) trendParts.push('\u672A\u4F862\u5C0F\u6642\u5167\u7121\u986F\u8457\u8B8A\u5316 (NOSIG)');
       if (rawUpper.indexOf('BECMG') >= 0) trendParts.push('\u5929\u6C23\u5C07\u9010\u6F38\u8F49\u8B8A (BECMG)');
-      if (rawUpper.indexOf('TEMPO') >= 0) trendParts.push('\u6709\u77ED\u66AB\u5929\u6C23\u6CE2\u52D5 (TEMPO)');
+      if (rawUpper.indexOf('TEMPO') >= 0) trendParts.push('\u672A\u4F862\u5C0F\u6642\u5167\u6703\u6709\u77ED\u66AB\u7684\u5929\u6C23\u6CE2\u52D5');
       var trendStr = trendParts.length > 0 ? trendParts.join('; ') : '\u2014';
       h += '<tr><td class="intent-label">\u8DA8\u52E2\u8207\u5099\u8A3B</td><td class="intent-value">' + trendStr + '</td></tr>';
 
-      // TEMPO lines
-      var tempoMatch = rawText.match(/TEMPO\s+(.+)/i);
+      // TEMPO details
       var tempoMatch = rawText.match(/TEMPO\s+(.+)/i);
       if (tempoMatch) {
         var tempoStr = tempoMatch[1].trim();
         tempoStr = tempoStr.replace(/(FEW|SCT|BKN|OVC)(\d{3})/gi, function(_,c,h){
           var cn = {FEW:"\u5C11\u96F2", SCT:"\u758F\u96F2", BKN:"\u88C2\u96F2", OVC:"\u9670\u5929"};
-          return cn[c.toUpperCase()] + " (" + c.toUpperCase() + ") \u4F4E\u81F3 " + (parseInt(h) * 100) + "\u82F1\u5C3A";
+          return cn[c.toUpperCase()] + "\uFF08" + c.toUpperCase() + "\uFF09\u4F4E\u81F3 " + (parseInt(h) * 100) + "\u82F1\u5C3A";
         });
-        h += '<tr><td class="intent-label">\u81E8\u6642\u8B8A\u5316</td><td class="intent-value">' + tempoStr + '</td></tr>';
+        h += '<tr><td class="intent-label">\u81E8\u6642\u8B8A\u5316(\u5982\u6709)</td><td class="intent-value">\u9810\u8A08\u77ED\u6642\u9593\u5167\uFF0C' + tempoStr + '</td></tr>';
       }
 
       h += '</tbody></table></div>';
