@@ -335,11 +335,15 @@
     const selectedEl = document.querySelector(`.route-card[data-candidate-index="${candidateIndex}"]`);
     if (selectedEl) selectedEl.classList.add('selected');
 
-    // Set loading states
-    $depAirportContent.innerHTML = '<div class="panel-loading">Loading airport data...</div>';
-    $arrAirportContent.innerHTML = '<div class="panel-loading">Loading airport data...</div>';
-    $routeDetailContent.innerHTML = '<div class="panel-loading">Loading route details...</div>';
-    $navDetailContent.innerHTML = '<div class="panel-loading">Loading waypoints...</div>';
+    // Set loading states with timers
+    const loadStart = Date.now();
+    const loadTimer = setInterval(() => {
+      const elapsed = Math.round((Date.now() - loadStart) / 1000);
+      const t = `Loading... ${elapsed}s`;
+      [$depAirportContent, $arrAirportContent, $routeDetailContent, $navDetailContent].forEach(el => {
+        if (el.textContent.includes('Loading')) el.innerHTML = `<div class="panel-loading">${t}</div>`;
+      });
+    }, 1000);
 
     // Render route description right away (before airport grid)
     renderRouteDescription(candidate, parsed);
@@ -351,6 +355,8 @@
       API.getRouteWaypoints(candidateIndex),
       API.getWeather(dep, arr),
     ]);
+
+    clearInterval(loadTimer);
 
     const depData = depResult.status === 'fulfilled' ? depResult.value : null;
     const arrData = arrResult.status === 'fulfilled' ? arrResult.value : null;
