@@ -689,7 +689,7 @@
     // Weather section (collapsible)
     if (weatherData && (weatherData.metar || weatherData.taf || weatherData.metar_raw || weatherData.taf_raw)) {
       var wxId = 'wx-' + icao + '-' + Date.now();
-      html += '<div class="airport-section"><div class="airport-section-title collapsible-header" onclick="document.getElementById(\'' + wxId + '\').classList.toggle(\'collapsed\')">\u6C23\u8C61\u4FE1\u606F (\u9EDE\u64CA\u5C55\u958B/\u6536\u5408)</div>';
+      html += '<div class="airport-section"><div class="airport-section-title collapsible-header" onclick="document.getElementById(\'' + wxId + '\').classList.toggle(\'collapsed\')">\u6C23\u8C61\u4FE1\u606F</div>';
       html += '<div id="' + wxId + '" class="collapsible-content collapsed">';
       html += renderWeatherContent(icao, weatherData);
       html += '</div></div>';
