@@ -220,7 +220,25 @@ class WeatherStation(BaseModel):
     icao: str = ""
     airport: WeatherAirport = Field(default_factory=WeatherAirport)
     metar: WeatherMetar | None = None
-    taf_raw: str | None = None
+    metar_raw: str | None = None       # raw METAR text
+    taf_raw: str | None = None         # raw TAF text
+    taf: "WeatherTaf | None" = None    # parsed TAF fields
+    updated: str | None = None         # "Last updated: 0100 UTC 28 Thu May 2026"
+
+
+class WeatherTaf(BaseModel):
+    """Parsed TAF fields."""
+    raw: str = ""
+    time_from: str | None = None       # "2026-05-28 00:00 UTC"
+    time_to: str | None = None
+    wind: WeatherWind = Field(default_factory=WeatherWind)
+    wind_text: str = ""
+    visibility_m: float | None = None
+    visibility_str: str = ""
+    clouds: list[WeatherCloud] = Field(default_factory=list)
+    weather: list[str] = Field(default_factory=list)
+    max_temp_c: float | None = None
+    min_temp_c: float | None = None
 
 
 class WeatherResponse(BaseModel):

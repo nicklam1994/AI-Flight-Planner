@@ -34,6 +34,7 @@ from src.api.schemas import (
     WeatherWind,
     WeatherCloud,
     WeatherAirport,
+    WeatherTaf,
 )
 from src.db.airport import search as search_airports
 from src.db.connection import get_db, reconnect_db, reconnect_s3db
@@ -517,7 +518,7 @@ async def get_weather(dep: str = "", arr: str = ""):
     Returns parsed METAR with Chinese cloud translations, plus raw TAF.
     """
     import httpx
-    from src.weather.metar import parse_metar
+    from src.weather.metar import parse_metar, parse_taf
 
     result = WeatherResponse()
 
@@ -607,7 +608,7 @@ def _split_noaa_response(raw: str, icaos: list[str]) -> dict[str, str]:
 
 def _build_weather_station(icao: str, block: str) -> WeatherStation | None:
     """Parse a NOAA block for one airport into a WeatherStation model."""
-    from src.weather.metar import parse_metar
+    from src.weather.metar import parse_metar, parse_taf
 
     if not block:
         return None
@@ -624,6 +625,15 @@ def _build_weather_station(icao: str, block: str) -> WeatherStation | None:
 
     # Parse METAR
     metar_data = parse_metar(metar_line) if metar_line else None
+
+    # Parse TAF
+    taf_raw_text = "\n".join(taf_lines) if taf_lines else None
+    taf_data = parse_taf(taf_lines[0]) if taf_lines else None
+
+    # Build updated time string: "Last updated: 0100 UTC 28 Thu May 2026"
+    updated = None
+    if metar_data and metar_data.get("time"):
+        updated = f"Updated: {metar_data['time']}"
 
     airport_info = WeatherAirport()
     if metar_data:
@@ -665,11 +675,31 @@ def _build_weather_station(icao: str, block: str) -> WeatherStation | None:
             flight_rules=metar_data.get("flight_rules", ""),
         )
 
+    # Build TAF model
+    taf_model = None
+    if taf_data:
+        taf_model = WeatherTaf(
+            raw=taf_data.get("raw", taf_raw_text or ""),
+            time_from=taf_data.get("time_from"),
+            time_to=taf_data.get("time_to"),
+            wind=WeatherWind(**taf_data["wind"]) if taf_data.get("wind") else WeatherWind(),
+            wind_text=taf_data.get("wind_text", ""),
+            visibility_m=taf_data.get("visibility_m"),
+            visibility_str=taf_data.get("visibility_str", ""),
+            clouds=[WeatherCloud(**c) for c in taf_data.get("clouds", [])],
+            weather=taf_data.get("weather", []),
+            max_temp_c=taf_data.get("max_temp_c"),
+            min_temp_c=taf_data.get("min_temp_c"),
+        )
+
     return WeatherStation(
         icao=icao,
         airport=airport_info,
         metar=metar_model,
-        taf_raw="\n".join(taf_lines) if taf_lines else None,
+        metar_raw=metar_line or None,
+        taf_raw=taf_raw_text,
+        taf=taf_model,
+        updated=updated,
     )
 
 

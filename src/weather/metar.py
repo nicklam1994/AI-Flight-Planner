@@ -90,11 +90,13 @@ def parse_metar(raw: str) -> dict | None:
     if not raw or not raw.strip():
         return None
 
-    # Strip "METAR" prefix if present
+    # Keep original for 'raw' field
+    original_raw = raw.strip()
+
+    # Strip "METAR" prefix for parsing
     metar_str = raw.strip()
     if metar_str.upper().startswith("METAR "):
         metar_str = metar_str[6:].strip()
-        raw = raw  # keep original for 'raw' field
 
     try:
         obs = MetarParser.Metar(metar_str)
@@ -116,7 +118,7 @@ def parse_metar(raw: str) -> dict | None:
             "clouds": [],
             "weather": [],
             "flight_rules": "",
-            "raw": raw,
+            "raw": original_raw,
         }
 
     icao = obs.station_id or ""
@@ -193,12 +195,8 @@ def parse_metar(raw: str) -> dict | None:
         for wx in obs.weather:
             weather.append(str(wx))
 
-    # Flight rules
-    flight_rules = ""
-    try:
-        flight_rules = obs.flight_rules() or ""
-    except Exception:
-        pass
+    # Flight rules — manual calculation (metar library's flight_rules() is buggy)
+    flight_rules = _calc_flight_rules(visibility_m, clouds)
 
     return {
         "icao": icao,
@@ -216,5 +214,104 @@ def parse_metar(raw: str) -> dict | None:
         "clouds": clouds,
         "weather": weather,
         "flight_rules": flight_rules,
-        "raw": raw,
+        "raw": original_raw,
     }
+
+
+def _calc_flight_rules(vis_m: float | None, clouds: list[dict]) -> str:
+    """Determine flight rules (VFR/MVFR/IFR/LIFR) from visibility and ceilings."""
+    lowest_ceiling = None
+    for c in clouds:
+        if c.get("cover") in ("BKN", "OVC"):
+            h = c.get("height_ft")
+            if h is not None and (lowest_ceiling is None or h < lowest_ceiling):
+                lowest_ceiling = h
+
+    vis = vis_m if vis_m else 99999
+
+    if vis >= 8000 and (lowest_ceiling is None or lowest_ceiling > 3000):
+        return "VFR"
+    elif (vis >= 5000 and vis < 8000) or (lowest_ceiling is not None and 1000 < lowest_ceiling <= 3000):
+        return "MVFR"
+    elif (vis >= 1600 and vis < 5000) or (lowest_ceiling is not None and 500 <= lowest_ceiling <= 1000):
+        return "IFR"
+    else:
+        return "LIFR"
+
+
+def parse_taf(raw: str) -> dict | None:
+    """
+    Parse a raw TAF string into structured fields.
+
+    TAF format: TAF VHHH 272300Z 2800/2906 22010KT 9999 FEW015 TX34/2806Z ...
+    """
+    if not raw or not raw.strip():
+        return None
+
+    line = raw.strip()
+    if line.upper().startswith("TAF "):
+        line = line[4:].strip()
+
+    parts = line.split()
+    if len(parts) < 2:
+        return None
+
+    result: dict = {"raw": raw}
+
+    # ICAO
+    result["icao"] = parts[0] if len(parts[0]) == 4 else ""
+
+    # Time range: 2800/2906
+    for p in parts:
+        if "/" in p and p[0].isdigit():
+            from_s, to_s = p.split("/")
+            result["time_from"] = f"20{p[:2]}-{p[2:4]}-{p[4:6]} {from_s}:00 UTC"
+            result["time_to"] = f"20{p[:2]}-{p[2:4]}-{p[4:6]} {to_s}:00 UTC"
+            break
+
+    # Wind: 22010KT
+    wind_match = re.search(r"(\d{3})(\d{2,3})(G\d{2,3})?KT", line)
+    if wind_match:
+        wdir = float(wind_match.group(1))
+        wspd = float(wind_match.group(2))
+        gust = wind_match.group(3)
+        result["wind"] = {
+            "dir": wdir,
+            "speed_kts": wspd,
+            "gust_kts": float(gust[1:]) if gust else None,
+            "dir_compass": _compass(wdir),
+        }
+        result["wind_text"] = f"{_compass(wdir)} {wspd}kt"
+        if gust:
+            result["wind_text"] += f" G{gust[1:]}kt"
+
+    # Visibility: 9999
+    vis_match = re.search(r" (\d{4}) ", " " + line + " ")
+    if vis_match:
+        vis = int(vis_match.group(1))
+        result["visibility_m"] = float(vis)
+        result["visibility_str"] = f"{vis}m" if vis < 10000 else "10km+"
+
+    # Clouds: FEW015 BKN030
+    clouds = []
+    for m in re.finditer(r"(FEW|SCT|BKN|OVC)(\d{3})", line):
+        clouds.append({
+            "cover": m.group(1),
+            "cover_cn": _CLOUD_CN.get(m.group(1), m.group(1)),
+            "height_ft": int(m.group(2)) * 100,
+        })
+    result["clouds"] = clouds
+
+    # Weather
+    wx_list = []
+    for m in re.finditer(r"([+-]?(?:VC)?(?:TS|SH|RA|SN|DZ|GR|GS|FG|BR|HZ|FU|SA|DU|VA|SQ|DS|SS|PO|FC|PY))", line):
+        wx_list.append(m.group(0))
+    result["weather"] = wx_list
+
+    # TX/TN temperature extremes
+    tx = re.search(r"TX(\d+)/(\d{4}Z)", line)
+    tn = re.search(r"TN(\d+)/(\d{4}Z)", line)
+    result["max_temp_c"] = float(tx.group(1)) if tx else None
+    result["min_temp_c"] = float(tn.group(1)) if tn else None
+
+    return result
