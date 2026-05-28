@@ -1005,19 +1005,33 @@
       var tempoMatch = rawText.match(/TEMPO\s+(.+)/i);
       if (tempoMatch) {
         var tempoStr = tempoMatch[1].trim();
+        // Remove any trailing BECMG section
+        var becmgIdx = tempoStr.toUpperCase().indexOf('BECMG');
+        if (becmgIdx > 0) tempoStr = tempoStr.substring(0, becmgIdx).trim();
         tempoStr = tempoStr.replace(/(FEW|SCT|BKN|OVC)(\d{3})/gi, function(_,c,h){
           var cn = {FEW:"\u5C11\u96F2", SCT:"\u758F\u96F2", BKN:"\u88C2\u96F2", OVC:"\u9670\u5929"};
           return cn[c.toUpperCase()] + "\uFF08" + c.toUpperCase() + "\uFF09\u4F4E\u81F3 " + (parseInt(h) * 100) + "\u82F1\u5C3A";
         });
-        // Translate visibility and weather codes
         tempoStr = tempoStr.replace(/(\d{4})/g, '\u80FD\u898B\u5EA6 $1\u7C73');
         tempoStr = tempoStr.replace(/\bBR\b/gi, '\u9744');
         tempoStr = tempoStr.replace(/\bFG\b/gi, '\u9727');
         tempoStr = tempoStr.replace(/\bRA\b/gi, '\u96E8');
         tempoStr = tempoStr.replace(/\bTS\b/gi, '\u96F7\u66B4');
-        var tempoLabel = '\u77ED\u66AB\u6CE2\u52D5(TEMPO)';
-        if (rawUpper.indexOf('BECMG') >= 0 && rawUpper.indexOf('TEMPO') < 0) tempoLabel = '\u9010\u6F38\u8F49\u8B8A(BECMG)';
-        h += '<tr><td class="intent-label">' + tempoLabel + '</td><td class="intent-value">\u9810\u8A08\u77ED\u6642\u9593\u5167\uFF0C' + tempoStr + '</td></tr>';
+        h += '<tr><td class="intent-label">\u77ED\u66AB\u6CE2\u52D5(TEMPO)</td><td class="intent-value">\u9810\u8A08\u77ED\u6642\u9593\u5167\uFF0C' + tempoStr + '</td></tr>';
+      }
+
+      // BECMG details
+      var becmgMatch = rawText.match(/BECMG\s+(.+)/i);
+      if (becmgMatch) {
+        var becmgStr = becmgMatch[1].trim();
+        // Remove any trailing TEMPO section
+        var tempoIdx = becmgStr.toUpperCase().indexOf('TEMPO');
+        if (tempoIdx > 0) becmgStr = becmgStr.substring(0, tempoIdx).trim();
+        // Parse wind: 26005KT
+        becmgStr = becmgStr.replace(/(\d{3})(\d{2,3})(G\d{2,3})?KT/gi, function(_,d,s,g){
+          return d + '\u00B0 @ ' + parseInt(s) + ' KT' + (g ? ' Gust ' + g.substring(1) + 'kt' : '');
+        });
+        h += '<tr><td class="intent-label">\u9010\u6F38\u8F49\u8B8A(BECMG)</td><td class="intent-value">' + becmgStr.trim() + '</td></tr>';
       }
 
       h += '</tbody></table></div>';
