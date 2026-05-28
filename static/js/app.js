@@ -942,7 +942,6 @@
       h += '<div class="weather-section"><div class="weather-section-title">\uD83D\uDCE1 METAR \u5929\u6C23\u5831\u544A</div>';
       h += '<pre class="weather-raw">' + escapeHtml(stripMetarPrefix(m.raw || wx.metar_raw || '')) + '</pre>';
       h += '<div class="weather-section-title">\uD83D\uDCCB METAR \u5831\u6587\u89E3\u6790</div>';
-      h += '<div class="weather-section-title">\uD83D\uDCCB METAR \u5831\u6587\u89E3\u6790</div>';
       h += '<table class="data-table"><tbody>';
 
       // Airport code + Update time
@@ -958,7 +957,7 @@
       } else if (m.wind_text) { windStr = m.wind_text; }
       var rawText = m.raw || '';
       var varMatch = rawText.match(/(\d{3})V(\d{3})/);
-      if (varMatch) windStr += ', \u98A8\u5411\u5728 ' + varMatch[1] + '\u00B0 \u5230 ' + varMatch[2] + '\u00B0 \u4E4B\u9593\u6CE2\u52D5';
+      if (varMatch) windStr += '<br>\u98A8\u5411\u5728 ' + varMatch[1] + '\u00B0 \u5230 ' + varMatch[2] + '\u00B0 \u4E4B\u9593\u6CE2\u52D5';
       // Visibility
       var visStr = m.visibility_str || (m.visibility_m!=null?(m.visibility_m>=10000?'\uD83D\uDD2D \u80FD\u898B\u5EA6\u826F\u597D':m.visibility_m+'m'):'\u2014');
       h += '<tr><td class="intent-label">\u98A8\u901F\u98A8\u5411</td><td class="intent-value">' + windStr + '</td>';
@@ -1010,6 +1009,12 @@
           var cn = {FEW:"\u5C11\u96F2", SCT:"\u758F\u96F2", BKN:"\u88C2\u96F2", OVC:"\u9670\u5929"};
           return cn[c.toUpperCase()] + "\uFF08" + c.toUpperCase() + "\uFF09\u4F4E\u81F3 " + (parseInt(h) * 100) + "\u82F1\u5C3A";
         });
+        // Translate visibility and weather codes
+        tempoStr = tempoStr.replace(/(\d{4})/g, '\u80FD\u898B\u5EA6 $1\u7C73');
+        tempoStr = tempoStr.replace(/\bBR\b/gi, '\u9744');
+        tempoStr = tempoStr.replace(/\bFG\b/gi, '\u9727');
+        tempoStr = tempoStr.replace(/\bRA\b/gi, '\u96E8');
+        tempoStr = tempoStr.replace(/\bTS\b/gi, '\u96F7\u66B4');
         h += '<tr><td class="intent-label">\u81E8\u6642\u8B8A\u5316(\u5982\u6709)</td><td class="intent-value">\u9810\u8A08\u77ED\u6642\u9593\u5167\uFF0C' + tempoStr + '</td></tr>';
       }
 
