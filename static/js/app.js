@@ -336,31 +336,22 @@
     const selectedEl = document.querySelector(`.route-card[data-candidate-index="${candidateIndex}"]`);
     if (selectedEl) selectedEl.classList.add('selected');
 
-    // Set loading states with timers
-    $depAirportContent.innerHTML = '<div class="panel-loading">Loading... 0s</div>';
-    $arrAirportContent.innerHTML = '<div class="panel-loading">Loading... 0s</div>';
-    $routeDetailContent.innerHTML = '<div class="panel-loading">Loading... 0s</div>';
-    $navDetailContent.innerHTML = '<div class="panel-loading">Loading... 0s</div>';
-    const loadStart = Date.now();
-    const loadTimer = setInterval(() => {
-      const elapsed = Math.round((Date.now() - loadStart) / 1000);
-      const t = `Loading... ${elapsed}s`;
-      [$depAirportContent, $arrAirportContent, $routeDetailContent, $navDetailContent].forEach(el => {
-        if (el.textContent.includes('Loading')) el.innerHTML = '<div class="panel-loading">' + t + '</div>';
-      });
-    }, 1000);
+    // Set loading states
+    $depAirportContent.innerHTML = '<div class="panel-loading">Loading airport data...</div>';
+    $arrAirportContent.innerHTML = '<div class="panel-loading">Loading airport data...</div>';
+    $routeDetailContent.innerHTML = '<div class="panel-loading">Loading route details...</div>';
+    $navDetailContent.innerHTML = '<div class="panel-loading">Loading waypoints...</div>';
 
     // Render route description right away (before airport grid)
     renderRouteDescription(candidate, parsed);
 
-    // Fetch airport + waypoint data (fast), weather async (slow)
-    const [depResult, arrResult, wpResult] = await Promise.allSettled([
+    // Parallel requests
+    const [depResult, arrResult, wpResult, wxResult] = await Promise.allSettled([
       API.getAirportDetail(dep, depFix),
       API.getAirportDetail(arr, arrFix),
       API.getRouteWaypoints(candidateIndex),
+      API.getWeather(dep, arr),
     ]);
-    // Weather loads independently
-    const wxPromise = API.getWeather(dep, arr);
 
     clearInterval(loadTimer);
 
@@ -993,30 +984,6 @@
   }
 
   // ── Helpers ───────────────────────────────────────────────
-
-  function addWeatherToCard(container, weatherData) {
-    // Find or create weather section at bottom of card
-    let wxSection = container.querySelector('.weather-section');
-    if (!wxSection) {
-      wxSection = document.createElement('div');
-      wxSection.className = 'weather-section';
-      container.appendChild(wxSection);
-    }
-    // Simple inline weather display
-    let wxHtml = '<div class="collapsible-section">';
-    wxHtml += '<div class="section-toggle" onclick="var s=this.nextElementSibling;var a=this.querySelector(\'.arrow\');s.classList.toggle(\'collapsed\');a.classList.toggle(\'open\')">Weather <span class="arrow">▶</span></div>';
-    wxHtml += '<div class="section-body collapsed">';
-    const m = weatherData.metar;
-    if (m) {
-      wxHtml += '<pre class="weather-raw">' + (m.raw || weatherData.metar_raw || '') + '</pre>';
-      wxHtml += '<div style="font-size:0.78rem;color:var(--text)">Temp: ' + (m.temp_c != null ? m.temp_c + '°C' : '—') + ' / Wind: ' + (m.wind_text || '—') + '</div>';
-    }
-    if (weatherData.taf && weatherData.taf.raw) {
-      wxHtml += '<pre class="weather-raw">' + weatherData.taf.raw + '</pre>';
-    }
-    wxHtml += '</div></div>';
-    wxSection.innerHTML = wxHtml;
-  }
 
   function renderError(msg) {
     return `<p class="no-data error">\u26A0\uFE0F ${escapeHtml(msg)}</p>`;
