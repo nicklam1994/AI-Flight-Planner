@@ -68,9 +68,9 @@ const I18N = (() => {
       'en': '🛫 Route Results'
     },
     'modal-title': {
-      'zh-CN': '⚙️ LLM API 设置',
-      'zh-TW': '⚙️ LLM API 設定',
-      'en': '⚙️ LLM API Settings'
+      'zh-CN': '⚙️ 设置',
+      'zh-TW': '⚙️ 設定',
+      'en': '⚙️ Settings'
     },
     'label-provider': {
       'zh-CN': '提供商',
@@ -201,6 +201,16 @@ const I18N = (() => {
       'zh-CN': '置信度',
       'zh-TW': '置信度',
       'en': 'Confidence'
+    },
+    'label-language': {
+      'zh-CN': '语言',
+      'zh-TW': '語言',
+      'en': 'Language'
+    },
+    'label-timezone': {
+      'zh-CN': '时区',
+      'zh-TW': '時區',
+      'en': 'Timezone'
     },
     'label-avoid-wps': {
       'zh-CN': '避开航点',
@@ -550,12 +560,20 @@ const I18N = (() => {
     const modalTitle = document.querySelector('.modal h2');
     if (modalTitle) modalTitle.textContent = t('modal-title');
 
-    // Update all labels inside the modal
-    const modalLabels = document.querySelectorAll('.modal .form-group > label');
-    const labelKeys = ['label-provider', 'label-base-url', 'label-api-key', 'label-model', 'label-temperature'];
-    modalLabels.forEach((label, i) => {
-      if (i < labelKeys.length) label.textContent = t(labelKeys[i]);
-    });
+    // Update LLM API labels inside the modal (skip Language/Timezone which are hardcoded)
+    const labelKeys = ['label-language', 'label-timezone'];
+    const langLabel = document.querySelector('.modal .form-group:nth-child(2) > label');
+    const tzLabel = document.querySelector('.modal .form-group:nth-child(3) > label');
+    if (langLabel) langLabel.textContent = t('label-language');
+    if (tzLabel) tzLabel.textContent = t('label-timezone');
+
+    const apiLabels = document.querySelectorAll('.modal .form-group > label');
+    const apiLabelKeys = ['label-provider', 'label-base-url', 'label-api-key', 'label-model', 'label-temperature'];
+    // Skip first 2 labels (Language, Timezone), apply LLM keys to the rest
+    let apiIdx = 0;
+    for (let i = 2; i < apiLabels.length && apiIdx < apiLabelKeys.length; i++, apiIdx++) {
+      apiLabels[i].textContent = t(apiLabelKeys[apiIdx]);
+    }
   }
 
   /** Initialize: load persisted lang, apply, attach change listener. */
