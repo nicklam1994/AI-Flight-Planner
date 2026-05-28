@@ -522,6 +522,17 @@
     const wpData = wpResult.status === 'fulfilled' ? wpResult.value : null;
     const wxData = wxResult.status === 'fulfilled' ? wxResult.value : null;
 
+    if (depData?.airport?.name) state._depAirportName = depData.airport.name;
+    if (arrData?.airport?.name) state._arrAirportName = arrData.airport.name;
+
+    // Update route description with real airport names
+    var descRow = document.querySelector('.route-description-card .data-table tr:first-child .intent-value');
+    if (descRow && state._depAirportName) {
+      var depFull = dep + (parsed?.origin_iata ? '/' + parsed.origin_iata : '');
+      var arrFull = arr + (parsed?.dest_iata ? '/' + parsed.dest_iata : '');
+      descRow.innerHTML = '\\u51FA\\u767C\\u5730 ' + escapeHtml(depFull) + '\\uFF08' + escapeHtml(state._depAirportName) + '\\uFF09\\uFF0C\\u76EE\\u7684\\u5730 ' + escapeHtml(arrFull) + '\\uFF08' + escapeHtml(state._arrAirportName) + '\\uFF09';
+    }
+
     if (depResult.status === 'rejected') console.warn('Departure airport detail failed:', depResult.reason);
     if (arrResult.status === 'rejected') console.warn('Arrival airport detail failed:', arrResult.reason);
     if (wpResult.status === 'rejected') console.warn('Waypoint request failed:', wpResult.reason);
