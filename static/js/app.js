@@ -222,6 +222,27 @@
     return s;
   }
 
+  
+  function normalizeAircraft(raw) {
+    if (!raw) return '';
+    var s = raw.trim();
+    var map = {
+      'B738': 'Boeing 737-800', 'B737': 'Boeing 737', 'B739': 'Boeing 737-900',
+      'B77W': 'Boeing 777-300ER', 'B772': 'Boeing 777-200', 'B773': 'Boeing 777-300',
+      'B788': 'Boeing 787-8', 'B789': 'Boeing 787-9', 'B78X': 'Boeing 787-10',
+      'B744': 'Boeing 747-400', 'B748': 'Boeing 747-8',
+      'A320': 'Airbus A320', 'A319': 'Airbus A319', 'A321': 'Airbus A321',
+      'A332': 'Airbus A330-200', 'A333': 'Airbus A330-300', 'A359': 'Airbus A350-900',
+      'A388': 'Airbus A380-800',
+      'CRJ2': 'Bombardier CRJ200', 'CRJ7': 'Bombardier CRJ700', 'CRJ9': 'Bombardier CRJ900',
+      'E170': 'Embraer E170', 'E175': 'Embraer E175', 'E190': 'Embraer E190', 'E195': 'Embraer E195',
+    };
+    var upper = s.toUpperCase();
+    if (map[upper]) return map[upper];
+    if (/^(boeing|airbus|bombardier|embraer)/i.test(s)) return s;
+    return s;
+  }
+
   function renderParsedTable(parsed) {
     var altMin = parsed.cruise_altitude_min
       ? 'FL' + Math.round(parsed.cruise_altitude_min / 100)
