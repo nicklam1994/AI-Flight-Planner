@@ -549,9 +549,9 @@
           html += '<td>' + escapeHtml(r.name || r.ident || '\u2014') + '</td>';
           html += '<td>' + (r.length_ft != null ? r.length_ft.toLocaleString() : '\u2014') + '</td>';
           html += '<td>' + (r.width_ft != null ? r.width_ft : '\u2014') + '</td>';
-          html += '<td>' + (r.elevation_ft != null ? r.elevation_ft : '\u2014') + '</td>';
-          html += '<td>' + (r.heading_deg != null ? r.heading_deg : '\u2014') + '</td>';
-          html += '<td>' + (r.glidepath_deg != null ? r.glidepath_deg.toFixed(1) : '\u2014') + '</td>';
+          html += `<td>${r.elevation_ft != null ? r.elevation_ft : '—'}</td>`;
+          html += `<td>${r.heading_deg != null ? r.heading_deg.toFixed(0) : '—'}</td>`;
+          html += `<td>${r.glidepath_deg != null ? r.glidepath_deg.toFixed(1) : '—'}</td>`;
           html += '<td>' + escapeHtml(r.ils_freq || '\u2014') + '</td>';
           html += '<td>' + escapeHtml(r.ils_ident || '\u2014') + '</td>';
           html += '<td>' + escapeHtml(r.ils_cat || '\u2014') + '</td>';

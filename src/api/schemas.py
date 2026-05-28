@@ -344,14 +344,17 @@ class AirportInfo(BaseModel):
 
 class RunwayInfo(BaseModel):
     """Runway with ILS details."""
-    name: str                              # e.g., "07C"
+    name: str
     length_ft: float | None = None
     width_ft: float | None = None
-    heading: float | None = None
-    ils_frequency: int | None = None       # kHz * 100 (e.g., 109300 = 109.30 MHz)
+    elevation_ft: float | None = None       # airport altitude
+    heading_deg: float | None = None        # ILS localizer heading
+    glidepath_deg: float | None = None      # ILS glideslope pitch
+    ils_frequency: int | None = None
     ils_ident: str | None = None
-    ils_cat: str | None = None             # "CAT I", "CAT II", "CAT III"
+    ils_cat: str | None = None
     has_dme: bool = False
+    transition_alt_ft: float | None = None  # transition altitude
 
 
 class ProcedureInfo(BaseModel):

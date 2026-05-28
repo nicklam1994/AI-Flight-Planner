@@ -585,7 +585,7 @@ async def get_airport_detail(icao: str, fix: str | None = None):
 
     # Query all ILS for this airport in one batch
     ils_rows = db.execute(
-        "SELECT ident, type, frequency, dme_range "
+        "SELECT ident, type, frequency, dme_range, gs_pitch, loc_heading "
         "FROM ils WHERE loc_airport_ident = ?",
         (icao_upper,),
     ).fetchall()
@@ -607,11 +607,14 @@ async def get_airport_detail(icao: str, fix: str | None = None):
             name=name,
             length_ft=r["length"],
             width_ft=r["width"],
-            heading=r["heading"],
+            elevation_ft=apt_row["altitude"],
+            heading_deg=ils["loc_heading"] if ils else r["heading"],
+            glidepath_deg=ils["gs_pitch"] if ils else None,
             ils_frequency=ils["frequency"] if ils else None,
             ils_ident=ils["ident"] if ils else None,
             ils_cat=ils_cat,
             has_dme=has_dme,
+            transition_alt_ft=apt_row["transition_altitude"],
         ))
 
     # --- SID/STAR filtered by fix ---
