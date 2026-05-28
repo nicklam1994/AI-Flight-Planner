@@ -956,23 +956,44 @@
       h += '<tr><td class="intent-label">\u6A5F\u5834\u4EE3\u78BC</td><td class="intent-value">' + escapeHtml(icao) + ' (' + escapeHtml(apName) + ')</td>';
       h += '<td class="intent-label">\u66F4\u65B0\u6642\u9593</td><td class="intent-value">' + (wx.updated_iso || '\u2014') + '</td></tr>';
 
+      // Wind: (西南风) 230\u00B0 @ 8 KT
       var wind = m.wind || {};
-      var windStr = wind.dir_cn ? (wind.arrow||'')+' '+wind.dir_cn+' '+wind.dir+'\u00B0 @ '+(wind.speed_kts||'?')+' KT' : (m.wind_text || '\u2014');
-      if (wind.gust_kts) windStr += ' Gust '+wind.gust_kts+'kt';
+      var windStr = '\u2014';
+      if (wind.dir_cn && wind.dir != null) {
+        windStr = '(' + wind.dir_cn + '\u98A8) ' + wind.dir + '\u00B0 @ ' + (wind.speed_kts||'?') + ' KT';
+        if (wind.gust_kts) windStr += ' Gust ' + wind.gust_kts + 'kt';
+      } else if (m.wind_text) {
+        windStr = m.wind_text;
+      }
       h += '<tr><td class="intent-label">\u98A8\u901F\u98A8\u5411</td><td class="intent-value">' + windStr + '</td>';
       h += '<td class="intent-label">\u80FD\u898B\u5EA6</td><td class="intent-value">' + (m.visibility_str || (m.visibility_m!=null?(m.visibility_m>=10000?'\uD83D\uDD2D \u80FD\u898B\u5EA6\u826F\u597D':m.visibility_m+'m'):'\u2014')) + '</td></tr>';
 
+      // Clouds
       var cloudStr = '\u2014';
       if (m.clouds && m.clouds.length > 0) {
         cloudStr = '';
-        m.clouds.forEach(function(c) { cloudStr += (c.emoji||'')+' '+(c.cover_cn||c.cover)+' '+c.height_ft+' FT '; });
+        m.clouds.forEach(function(c) { cloudStr += (c.emoji||'')+' '+(c.cover_cn||c.cover)+', \u4E91\u5E95\u9AD8\u5EA6 '+c.height_ft+' FT '; });
       }
       h += '<tr><td class="intent-label">\u96F2\u5C64</td><td class="intent-value">' + cloudStr + '</td>';
       h += '<td class="intent-label">\u4FEE\u6B63\u6D77\u58D3</td><td class="intent-value">' + (m.pressure_hpa!=null?m.pressure_hpa+' hPa':'\u2014') + '</td></tr>';
 
+      // Temp/Dew + Local time
       var tempStr = (m.temp_c!=null?m.temp_c+' \u00B0C':'\u2014')+' / '+(m.dewpt_c!=null?m.dewpt_c+' \u00B0C':'\u2014');
       h += '<tr><td class="intent-label">\u6EAB\u5EA6/\u9732\u9EDE</td><td class="intent-value">' + tempStr + '</td>';
       h += '<td class="intent-label">\u7576\u5730\u6642\u9593</td><td class="intent-value">' + (localTime || '\u2014') + '</td></tr>';
+
+      // Trend: NOSIG etc
+      var trendStr = '';
+      if (m.weather && m.weather.length > 0) {
+        trendStr += '\u5929\u6C23: ' + m.weather.join(' ');
+      }
+      // Check for NOSIG in raw
+      var rawUpper = (m.raw || '').toUpperCase();
+      if (rawUpper.indexOf('NOSIG') >= 0) trendStr += (trendStr?' ':'') + '\u672A\u4F862\u5C0F\u6642\u5167\u7121\u986F\u8457\u8B8A\u5316';
+      if (rawUpper.indexOf('TEMPO') >= 0) trendStr += (trendStr?' ':'') + '\u6709\u77ED\u66AB\u5929\u6C23\u6CE2\u52D5 (TEMPO)';
+      if (!trendStr) trendStr = '\u2014';
+      h += '<tr><td class="intent-label">\u8DA8\u52E2\u8207\u5099\u8A3B</td><td class="intent-value" colspan="3">' + trendStr + '</td></tr>';
+
       h += '</tbody></table></div>';
     } else if (wx.metar_raw) {
       h += '<div class="weather-section"><div class="weather-section-title">\uD83D\uDCE1 METAR</div>';
