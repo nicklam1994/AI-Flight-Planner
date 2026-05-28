@@ -1011,10 +1011,10 @@
           var item = tempoItems[ti];
           var itemLabel = '\u81E8\u6642\u8B8A\u5316' + (tempoItems.length > 1 ? (' ' + (ti+1)) : '');
           var itemStr = item;
-          itemStr = itemStr.replace(/^FEW(\d{3})$/i, '\u5C11\u96F2 (FEW) \u4F4E\u81F3 ' + parseInt('$1')*10 + '\u82F1\u5C3A');
-          itemStr = itemStr.replace(/^BKN(\d{3})$/i, '\u88C2\u96F2 (BKN) \u4F4E\u81F3 ' + parseInt('$1')*10 + '\u82F1\u5C3A');
-          itemStr = itemStr.replace(/^SCT(\d{3})$/i, '\u758F\u96F2 (SCT) \u4F4E\u81F3 ' + parseInt('$1')*10 + '\u82F1\u5C3A');
-          itemStr = itemStr.replace(/^OVC(\d{3})$/i, '\u9670\u5929 (OVC) \u4F4E\u81F3 ' + parseInt('$1')*10 + '\u82F1\u5C3A');
+          itemStr = itemStr.replace(/^FEW(\d{3})$/i, function(_,h){return '\u5C11\u96F2 (FEW) \u4F4E\u81F3 '+(parseInt(h)*10)+'\u82F1\u5C3A';});
+          itemStr = itemStr.replace(/^BKN(\d{3})$/i, function(_,h){return '\u88C2\u96F2 (BKN) \u4F4E\u81F3 '+(parseInt(h)*10)+'\u82F1\u5C3A';});
+          itemStr = itemStr.replace(/^SCT(\d{3})$/i, function(_,h){return '\u758F\u96F2 (SCT) \u4F4E\u81F3 '+(parseInt(h)*10)+'\u82F1\u5C3A';});
+          itemStr = itemStr.replace(/^OVC(\d{3})$/i, function(_,h){return '\u9670\u5929 (OVC) \u4F4E\u81F3 '+(parseInt(h)*10)+'\u82F1\u5C3A';});
           h += '<tr><td class="intent-label">' + itemLabel + '</td><td class="intent-value">' + itemStr + '</td></tr>';
         }
       }
