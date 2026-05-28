@@ -566,6 +566,10 @@
     function renderRouteDescription(candidate, parsed) {
     var dep = parsed?.origin || '';
     var arr = parsed?.destination || '';
+    var depIata = parsed?.origin_iata || '';
+    var arrIata = parsed?.dest_iata || '';
+    var depFull = dep + (depIata ? '/' + depIata : '');
+    var arrFull = arr + (arrIata ? '/' + arrIata : '');
     var depName = state._depAirportName || dep;
     var arrName = state._arrAirportName || arr;
     // Try to extract Chinese names from AI context: "VHHH（香港國際機場，中國）"
