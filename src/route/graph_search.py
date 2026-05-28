@@ -284,6 +284,10 @@ def find_routes(
             total_distance_nm=round(total_dist, 1), node_path=clean_path, score=score,
         ))
 
+    # Sort by composite score (distance + segment penalty), keep top K
+    candidates.sort(key=lambda c: c.score or c.total_distance_nm)
+    candidates = candidates[:k]
+
     # Re-index
     for i, c in enumerate(candidates):
         c.index = i
