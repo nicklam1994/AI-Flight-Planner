@@ -39,6 +39,7 @@ from src.api.schemas import (
     AirportDetailResponse,
     AirportInfo,
     RunwayInfo,
+    ComInfo,
     ProcedureInfo,
 )
 from src.db.airport import search as search_airports
@@ -700,9 +701,19 @@ async def get_airport_detail(icao: str, fix: str | None = None):
                 for (proc, trans), wps in star_groups.items()
             ]
 
+    # Query COM frequencies
+    com_rows = db.execute(
+        "SELECT c.type, c.frequency, c.name FROM com c "
+        "JOIN airport a ON c.airport_id = a.airport_id "
+        "WHERE upper(a.ident) = ? ORDER BY c.type, c.frequency",
+        (icao_upper,),
+    ).fetchall()
+    coms = [ComInfo(type=r["type"], frequency_khz=r["frequency"], name=r["name"]) for r in com_rows]
+
     return AirportDetailResponse(
         airport=airport_info,
         runways=runways,
+        coms=coms,
         sids=sids,
         stars=stars,
     )

@@ -369,5 +369,13 @@ class AirportDetailResponse(BaseModel):
     """GET /api/airport/{icao}/detail response."""
     airport: AirportInfo
     runways: list[RunwayInfo] = []
-    sids: list[ProcedureInfo] | None = None    # None when no fix param; filtered when ?fix=...
+    coms: list["ComInfo"] = []  # communication frequencies
+    sids: list[ProcedureInfo] | None = None
     stars: list[ProcedureInfo] | None = None
+
+
+class ComInfo(BaseModel):
+    """COM frequency entry."""
+    type: str                       # e.g., "T", "ATIS", "G", "A", "D", "INF"
+    frequency_khz: int              # kHz * 1000 (e.g., 118200 = 118.200 MHz)
+    name: str | None = None
