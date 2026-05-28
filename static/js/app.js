@@ -995,9 +995,10 @@
       // Trend
       var rawUpper = rawText.toUpperCase();
       var trendParts = [];
-      if (rawUpper.indexOf('NOSIG') >= 0) trendParts.push('\u672A\u4F862\u5C0F\u6642\u5167\u7121\u986F\u8457\u8B8A\u5316 (NOSIG)');
-      if (rawUpper.indexOf('BECMG') >= 0) trendParts.push('\u5929\u6C23\u5C07\u9010\u6F38\u8F49\u8B8A (BECMG)');
-      if (rawUpper.indexOf('TEMPO') >= 0) trendParts.push('\u672A\u4F862\u5C0F\u6642\u5167\u6703\u6709\u77ED\u66AB\u7684\u5929\u6C23\u6CE2\u52D5');
+      if (rawUpper.indexOf('NOSIG') >= 0) trendParts.push('(NOSIG) \u672A\u4F862\u5C0F\u6642\u5167\u7121\u986F\u8457\u8B8A\u5316');
+      if (rawUpper.indexOf('BECMG') >= 0) trendParts.push('(BECMG) \u5929\u6C23\u5C07\u9010\u6F38\u8F49\u8B8A');
+      if (rawUpper.indexOf('TEMPO') >= 0) trendParts.push('(TEMPO) \u672A\u4F862\u5C0F\u6642\u5167\u6703\u6709\u77ED\u66AB\u7684\u5929\u6C23\u6CE2\u52D5');
+      if (rawUpper.indexOf('RMK') >= 0) trendParts.push('(RMK) \u5099\u8A3B');
       var trendStr = trendParts.length > 0 ? trendParts.join('; ') : '\u2014';
       h += '<tr><td class="intent-label">\u8DA8\u52E2\u8207\u5099\u8A3B</td><td class="intent-value">' + trendStr + '</td></tr>';
 
