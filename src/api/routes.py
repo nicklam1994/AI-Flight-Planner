@@ -736,7 +736,7 @@ async def get_airport_detail(icao: str, fix: str | None = None):
                 # Build approach lookup by fix (only ILS/RNAV precision approaches)
                 for app in app_rows:
                     app_type = (app["type"] or "")
-                    if app_type not in ("I", "L", "R"):  # I=ILS, L=LOC, R=RNAV
+                    if app_type not in ("ILS", "LOC", "RNAV"):  # I=ILS, L=LOC, R=RNAV
                         continue
                     app_name = app_type + (app["suffix"] or "")
                     arinc = app["arinc_name"]
