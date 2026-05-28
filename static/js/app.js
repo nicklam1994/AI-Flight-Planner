@@ -1015,7 +1015,9 @@
         tempoStr = tempoStr.replace(/\bFG\b/gi, '\u9727');
         tempoStr = tempoStr.replace(/\bRA\b/gi, '\u96E8');
         tempoStr = tempoStr.replace(/\bTS\b/gi, '\u96F7\u66B4');
-        h += '<tr><td class="intent-label">\u81E8\u6642\u8B8A\u5316(\u5982\u6709)</td><td class="intent-value">\u9810\u8A08\u77ED\u6642\u9593\u5167\uFF0C' + tempoStr + '</td></tr>';
+        var tempoLabel = '\u77ED\u66AB\u6CE2\u52D5(TEMPO)';
+        if (rawUpper.indexOf('BECMG') >= 0 && rawUpper.indexOf('TEMPO') < 0) tempoLabel = '\u9010\u6F38\u8F49\u8B8A(BECMG)';
+        h += '<tr><td class="intent-label">' + tempoLabel + '</td><td class="intent-value">\u9810\u8A08\u77ED\u6642\u9593\u5167\uFF0C' + tempoStr + '</td></tr>';
       }
 
       h += '</tbody></table></div>';
