@@ -990,6 +990,7 @@
       h += '</tbody></table>';
 
       // Second table: trends + TEMPO (2-column)
+      h += '<div class="weather-section-title">\uD83D\uDCCB TAF \u5831\u6587\u89E3\u6790</div>';
       h += '<table class="data-table"><tbody>';
 
       // Trend
@@ -1092,7 +1093,7 @@
         var timeMatch = rest.match(/(\d{4})\/(\d{4})/);
         var timeStr = '';
         if (timeMatch) {
-          timeStr = timeMatch[1][0]+timeMatch[1][1]+'\u65E5 '+timeMatch[1][2]+':'+timeMatch[1][3]+' \u2013 '+timeMatch[2][0]+timeMatch[2][1]+'\u65E5 '+timeMatch[2][2]+':'+timeMatch[2][3]+' (UTC)';
+          timeStr = timeMatch[1].substring(0,2)+'\u65E5 '+timeMatch[1].substring(2,4)+':'+timeMatch[1].substring(4,6)+' \u2013 '+timeMatch[2].substring(0,2)+'\u65E5 '+timeMatch[2].substring(2,4)+':'+timeMatch[2].substring(4,6)+' (UTC)';
           rest = rest.replace(timeMatch[0], '').trim();
         }
 
