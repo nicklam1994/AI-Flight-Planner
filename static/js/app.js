@@ -638,11 +638,11 @@
     if (procs.length > 0) {
       html += '<div class="airport-section"><div class="airport-section-title">' + procTitle + '</div>';
       html += '<table class="data-table"><thead><tr>' + (isDeparture ? '<th>\u96E2\u5834\u7A0B\u5E8F</th><th>\u4F7F\u7528\u8DD1\u9053</th><th>\u904E\u6E21</th><th>\u96E2\u5834\u9EDE</th>' : '<th>\u9032\u5834\u7A0B\u5E8F</th><th>\u9032\u8FD1\u7A0B\u5E8F</th><th>\u904E\u6E21</th><th>\u4F7F\u7528\u8DD1\u9053</th><th>\u9032\u5834\u9EDE</th>') + '</tr></thead><tbody>';
-      procs.forEach(function(p) {
+      var lastProcName = null; procs.forEach(function(p) {
         var rwy = p.runway || '';
         if (rwy) refRunways[rwy.toUpperCase()] = true;
         var fix = isDeparture ? (p.exit_fix || '\u2014') : ((p.fix_waypoints && p.fix_waypoints[0]) || '\u2014'); var trans = (p.transition || '\u2014');
-        if (isDeparture) { html += '<tr><td>' + escapeHtml(p.name) + '</td><td>' + escapeHtml(rwy || '\u2014') + '</td><td>' + escapeHtml(trans) + '</td><td>' + escapeHtml(fix) + '</td></tr>'; } else { var apps = p.approaches || []; if (apps.length > 0) { apps.forEach(function(a,ai){ if (ai===0) html += '<tr><td>' + escapeHtml(p.name) + '</td>'; else html += '<tr><td>∟</td>'; var aname = a.name; html += '<td>' + escapeHtml(aname) + '</td><td>' + escapeHtml(a.transition || '\u2014') + '</td><td>' + escapeHtml(a.runway || '\u2014') + '</td><td>' + escapeHtml(fix) + '</td></tr>'; }); } else { html += '<tr><td>' + escapeHtml(p.name) + '</td><td>\u2014</td><td>\u2014</td><td>' + escapeHtml(rwy || '\u2014') + '</td><td>' + escapeHtml(fix) + '</td></tr>'; } }
+        if (isDeparture) { var showName = (lastProcName !== p.name) ? escapeHtml(p.name) : '\u221F'; lastProcName = p.name; html += '<tr><td>' + showName + '</td><td>' + escapeHtml(rwy || '\u2014') + '</td><td>' + escapeHtml(trans) + '</td><td>' + escapeHtml(fix) + '</td></tr>'; } else { var apps = p.approaches || []; if (apps.length > 0) { apps.forEach(function(a,ai){ if (ai===0) html += '<tr><td>' + escapeHtml(p.name) + '</td>'; else html += '<tr><td>∟</td>'; var aname = a.name; html += '<td>' + escapeHtml(aname) + '</td><td>' + escapeHtml(a.transition || '\u2014') + '</td><td>' + escapeHtml(a.runway || '\u2014') + '</td><td>' + escapeHtml(fix) + '</td></tr>'; }); } else { html += '<tr><td>' + escapeHtml(p.name) + '</td><td>\u2014</td><td>\u2014</td><td>' + escapeHtml(rwy || '\u2014') + '</td><td>' + escapeHtml(fix) + '</td></tr>'; } }
       });
       html += '</tbody></table></div>';
     }
