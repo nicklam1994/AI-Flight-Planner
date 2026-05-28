@@ -1081,8 +1081,7 @@
       var trendSection = rawTaf.replace(/^[\s\S]*?(?=TEMPO|BECMG|PROB)/i, '');
       // Split by trend keywords
       var trendParts = trendSection.split(/\b(?=TEMPO|BECMG|PROB)/gi);
-      var tempoNum = 0;
-      for (var ti = 0; ti < trendParts.length; ti++) {
+            for (var ti = 0; ti < trendParts.length; ti++) {
         var tp = trendParts[ti].trim();
         if (!tp) continue;
         var kind = tp.match(/^(TEMPO|BECMG|PROB\d+)/i);
@@ -1123,11 +1122,12 @@
         }
 
         var label = kindStr;
-        if (kindStr === 'TEMPO') { tempoNum++; label = '\u77ED\u66AB\u6CE2\u52D5' + tempoNum; }
-        else if (kindStr === 'BECMG') label = '\u9010\u6F38\u8F49\u8B8A';
-        else if (kindStr.indexOf('PROB') === 0) label = '\u6982\u7387 ' + kindStr.substring(4) + '\uFF05';
-        // Include time in content value
-        var contentStr = (timeStr || '') + (desc.trim() ? (timeStr ? ' | ' : '') + desc.trim() : '');
+        if (kindStr === 'TEMPO') label = '\u77ED\u66AB\u6CE2\u52D5(TEMPO)';
+        else if (kindStr === 'BECMG') label = '\u9010\u6F38\u8F49\u8B8A(BECMG)';
+        else if (kindStr.indexOf('PROB') === 0) label = 'PROB' + kindStr.substring(4) + '\uFF05';
+        // Include time in label
+        if (timeStr) label += ' (' + timeStr + ')';
+        var contentStr = desc.trim();
         h += '<tr><td class="intent-label">' + label + '</td><td class="intent-value" colspan="3">' + contentStr + '</td></tr>';
       }
 
