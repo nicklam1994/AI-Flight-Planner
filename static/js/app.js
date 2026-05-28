@@ -568,6 +568,26 @@
     var arr = parsed?.destination || '';
     var depName = state._depAirportName || dep;
     var arrName = state._arrAirportName || arr;
+    // Try to extract Chinese names from AI context: "VHHH（香港國際機場，中國）"
+    var ctx = parsed?.context || '';
+    function extractCnName(icao, ctx) {
+      var idx = ctx.indexOf(icao);
+      if (idx >= 0) {
+        var start = ctx.indexOf('（', idx);
+        var end = ctx.indexOf('）', start);
+        if (start > 0 && end > start) {
+          var full = ctx.substring(start + 1, end);
+          var comma = full.indexOf('，');
+          return comma > 0 ? full.substring(0, comma) : full;
+        }
+      }
+      return '';
+    }
+    var depCn = extractCnName(dep, ctx);
+    var arrCn = extractCnName(arr, ctx);
+    var useCn = (I18N.currentLang || '').startsWith('zh');
+    var depDisplay = useCn ? (depCn || depName) : depName;
+    var arrDisplay = useCn ? (arrCn || arrName) : arrName;
     var n = candidate.segments ? candidate.segments.length + 2 : '?';
     var distance = candidate.total_distance_nm?.toFixed(0) || '?';
     var bearingId = 'route-bearing-' + candidate.index;
