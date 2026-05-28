@@ -641,8 +641,8 @@
       procs.forEach(function(p) {
         var rwy = (p.runway || '').replace(/^RW/i, '');
         if (rwy) refRunways[rwy.toUpperCase()] = true;
-        var fix = isDeparture ? (p.exit_fix || '\u2014') : ((p.fix_waypoints && p.fix_waypoints[0]) || '\u2014');
-        html += '<tr><td>' + escapeHtml(p.name) + '</td><td>' + escapeHtml(rwy || '\u2014') + '</td><td>' + escapeHtml(fix) + '</td></tr>';
+        var fix = isDeparture ? (p.exit_fix || '\u2014') : ((p.fix_waypoints && p.fix_waypoints[0]) || '\u2014'); var trans = (p.runway || '\u2014');
+        if (isDeparture) { html += '<tr><td>' + escapeHtml(p.name) + '</td><td>' + escapeHtml(rwy || '\u2014') + '</td><td>' + escapeHtml(trans) + '</td><td>' + escapeHtml(fix) + '</td></tr>'; } else { html += '<tr><td>' + escapeHtml(p.name) + '</td><td>' + escapeHtml(rwy || '\u2014') + '</td><td>' + escapeHtml(fix) + '</td></tr>'; }
       });
       html += '</tbody></table></div>';
     }
