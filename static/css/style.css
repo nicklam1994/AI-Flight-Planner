@@ -717,7 +717,7 @@ textarea#routeInput:focus { outline: none; border-color: var(--accent); }
 .route-desc .desc-body { font-size: 0.82rem; color: var(--text); line-height: 1.6; white-space: pre-line; }
 
 /* ── v3: Airport Grid ───────────────────────────────────── */
-.airport-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px; }
+.airport-grid { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
 .airport-card { margin-bottom: 0; }
 .airport-card h3 { font-size: 0.95rem; margin-bottom: 4px; color: var(--accent); }
 .airport-card .airport-subtitle { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 10px; }
