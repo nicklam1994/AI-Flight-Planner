@@ -41,6 +41,7 @@ from src.api.schemas import (
     RunwayInfo,
     ComInfo,
     ProcedureInfo,
+    ApproachInfo,
 )
 from src.db.airport import search as search_airports
 from src.db.connection import get_db, reconnect_db, reconnect_s3db
@@ -720,6 +721,44 @@ async def get_airport_detail(icao: str, fix: str | None = None):
                 )
                 for (proc, trans), wps in star_groups.items()
             ]
+
+    # Link approach procedures to STARs
+    if stars and fix:
+        try:
+            apt_id_row = db.execute("SELECT airport_id FROM airport WHERE upper(ident)=? or upper(icao)=?",
+                                    (icao_upper, icao_upper)).fetchone()
+            if apt_id_row:
+                apt_id = apt_id_row["airport_id"]
+                # Get all approaches for this airport
+                app_rows = db.execute(
+                    "SELECT approach_id, arinc_name, runway_name, type, suffix FROM approach WHERE airport_id=? AND runway_name IS NOT NULL",
+                    (apt_id,)).fetchall()
+                # Build approach lookup by fix
+                for app in app_rows:
+                    app_name = (app["type"] or "") + (app["suffix"] or "")
+                    arinc = app["arinc_name"]
+                    rwy = app["runway_name"]
+                    # Get transition fixes for this approach
+                    trans_rows = db.execute(
+                        "SELECT fix_ident FROM transition WHERE approach_id=? AND fix_ident IS NOT NULL",
+                        (app["approach_id"],)).fetchall()
+                    # Get approach leg waypoints
+                    leg_rows = db.execute(
+                        "SELECT fix_ident FROM approach_leg WHERE approach_id=? AND fix_ident IS NOT NULL ORDER BY approach_leg_id",
+                        (app["approach_id"],)).fetchall()
+                    app_wps = {r["fix_ident"].upper() for r in leg_rows}
+                    # For each STAR, check if STAR waypoints overlap with approach
+                    for s in stars:
+                        star_wps = {w.upper() for w in (s.fix_waypoints or [])}
+                        if star_wps & app_wps:
+                            s.approaches.append(ApproachInfo(
+                                name=app_name or "",
+                                arinc_name=arinc,
+                                transition=(trans_rows[0]["fix_ident"] if trans_rows else None),
+                                runway=rwy,
+                            ))
+        except Exception as e:
+            logger.warning(f"Approach linking failed for {icao_upper}: {e}")
 
     # Query COM frequencies
     com_rows = db.execute(

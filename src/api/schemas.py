@@ -361,9 +361,18 @@ class ProcedureInfo(BaseModel):
     """A filtered SID or STAR procedure with fix waypoints."""
     name: str
     runway: str | None = None
-    transition: str | None = None            # named transition (AGRIS, ENPAR, etc.)
+    transition: str | None = None
     fix_waypoints: list[str] = []
     exit_fix: str | None = None
+    approaches: list["ApproachInfo"] = []   # linked approach procedures
+
+
+class ApproachInfo(BaseModel):
+    """An approach procedure linked to a STAR."""
+    name: str                                   # e.g., "FI26"
+    arinc_name: str | None = None               # e.g., "I26-Z"
+    transition: str | None = None               # transition fix, e.g., "HET"
+    runway: str | None = None                   # e.g., "26"
 
 
 class AirportDetailResponse(BaseModel):
