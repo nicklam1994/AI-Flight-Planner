@@ -705,10 +705,10 @@ textarea#routeInput:focus { outline: none; border-color: var(--accent); }
 .route-card-meta { font-size: 0.75rem; color: var(--text-muted); }
 
 /* ── v3: Parsed Intent Table ────────────────────────────── */
-.parsed-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-.parsed-table td { padding: 4px 10px; border-bottom: 1px solid rgba(71,85,105,0.4); }
-.parsed-table .intent-label { color: var(--text-muted); font-weight: 600; width: 30%; }
-.parsed-table .intent-value { color: var(--text); }
+.parsed-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+.parsed-table td { padding: 2px 8px; border-bottom: 1px solid rgba(71,85,105,0.2); }
+.intent-label { color: var(--text-muted); font-weight: 600; width: 25%; white-space: nowrap; }
+.intent-value { color: var(--text); }
 
 /* ── v3: Route Description ──────────────────────────────── */
 .route-desc { margin-bottom: 12px; }

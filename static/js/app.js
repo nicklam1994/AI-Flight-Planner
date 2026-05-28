@@ -209,16 +209,15 @@
     const avoidStr = avoidParts.length > 0 ? avoidParts.join('; ') : '\u2014';
 
     $parsedContent.innerHTML = `
+      ${parsed.context ? '<div style="color:var(--accent); font-size:0.82rem; margin-bottom:8px; padding:6px 10px; background:rgba(59,130,246,0.08); border-radius:4px;">' + escapeHtml(parsed.context) + '</div>' : ''}
       <table class="parsed-table">
-        <thead><tr><th>\u9805\u76EE</th><th>\u5167\u5BB9</th></tr></thead>
         <tbody>
-          <tr><td>${I18N.t('label-origin')}</td><td>${escapeHtml(parsed.origin || '?')}</td></tr>
-          <tr><td>${I18N.t('label-destination')}</td><td>${escapeHtml(parsed.destination || '?')}</td></tr>
-          <tr><td>${I18N.t('label-airway-type')}</td><td>${escapeHtml(parsed.airway_type || I18N.t('any'))}</td></tr>
-          <tr><td>${I18N.t('label-cruise-alt')}</td><td>${escapeHtml(altStr)}</td></tr>
-          <tr><td>\u822A\u7DDA\u898F\u907F</td><td>${escapeHtml(avoidStr)}</td></tr>
-          <tr><td>${I18N.t('label-confidence')}</td><td>${Math.round((parsed.confidence || 0) * 100)}%</td></tr>
-          ${parsed.context ? '<tr><td>AI 解析</td><td style="color:var(--accent)">' + escapeHtml(parsed.context) + '</td></tr>' : ''}
+          <tr><td class="intent-label">${I18N.t('label-origin')}</td><td class="intent-value">${escapeHtml(parsed.origin || '?')}</td></tr>
+          <tr><td class="intent-label">${I18N.t('label-destination')}</td><td class="intent-value">${escapeHtml(parsed.destination || '?')}</td></tr>
+          <tr><td class="intent-label">${I18N.t('label-airway-type')}</td><td class="intent-value">${escapeHtml(parsed.airway_type || I18N.t('any'))}</td></tr>
+          <tr><td class="intent-label">${I18N.t('label-cruise-alt')}</td><td class="intent-value">${escapeHtml(altStr)}</td></tr>
+          <tr><td class="intent-label">航線規避</td><td class="intent-value">${escapeHtml(avoidStr)}</td></tr>
+          <tr><td class="intent-label">${I18N.t('label-confidence')}</td><td class="intent-value">${Math.round((parsed.confidence || 0) * 100)}%</td></tr>
         </tbody>
       </table>`;
     $parsedCard.style.display = 'block';
