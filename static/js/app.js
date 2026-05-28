@@ -136,11 +136,16 @@
     }
 
     hideAllCards();
-
     setLoading(true);
-    showStatus('Planning route...', 'loading');
+
+    const startTime = Date.now();
+    const timerInterval = setInterval(() => {
+      const elapsed = Math.round((Date.now() - startTime) / 1000);
+      showStatus(`Planning route... ${elapsed}s`, 'loading');
+    }, 1000);
 
     try {
+      showStatus('Planning route...', 'loading');
       const result = await API.plan(input, 3, llmSettings, currentCycle);
       state.planResult = result;
       state.selectedRoute = null;
@@ -167,6 +172,7 @@
     } catch (e) {
       showStatus(e.message || I18N.t('error-plan-failed'), 'error');
     } finally {
+      clearInterval(timerInterval);
       setLoading(false);
     }
   }
