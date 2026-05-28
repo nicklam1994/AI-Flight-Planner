@@ -1126,9 +1126,8 @@
         else if (kindStr === 'BECMG') label = '\u9010\u6F38\u8F49\u8B8A(BECMG)';
         else if (kindStr.indexOf('PROB') === 0) label = 'PROB' + kindStr.substring(4) + '\uFF05';
         // Include time in label
-        if (timeStr) label += ' (' + timeStr + ')';
         var contentStr = desc.trim();
-        h += '<tr><td class="intent-label">' + label + '</td><td class="intent-value" colspan="3">' + contentStr + '</td></tr>';
+        h += '<tr><td class="intent-label">' + label + '</td><td class="intent-value">' + (timeStr || '\u2014') + '</td><td class="intent-value">' + contentStr + '</td></tr>';
       }
 
       h += '</tbody></table></div>';
