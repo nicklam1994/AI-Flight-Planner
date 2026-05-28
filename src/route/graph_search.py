@@ -242,6 +242,8 @@ def find_routes(
                 from_ident=u_info.ident, to_ident=v_info.ident,
                 segment_type="airway" if airway else "DCT",
                 airway_name=airway, distance_nm=dist,
+                min_alt=ed.get("min_alt", 0) or 0,
+                max_alt=ed.get("max_alt", 99999) or 99999,
             ))
             total_dist += dist
 
