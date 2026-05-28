@@ -337,6 +337,10 @@
     if (selectedEl) selectedEl.classList.add('selected');
 
     // Set loading states with timers
+    .innerHTML = '<div class="panel-loading">Loading... 0s</div>';
+    .innerHTML = '<div class="panel-loading">Loading... 0s</div>';
+    .innerHTML = '<div class="panel-loading">Loading... 0s</div>';
+    .innerHTML = '<div class="panel-loading">Loading... 0s</div>';
     const loadStart = Date.now();
     const loadTimer = setInterval(() => {
       const elapsed = Math.round((Date.now() - loadStart) / 1000);
