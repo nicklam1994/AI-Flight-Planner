@@ -990,7 +990,6 @@
       h += '</tbody></table>';
 
       // Second table: trends + TEMPO (2-column)
-      h += '<div class="weather-section-title">\uD83D\uDCCB TAF \u5831\u6587\u89E3\u6790</div>';
       h += '<table class="data-table"><tbody>';
 
       // Trend
@@ -1045,6 +1044,7 @@
       var t = wx.taf;
       h += '<div class="weather-section"><div class="weather-section-title">\uD83D\uDCE1 TAF \u5929\u6C23\u9810\u5831</div>';
       h += '<pre class="weather-raw">' + escapeHtml(stripTafPrefix(t.raw || wx.taf_raw || '')) + '</pre>';
+            h += '<div class="weather-section-title">\uD83D\uDCCB TAF \u5831\u6587\u89E3\u6790</div>';
       h += '<table class="data-table"><tbody>';
 
       // Airport + update time
