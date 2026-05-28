@@ -716,6 +716,12 @@
     const bearing = computeBearing(depCoord.lat, depCoord.lon, arrCoord.lat, arrCoord.lon);
     const el = document.getElementById(state._bearingElId);
     if (el) el.textContent = bearing;
+    // Also update direct distance
+    const directEl = document.getElementById(state._bearingElId + '-direct');
+    if (directEl) {
+      const directNM = haversineNM(depCoord.lat, depCoord.lon, arrCoord.lat, arrCoord.lon);
+      directEl.textContent = directNM.toFixed(0);
+    }
   }
 
   function computeBearing(lat1, lon1, lat2, lon2) {
@@ -725,6 +731,14 @@
               Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos(dLon);
     let brng = Math.atan2(y, x) * 180 / Math.PI;
     return ((brng + 360) % 360).toFixed(0);
+  }
+
+  function haversineNM(lat1, lon1, lat2, lon2) {
+    const R = 3440.065;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   }
 
   // ── Route Detail Table ──────────────────────────────────
