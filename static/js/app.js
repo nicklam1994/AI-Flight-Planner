@@ -228,8 +228,8 @@
             <td class="intent-label">航路規避</td><td class="intent-value">${escapeHtml(avoidStr)}</td>
           </tr>
           <tr>
-            <td class="intent-label">執飛機型</td><td class="intent-value">${escapeHtml(parsed.aircraft_type || 'Boeing 737-800')}</td>
-            <td class="intent-label">燃料單位</td><td class="intent-value">${escapeHtml(parsed.fuel_unit || 'kgs')}</td>
+            <td class="intent-label">執飛機型</td><td class="intent-value">${escapeHtml(parsed.aircraft_type || '—')}</td>
+            <td class="intent-label">燃料單位</td><td class="intent-value">${escapeHtml(parsed.fuel_unit || '—')}</td>
           </tr>
           <tr>
             <td class="intent-label">Use SIDs</td><td class="intent-value">${parsed.use_sids !== false ? '✅️' : '❌'}</td>
