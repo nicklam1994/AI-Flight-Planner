@@ -498,7 +498,7 @@
       const sectionTitle = isDeparture ? '\u25B6 \u96E2\u5834\u7A0B\u5E8F (SID)' : '\u25B6 \u9032\u5834\u7A0B\u5E8F (STAR)';
       const colHeader = isDeparture ? '\u96E2\u5834\u9EDE' : '\u9032\u5834\u9EDE';
       html += '<div class="airport-section"><div class="airport-section-title">' + sectionTitle + '</div>';
-      html += '<table class="proc-table"><thead><tr><th>\u7A0B\u5E8F</th><th>\u4F7F\u7528\u8DD1\u9053</th><th>' + colHeader + '</th></tr></thead><tbody>';
+      html += '<table class="data-table"><thead><tr><th>程序</th><th>使用跑道</th><th>' + colHeader + '</th></tr></thead><tbody>';
 
       filteredProcs.forEach(function(p) {
         const rwyClean = (p.runway || '').replace(/^RW/i, '');
@@ -533,7 +533,7 @@
         const maxLen = Math.max.apply(null, displayRunways.map(function(r) { return r.length_ft || 0; }));
 
         html += '<div class="airport-section"><div class="airport-section-title">\u25B6 \u8DD1\u9053\u4FE1\u606F</div>';
-        html += '<table class="runway-table"><thead><tr>';
+        html += '<table class="data-table"><thead><tr>';
         html += '<th>\u8DD1\u9053</th><th>\u9577\u5EA6(ft)</th><th>\u5BEC\u5EA6(ft)</th><th>\u9AD8\u5EA6(ft)</th><th>\u822A\u5411(\u00B0)</th><th>GP\u4E0B\u6ED1(\u00B0)</th><th>ILS\u983B\u7387</th><th>\u6A19\u8B58</th><th>CAT</th><th>DME</th><th>\u904E\u6E21\u9AD8\u5EA6(ft)</th><th>\u63A8\u85A6</th>';
         html += '</tr></thead><tbody>';
 
@@ -606,7 +606,7 @@
     const waypoints = wpData?.waypoints || [];
     const segments = candidate.segments || [];
 
-    let html = '<table class="route-detail-table"><thead><tr>';
+    html += '<table class="data-table"><thead><tr>';
     html += '<th>\u822A\u8DEF</th><th>\u8D77\u9EDE</th><th>\u7D42\u9EDE</th><th>\u8DDD\u96E2(\u6D77\u91CC)</th><th>\u822A\u5411</th>';
     html += '</tr></thead><tbody>';
 
@@ -696,7 +696,7 @@
       return (w.frequency / 1000).toFixed(2) + ' MHz';
     }
 
-    let html = '<table class="nav-table"><thead><tr>';
+    html += '<table class="data-table"><thead><tr>';
     html += '<th>\u5C0E\u822A\u9EDE</th><th>\u985E\u578B</th><th>\u983B\u7387</th><th>\u7DEF\u5EA6</th><th>\u7D93\u5EA6</th>';
     html += '</tr></thead><tbody>';
 
