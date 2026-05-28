@@ -51,6 +51,7 @@ async def parse_intent(
             prefer_star=parsed.get("prefer_star"),
             cruise_altitude=parsed.get("cruise_altitude"),
             confidence=float(parsed.get("confidence", 0.0)),
+            context=parsed.get("context") or parsed.get("reasoning"),
         )
 
     except Exception as e:

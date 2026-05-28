@@ -32,6 +32,7 @@ class ParsedIntentResponse(BaseModel):
     prefer_star: str | None = None
     cruise_altitude: int | None = None
     confidence: float = 0.0
+    context: str | None = None     # AI reasoning/explanation
 
 
 class RouteSegmentResponse(BaseModel):

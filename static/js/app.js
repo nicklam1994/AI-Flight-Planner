@@ -218,6 +218,7 @@
           <tr><td>${I18N.t('label-cruise-alt')}</td><td>${escapeHtml(altStr)}</td></tr>
           <tr><td>\u822A\u7DDA\u898F\u907F</td><td>${escapeHtml(avoidStr)}</td></tr>
           <tr><td>${I18N.t('label-confidence')}</td><td>${Math.round((parsed.confidence || 0) * 100)}%</td></tr>
+          ${parsed.context ? '<tr><td>AI 解析</td><td style="color:var(--accent)">' + escapeHtml(parsed.context) + '</td></tr>' : ''}
         </tbody>
       </table>`;
     $parsedCard.style.display = 'block';

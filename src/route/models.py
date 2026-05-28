@@ -58,6 +58,7 @@ class ParsedIntent:
     prefer_star: str | None = None
     cruise_altitude: int | None = None
     confidence: float = 0.0
+    context: str | None = None     # AI reasoning/explanation about the parsed intent
 
 
 @dataclass

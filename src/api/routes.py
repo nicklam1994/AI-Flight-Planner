@@ -1056,6 +1056,7 @@ def _intent_to_response(intent: ParsedIntent) -> ParsedIntentResponse:
         prefer_star=intent.prefer_star,
         cruise_altitude=intent.cruise_altitude,
         confidence=intent.confidence,
+        context=intent.context,
     )
 
 

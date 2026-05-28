@@ -24,7 +24,8 @@ Return a JSON object with these fields:
   "prefer_sid": "Preferred SID name (e.g., RAME1C, BEKO3A) or null",
   "prefer_star": "Preferred STAR name (e.g., SIER7A, ABEY3B) or null",
   "cruise_altitude": cruise altitude in feet (integer) or null,
-  "confidence": confidence score 0.0-1.0
+  "confidence": confidence score 0.0-1.0,
+  "context": "One sentence in the user's language explaining your interpretation"
 }
 
 Rules:
