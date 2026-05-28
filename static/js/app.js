@@ -933,144 +933,74 @@
   }
 
   function renderWeatherContent(icao, wx) {
-    const ap = wx.airport || {};
-    const apName = ap.name || icao || '';
+    var ap = wx.airport || {};
+    var apName = ap.name || icao || '';
+    var h = '';
 
-    let html = '';
-
-    // ── METAR ──
     if (wx.metar) {
-      const m = wx.metar;
-      html += '<div class="weather-section">';
-      html += '<div class="weather-section-title">\uD83D\uDCE1 METAR \u5929\u6C23\u5831\u544A</div>';
-      html += `<pre class="weather-raw">${escapeHtml(stripMetarPrefix(m.raw || wx.metar_raw || ''))}</pre>`;
+      var m = wx.metar;
+      h += '<div class="weather-section"><div class="weather-section-title">\uD83D\uDCE1 METAR \u5929\u6C23\u5831\u544A</div>';
+      h += '<pre class="weather-raw">' + escapeHtml(stripMetarPrefix(m.raw || wx.metar_raw || '')) + '</pre>';
+      h += '<table class="data-table"><tbody>';
 
-      html += '<div class="weather-section-title">\uD83D\uDCCB METAR \u5831\u6587\u89E3\u6790</div>';
-      html += '<table class="weather-table"><tbody>';
-
-      const latLon = ap.lat != null && ap.lon != null
-        ? ` \u7DEF\u7D93\u5EA6: ${ap.lat.toFixed(3)} / ${ap.lon.toFixed(3)}` : '';
-      const elev = m.elevation_m != null ? ` ${m.elevation_m} M` : '';
-      html += `<tr><td class="wx-label">\u6A5F\u5834\u4EE3\u78BC</td><td class="wx-value">\u3010 ${escapeHtml(icao)} (${escapeHtml(apName)}${latLon}) \u3011</td>`
-        + (elev ? `<td class="wx-label">\u6D77\u62D4\u9AD8\u5EA6</td><td class="wx-value">\u3010 ${elev} \u3011</td>` : '<td></td><td></td>') + '</tr>';
-
-      html += '<tr>';
-      html += `<td class="wx-label">\u4FEE\u6B63\u6D77\u58D3</td><td class="wx-value">\u3010 ${m.pressure_hpa != null ? m.pressure_hpa + ' hPa' : '\u2014'} \u3011</td>`;
-      html += `<td class="wx-label">\u6A5F\u5834\u6EAB\u5EA6</td><td class="wx-value">\u3010 ${m.temp_c != null ? m.temp_c + ' \u00B0C' : '\u2014'}  / \u9732\u9EDE ${m.dewpt_c != null ? m.dewpt_c + ' \u00B0C' : '\u2014'} \u3011</td>`;
-      html += '</tr>';
-
-      html += '<tr>';
-      html += `<td class="wx-label">\u98DB\u884C\u898F\u5247</td><td class="wx-value">\u3010 ${FLIGHT_RULES_CN[m.flight_rules] || m.flight_rules || '\u2014'} \u3011</td>`;
-      html += `<td class="wx-label">\u80FD\u898B\u5EA6</td><td class="wx-value">\u3010 ${m.visibility_str || (m.visibility_m != null ? m.visibility_m >= 10000 ? '\uD83D\uDD2D \u80FD\u898B\u5EA6\u826F\u597D' : m.visibility_m + 'm' : '\u2014')} \u3011</td>`;
-      html += '</tr>';
-
-      const wind = m.wind || {};
-      const windStr = wind.dir_cn
-        ? `${wind.arrow || ''} ${wind.dir_cn} @ ${wind.speed_kts || '?'} \u7BC0`
-        : (m.wind_text || '\u2014');
-      const gustStr = wind.gust_kts ? ` Gust ${wind.gust_kts}kt` : '';
-      html += '<tr>';
-      html += `<td class="wx-label">\u98A8\u901F\u98A8\u5411</td><td class="wx-value">\u3010 ${escapeHtml(windStr + gustStr)} \u3011</td>`;
-      html += `<td class="wx-label">\u66F4\u65B0\u6642\u9593</td><td class="wx-value">\u3010 ${escapeHtml(wx.updated_iso || wx.updated || m.time || '\u2014')} \u3011</td>`;
-      html += '</tr>';
-
-      if (m.weather && m.weather.length > 0) {
-        html += '<tr>';
-        html += `<td class="wx-label">\u5929\u6C23\u73FE\u8C61</td><td class="wx-value" colspan="3">\u3010 ${m.weather.map(translateWx).join(' ')} \u3011</td>`;
-        html += '</tr>';
+      var localTime = '';
+      if (wx.updated_iso) {
+        try {
+          var utc = new Date(wx.updated_iso);
+          var tz = currentTimezone || 'UTC+8';
+          var off = parseInt(tz.replace(/[^0-9+-]/g,'')) || 8;
+          var local = new Date(utc.getTime() + off * 3600000);
+          localTime = local.getFullYear()+'-'+String(local.getMonth()+1).padStart(2,'0')+'-'+String(local.getDate()).padStart(2,'0')+' '+String(local.getHours()).padStart(2,'0')+':'+String(local.getMinutes()).padStart(2,'0')+' '+tz;
+        } catch(e) {}
       }
+      h += '<tr><td class="intent-label">\u6A5F\u5834\u4EE3\u78BC</td><td class="intent-value">' + escapeHtml(icao) + ' (' + escapeHtml(apName) + ')</td>';
+      h += '<td class="intent-label">\u66F4\u65B0\u6642\u9593</td><td class="intent-value">' + (wx.updated_iso || '\u2014') + '</td></tr>';
 
+      var wind = m.wind || {};
+      var windStr = wind.dir_cn ? (wind.arrow||'')+' '+wind.dir_cn+' '+wind.dir+'\u00B0 @ '+(wind.speed_kts||'?')+' KT' : (m.wind_text || '\u2014');
+      if (wind.gust_kts) windStr += ' Gust '+wind.gust_kts+'kt';
+      h += '<tr><td class="intent-label">\u98A8\u901F\u98A8\u5411</td><td class="intent-value">' + windStr + '</td>';
+      h += '<td class="intent-label">\u80FD\u898B\u5EA6</td><td class="intent-value">' + (m.visibility_str || (m.visibility_m!=null?(m.visibility_m>=10000?'\uD83D\uDD2D \u80FD\u898B\u5EA6\u826F\u597D':m.visibility_m+'m'):'\u2014')) + '</td></tr>';
+
+      var cloudStr = '\u2014';
       if (m.clouds && m.clouds.length > 0) {
-        html += '<tr>';
-        html += `<td class="wx-label">\u96F2\u5C64</td><td class="wx-value" colspan="3">\u3010 ${m.clouds.map(translateCloud).join(' ')} \u3011</td>`;
-        html += '</tr>';
+        cloudStr = '';
+        m.clouds.forEach(function(c) { cloudStr += (c.emoji||'')+' '+(c.cover_cn||c.cover)+' '+c.height_ft+' FT '; });
       }
+      h += '<tr><td class="intent-label">\u96F2\u5C64</td><td class="intent-value">' + cloudStr + '</td>';
+      h += '<td class="intent-label">\u4FEE\u6B63\u6D77\u58D3</td><td class="intent-value">' + (m.pressure_hpa!=null?m.pressure_hpa+' hPa':'\u2014') + '</td></tr>';
 
-      html += '</tbody></table></div>';
+      var tempStr = (m.temp_c!=null?m.temp_c+' \u00B0C':'\u2014')+' / '+(m.dewpt_c!=null?m.dewpt_c+' \u00B0C':'\u2014');
+      h += '<tr><td class="intent-label">\u6EAB\u5EA6/\u9732\u9EDE</td><td class="intent-value">' + tempStr + '</td>';
+      h += '<td class="intent-label">\u7576\u5730\u6642\u9593</td><td class="intent-value">' + (localTime || '\u2014') + '</td></tr>';
+      h += '</tbody></table></div>';
     } else if (wx.metar_raw) {
-      html += '<div class="weather-section">';
-      html += '<div class="weather-section-title">\uD83D\uDCE1 METAR \u5929\u6C23\u5831\u544A</div>';
-      html += `<pre class="weather-raw">${escapeHtml(stripMetarPrefix(wx.metar_raw))}</pre>`;
-      html += '</div>';
+      h += '<div class="weather-section"><div class="weather-section-title">\uD83D\uDCE1 METAR</div>';
+      h += '<pre class="weather-raw">' + escapeHtml(stripMetarPrefix(wx.metar_raw)) + '</pre></div>';
     }
 
-    // ── TAF ──
     if (wx.taf) {
-      const t = wx.taf;
-      html += '<div class="weather-section">';
-      html += '<div class="weather-section-title">\uD83D\uDCE1 TAF \u5929\u6C23\u9810\u5831</div>';
-      html += `<pre class="weather-raw">${escapeHtml(stripTafPrefix(t.raw || wx.taf_raw || ''))}</pre>`;
-
-      html += '<div class="weather-section-title">\uD83D\uDCCB TAF \u5831\u6587\u89E3\u6790</div>';
-      html += '<table class="weather-table"><tbody>';
-
-      const timeFrom = t.time_from || '\u2014';
-      const timeTo = t.time_to || '\u2014';
-      html += '<tr>';
-      html += `<td class="wx-label">\u6A5F\u5834\u4EE3\u78BC</td><td class="wx-value">\u3010 ${escapeHtml(icao)} (${escapeHtml(apName)}) \u3011</td>`;
-      html += `<td class="wx-label">\u9810\u5831\u6642\u6548</td><td class="wx-value">\u3010 ${timeFrom} \u81F3 ${timeTo} (UTC) \u3011</td>`;
-      html += '</tr>';
-
+      var t = wx.taf;
+      h += '<div class="weather-section"><div class="weather-section-title">\uD83D\uDCE1 TAF \u5929\u6C23\u9810\u5831</div>';
+      h += '<pre class="weather-raw">' + escapeHtml(stripTafPrefix(t.raw || wx.taf_raw || '')) + '</pre>';
+      h += '<table class="data-table"><tbody>';
+      h += '<tr><td class="intent-label">\u6A5F\u5834\u4EE3\u78BC</td><td class="intent-value">' + escapeHtml(icao) + ' (' + escapeHtml(apName) + ')</td>';
+      h += '<td class="intent-label">\u9810\u5831\u6642\u6548</td><td class="intent-value">' + (t.time_from||'\u2014') + ' \u81F3 ' + (t.time_to||'\u2014') + ' (UTC)</td></tr>';
       if (t.max_temp_c != null || t.min_temp_c != null) {
-        html += '<tr>';
-        const maxT = t.max_temp_c != null ? `${t.max_temp_c}\u00B0C${t.max_temp_time ? ' (' + t.max_temp_time + ')' : ''}` : '\u2014';
-        const minT = t.min_temp_c != null ? `${t.min_temp_c}\u00B0C${t.min_temp_time ? ' (' + t.min_temp_time + ')' : ''}` : '\u2014';
-        html += `<td class="wx-label">\u6700\u9AD8\u6EAB\u5EA6</td><td class="wx-value">\u3010 ${maxT} \u3011</td>`;
-        html += `<td class="wx-label">\u6700\u4F4E\u6EAB\u5EA6</td><td class="wx-value">\u3010 ${minT} \u3011</td>`;
-        html += '</tr>';
+        h += '<tr><td class="intent-label">\u6700\u9AD8\u6EAB\u5EA6</td><td class="intent-value">' + (t.max_temp_c!=null?t.max_temp_c+'\u00B0C'+(t.max_temp_time?' ('+t.max_temp_time+')':''):'\u2014') + '</td>';
+        h += '<td class="intent-label">\u6700\u4F4E\u6EAB\u5EA6</td><td class="intent-value">' + (t.min_temp_c!=null?t.min_temp_c+'\u00B0C'+(t.min_temp_time?' ('+t.min_temp_time+')':''):'\u2014') + '</td></tr>';
       }
-
-      const twind = t.wind || {};
-      const twindStr = twind.dir_cn
-        ? `${twind.arrow || ''} ${twind.dir_cn} @ ${twind.speed_kts || '?'} \u7BC0`
-        : (t.wind_text || '\u2014');
-      html += '<tr>';
-      html += `<td class="wx-label">\u4E3B\u5C0E\u98A8\u5411\u98A8\u901F</td><td class="wx-value">\u3010 ${escapeHtml(twindStr)} \u3011</td>`;
-      html += `<td class="wx-label">\u80FD\u898B\u5EA6</td><td class="wx-value">\u3010 ${escapeHtml(t.visibility_str || '\u2014')} \u3011</td>`;
-      html += '</tr>';
-
-      if (t.clouds && t.clouds.length > 0) {
-        html += '<tr>';
-        html += `<td class="wx-label">\u96F2\u5C64\u72C0\u6CC1</td><td class="wx-value" colspan="3">\u3010 ${t.clouds.map(translateCloud).join(' ')} \u3011</td>`;
-        html += '</tr>';
-      }
-
-      if (t.trends && t.trends.length > 0) {
-        html += '<tr>';
-        html += '<td class="wx-label">\u8B8A\u5316\u8DA8\u52E2</td>';
-        html += '<td class="wx-value" colspan="3">';
-        html += t.trends.map(tr => {
-          const parts = [];
-          parts.push(`\u23F3 ${tr.kind} ${tr.time_from || '?'}-${tr.time_to || '?'}Z`);
-
-          const detailParts = [];
-          if (tr.wind_text) detailParts.push(escapeHtml(tr.wind_text));
-          if (tr.visibility_str) detailParts.push(escapeHtml(tr.visibility_str));
-          else if (tr.visibility_m != null) detailParts.push(`${tr.visibility_m}m`);
-          if (tr.clouds && tr.clouds.length > 0) detailParts.push(tr.clouds.map(translateCloud).join(' '));
-          if (tr.weather && tr.weather.length > 0) detailParts.push(tr.weather.map(translateWx).join(' '));
-
-          if (detailParts.length > 0) parts.push(`  ${detailParts.join('\uFF0C')}`);
-          return parts.join('');
-        }).join('<br>');
-        html += '</td></tr>';
-      }
-
-      html += '</tbody></table></div>';
+      var tw = t.wind || {};
+      var twStr = tw.dir_cn ? (tw.arrow||'')+' '+tw.dir_cn+' @ '+(tw.speed_kts||'?')+' \u7BC0' : (t.wind_text || '\u2014');
+      h += '<tr><td class="intent-label">\u4E3B\u5C0E\u98A8\u5411\u98A8\u901F</td><td class="intent-value">' + twStr + '</td>';
+      h += '<td class="intent-label">\u80FD\u898B\u5EA6</td><td class="intent-value">' + (t.visibility_str||'\u2014') + '</td></tr>';
+      h += '</tbody></table></div>';
     } else if (wx.taf_raw) {
-      html += '<div class="weather-section">';
-      html += '<div class="weather-section-title">\uD83D\uDCE1 TAF \u5929\u6C23\u9810\u5831</div>';
-      html += `<pre class="weather-raw">${escapeHtml(stripTafPrefix(wx.taf_raw))}</pre>`;
-      html += '</div>';
+      h += '<div class="weather-section"><div class="weather-section-title">\uD83D\uDCE1 TAF</div>';
+      h += '<pre class="weather-raw">' + escapeHtml(stripTafPrefix(wx.taf_raw)) + '</pre></div>';
     }
-
-    if (!wx.metar && !wx.taf && !wx.metar_raw && !wx.taf_raw) {
-      html = '<p class="no-data">No weather data</p>';
-    }
-
-    return html;
+    return h;
   }
-
   async function handleWeatherRefresh(icao, candidateIndex) {
     const parsed = state.planResult?.parsed;
     if (!parsed) return;
