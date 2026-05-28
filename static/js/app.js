@@ -615,6 +615,7 @@
   function renderRouteDetailTable(candidate, dep, arr, depFix, arrFix, wpData) {
     const waypoints = wpData?.waypoints || [];
     const segments = candidate.segments || [];
+    let html = '';
 
     html += '<table class="data-table"><thead><tr>';
     html += '<th>\u822A\u8DEF</th><th>\u8D77\u9EDE</th><th>\u7D42\u9EDE</th><th>\u8DDD\u96E2(\u6D77\u91CC)</th><th>\u822A\u5411</th>';
