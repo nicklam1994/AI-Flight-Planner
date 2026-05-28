@@ -738,7 +738,7 @@ async def get_airport_detail(icao: str, fix: str | None = None):
                     app_type = (app["type"] or "")
                     if app_type not in ("ILS", "LOC", "RNAV"):  # I=ILS, L=LOC, R=RNAV
                         continue
-                    app_name = app_type + (app["suffix"] or "")
+                    app_name = app_type + "-" + (app["suffix"] or "") + " " + (app["runway_name"] or "") + "(" + (app["arinc_name"] or "") + ")"
                     arinc = app["arinc_name"]
                     rwy = app["runway_name"]
                     # Get transition fixes for this approach
