@@ -501,7 +501,7 @@
 
     // SID / STAR table
     if (filteredProcs.length > 0) {
-      const sectionTitle = isDeparture ? '\u25B6 \u96E2\u5834\u7A0B\u5E8F (SID)' : '\u25B6 \u9032\u5834\u7A0B\u5E8F (STAR)';
+      const sectionTitle = isDeparture ? '\u96E2\u5834\u7A0B\u5E8F (SID)' : '\u9032\u5834\u7A0B\u5E8F (STAR)';
       const colHeader = isDeparture ? '\u96E2\u5834\u9EDE' : '\u9032\u5834\u9EDE';
       html += '<div class="airport-section"><div class="airport-section-title">' + sectionTitle + '</div>';
       html += '<table class="data-table"><thead><tr><th>程序</th><th>使用跑道</th><th>' + colHeader + '</th></tr></thead><tbody>';
@@ -540,11 +540,11 @@
 
         html += '<div class="airport-section"><div class="airport-section-title">\u25B6 \u8DD1\u9053\u4FE1\u606F</div>';
         html += '<table class="data-table"><thead><tr>';
-        html += '<th>\u8DD1\u9053</th><th>\u9577\u5EA6(ft)</th><th>\u5BEC\u5EA6(ft)</th><th>\u9AD8\u5EA6(ft)</th><th>\u822A\u5411(\u00B0)</th><th>GP\u4E0B\u6ED1(\u00B0)</th><th>ILS\u983B\u7387</th><th>\u6A19\u8B58</th><th>CAT</th><th>DME</th><th>\u904E\u6E21\u9AD8\u5EA6(ft)</th><th>\u63A8\u85A6</th>';
+        html += '<th>\u8DD1\u9053</th><th>\u9577\u5EA6(ft)</th><th>\u5BEC\u5EA6(ft)</th><th>\u9AD8\u5EA6(ft)</th><th>\u822A\u5411(\u00B0)</th><th>GP\u4E0B\u6ED1(\u00B0)</th><th>ILS\u983B\u7387</th><th>\u6A19\u8B58</th><th>CAT</th><th>DME</th><th>\u904E\u6E21\u9AD8\u5EA6(ft)</th><th title="ILS CAT II/III + 最長 — 優先精確進場">推薦</th>';
         html += '</tr></thead><tbody>';
 
         displayRunways.forEach(function(r) {
-          const isLongest = (r.length_ft != null && r.length_ft === maxLen && maxLen > 0);
+          const isRec = (r.ils_cat && (r.ils_cat.includes('II') || r.ils_cat.includes('III'))) && (r.length_ft != null && r.length_ft === maxLen && maxLen > 0);
           html += '<tr>';
           html += '<td>' + escapeHtml(r.name || r.ident || '\u2014') + '</td>';
           html += '<td>' + (r.length_ft != null ? r.length_ft.toLocaleString() : '\u2014') + '</td>';
