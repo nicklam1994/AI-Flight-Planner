@@ -317,6 +317,66 @@ def _resolve_fix_nodes(
     return nodes
 
 
+# ---------------------------------------------------------------------------
+# Great-circle bias: penalize edges far from the direct great-circle line
+# ---------------------------------------------------------------------------
+
+def _apply_great_circle_bias(
+    G: nx.DiGraph,
+    wp_map: dict[int, WaypointInfo],
+    lat1: float, lon1: float,
+    lat2: float, lon2: float,
+) -> None:
+    """
+    Add penalty to edge weights based on cross-track deviation from the
+    great-circle line between (lat1,lon1) and (lat2,lon2).
+
+    Edges whose midpoint deviates N NM from the great-circle get an
+    extra N/5 NM penalty (capped at 200 NM).  This naturally biases
+    the search toward the direct route corridor.
+    """
+    import math
+
+    def _cross_track_nm(lat, lon):
+        """Cross-track distance (NM) from point to great-circle line A→B."""
+        lat1_r, lon1_r = math.radians(lat1), math.radians(lon1)
+        lat2_r, lon2_r = math.radians(lat2), math.radians(lon2)
+        lat_r, lon_r = math.radians(lat), math.radians(lon)
+
+        d13 = math.acos(
+            math.sin(lat1_r) * math.sin(lat_r) +
+            math.cos(lat1_r) * math.cos(lat_r) * math.cos(lon_r - lon1_r)
+        )
+        if d13 < 1e-10:
+            return 0.0
+
+        b13 = math.atan2(
+            math.sin(lon_r - lon1_r) * math.cos(lat_r),
+            math.cos(lat1_r) * math.sin(lat_r) -
+            math.sin(lat1_r) * math.cos(lat_r) * math.cos(lon_r - lon1_r)
+        )
+        b12 = math.atan2(
+            math.sin(lon2_r - lon1_r) * math.cos(lat2_r),
+            math.cos(lat1_r) * math.sin(lat2_r) -
+            math.sin(lat1_r) * math.cos(lat2_r) * math.cos(lon2_r - lon1_r)
+        )
+
+        dxt = math.asin(math.sin(d13) * math.sin(b13 - b12))
+        return abs(dxt) * 3440.065  # radians → NM
+
+    for _u, _v, d in G.edges(data=True):
+        u_wp = wp_map.get(_u)
+        v_wp = wp_map.get(_v)
+        if not u_wp or not v_wp:
+            continue
+        mid_lat = (u_wp.lat + v_wp.lat) / 2
+        mid_lon = (u_wp.lon + v_wp.lon) / 2
+        deviation = _cross_track_nm(mid_lat, mid_lon)
+        penalty = min(deviation / 5, 200)
+        if penalty > 0:
+            d["distance_nm"] = d.get("distance_nm", 0) + penalty
+
+
 def _auto_match_sid_star(
     candidates: list[RouteCandidate],
     origin_icao: str,
