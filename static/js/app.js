@@ -689,12 +689,19 @@
     // COM Frequencies table
     var coms = data.coms || [];
     if (coms.length > 0) {
+      // Group by type
+      var comGroups = {};
+      coms.forEach(function(c) {
+        if (!comGroups[c.type]) comGroups[c.type] = [];
+        comGroups[c.type].push(c);
+      });
       html += '<div class="airport-section"><div class="airport-section-title">COM 通訊頻率</div>';
       html += '<table class="data-table"><thead><tr><th>Type</th><th>Frequency(MHz)</th><th>Name</th></tr></thead><tbody>';
-      coms.forEach(function(c) {
-        var typeMap = {T:'Tower',A:'Approach',G:'Ground',D:'Departure',C:'Clearance',ATIS:'ATIS',RMP:'Ramp',RDR:'Radar',TCA:'TCA',CTR:'Center',DIR:'Director',INF:'Info',MC:'Multicom',UC:'Unicom',AWOS:'AWOS',ASOS:'ASOS',FSS:'FSS'};
-        var typeLabel = typeMap[c.type] || c.type;
-        html += '<tr><td>' + escapeHtml(typeLabel) + '</td><td>' + (c.frequency_khz/1000).toFixed(3) + '</td><td>' + escapeHtml(c.name || '—') + '</td></tr>';
+      var typeMap = {T:'Tower',A:'Approach',G:'Ground',D:'Departure',C:'Clearance',ATIS:'ATIS',RMP:'Ramp',RDR:'Radar',TCA:'TCA',CTR:'Center',DIR:'Director',INF:'Info',MC:'Multicom',UC:'Unicom',AWOS:'AWOS',ASOS:'ASOS',FSS:'FSS'};
+      Object.keys(comGroups).sort().forEach(function(type) {
+        var freqs = comGroups[type].map(function(c){ return (c.frequency_khz/1000).toFixed(3); }).join(', ');
+        var names = [...new Set(comGroups[type].map(function(c){ return c.name || '—'; }))].join(', ');
+        html += '<tr><td>' + escapeHtml(typeMap[type] || type) + '</td><td>' + freqs + '</td><td>' + escapeHtml(names) + '</td></tr>';
       });
       html += '</tbody></table></div>';
     }
