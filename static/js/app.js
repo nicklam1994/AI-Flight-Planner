@@ -970,54 +970,53 @@
       h += '<tr><td class="intent-label">\u6EAB\u5EA6/\u9732\u9EDE</td><td class="intent-value">' + tempStr + '</td>';
       h += '<td class="intent-label">\u4FEE\u6B63\u6D77\u58D3</td><td class="intent-value">' + (m.pressure_hpa!=null?m.pressure_hpa+' hPa':'\u2014') + '</td></tr>';
 
+      // Close first table, open second 2-column table for full-width items
+      h += '</tbody></table>';
+      h += '<table class="data-table"><tbody>';
+
       // Clouds
       var cloudStr = '\u2014';
       if (m.clouds && m.clouds.length > 0) {
         cloudStr = '';
         m.clouds.forEach(function(c) { cloudStr += (c.emoji||'')+' '+(c.cover_cn||c.cover)+', \u4E91\u5E95\u9AD8\u5EA6 '+c.height_ft+' FT '; });
       }
-      h += '<tr><td class="intent-label" colspan="4">\u96F2\u5C64\u72C0\u6CC1</td></tr>';
-      h += '<tr><td class="intent-value" colspan="4">' + cloudStr + '</td></tr>';
+      h += '<tr><td class="intent-label">\u96F2\u5C64\u72C0\u6CC1</td><td class="intent-value">' + cloudStr + '</td></tr>';
 
-      // Wind with variable detection
+      // Wind
       var wind = m.wind || {};
       var windStr = '\u2014';
       if (wind.dir_cn && wind.dir != null) {
         windStr = '(' + (wind.arrow||'') + ' ' + wind.dir_cn + ') ' + wind.dir + '\u00B0 @ ' + (wind.speed_kts||'?') + ' KT';
         if (wind.gust_kts) windStr += ' Gust ' + wind.gust_kts + 'kt';
-      } else if (m.wind_text) {
-        windStr = m.wind_text;
-      }
-      // Check for variable wind in raw text: "180V270"
+      } else if (m.wind_text) { windStr = m.wind_text; }
       var rawText = m.raw || '';
       var varMatch = rawText.match(/(\d{3})V(\d{3})/);
-      if (varMatch) {
-        windStr += ', \u98A8\u5411\u5728 ' + varMatch[1] + '\u00B0 \u5230 ' + varMatch[2] + '\u00B0 \u4E4B\u9593\u6CE2\u52D5';
-      }
-      h += '<tr><td class="intent-label" colspan="4">\u98A8\u901F\u98A8\u5411</td></tr>';
-      h += '<tr><td class="intent-value" colspan="4">' + windStr + '</td></tr>';
+      if (varMatch) windStr += ', \u98A8\u5411\u5728 ' + varMatch[1] + '\u00B0 \u5230 ' + varMatch[2] + '\u00B0 \u4E4B\u9593\u6CE2\u52D5';
+      h += '<tr><td class="intent-label">\u98A8\u901F\u98A8\u5411</td><td class="intent-value">' + windStr + '</td></tr>';
 
-      // Trend: NOSIG, TEMPO, etc from raw text
+      // Trend
       var rawUpper = rawText.toUpperCase();
       var trendParts = [];
       if (rawUpper.indexOf('NOSIG') >= 0) trendParts.push('\u672A\u4F862\u5C0F\u6642\u5167\u7121\u986F\u8457\u8B8A\u5316 (NOSIG)');
       if (rawUpper.indexOf('BECMG') >= 0) trendParts.push('\u5929\u6C23\u5C07\u9010\u6F38\u8F49\u8B8A (BECMG)');
       if (rawUpper.indexOf('TEMPO') >= 0) trendParts.push('\u6709\u77ED\u66AB\u5929\u6C23\u6CE2\u52D5 (TEMPO)');
       var trendStr = trendParts.length > 0 ? trendParts.join('; ') : '\u2014';
-      h += '<tr><td class="intent-label" colspan="4">\u8DA8\u52E2\u8207\u5099\u8A3B</td></tr>';
-      h += '<tr><td class="intent-value" colspan="4">' + trendStr + '</td></tr>';
+      h += '<tr><td class="intent-label">\u8DA8\u52E2\u8207\u5099\u8A3B</td><td class="intent-value">' + trendStr + '</td></tr>';
 
-      // TEMPO details: parse TEMPO section from raw
+      // TEMPO lines
       var tempoMatch = rawText.match(/TEMPO\s+(.+)/i);
       if (tempoMatch) {
-        var tempoStr = tempoMatch[1].trim();
-        // Translate common elements
-        tempoStr = tempoStr.replace(/FEW(\d{3})/g, '\u5C11\u96F2 (FEW) \u4F4E\u81F3 $1\u82F1\u5C3A');
-        tempoStr = tempoStr.replace(/BKN(\d{3})/g, '\u88C2\u96F2 (BKN) \u4F4E\u81F3 $1\u82F1\u5C3A');
-        tempoStr = tempoStr.replace(/SCT(\d{3})/g, '\u758F\u96F2 (SCT) \u4F4E\u81F3 $1\u82F1\u5C3A');
-        tempoStr = tempoStr.replace(/OVC(\d{3})/g, '\u9670\u5929 (OVC) \u4F4E\u81F3 $1\u82F1\u5C3A');
-        h += '<tr><td class="intent-label" colspan="4">\u81E8\u6642\u8B8A\u5316(\u5982\u6709)</td></tr>';
-        h += '<tr><td class="intent-value" colspan="4">\u9810\u8A08\u77ED\u6642\u9593\u5167\uFF0C' + tempoStr + '</td></tr>';
+        var tempoItems = tempoMatch[1].trim().split(/\s+/);
+        for (var ti = 0; ti < tempoItems.length; ti++) {
+          var item = tempoItems[ti];
+          var itemLabel = '\u81E8\u6642\u8B8A\u5316' + (tempoItems.length > 1 ? (' ' + (ti+1)) : '');
+          var itemStr = item;
+          itemStr = itemStr.replace(/^FEW(\d{3})$/i, '\u5C11\u96F2 (FEW) \u4F4E\u81F3 ' + parseInt('$1')*10 + '\u82F1\u5C3A');
+          itemStr = itemStr.replace(/^BKN(\d{3})$/i, '\u88C2\u96F2 (BKN) \u4F4E\u81F3 ' + parseInt('$1')*10 + '\u82F1\u5C3A');
+          itemStr = itemStr.replace(/^SCT(\d{3})$/i, '\u758F\u96F2 (SCT) \u4F4E\u81F3 ' + parseInt('$1')*10 + '\u82F1\u5C3A');
+          itemStr = itemStr.replace(/^OVC(\d{3})$/i, '\u9670\u5929 (OVC) \u4F4E\u81F3 ' + parseInt('$1')*10 + '\u82F1\u5C3A');
+          h += '<tr><td class="intent-label">' + itemLabel + '</td><td class="intent-value">' + itemStr + '</td></tr>';
+        }
       }
 
       h += '</tbody></table></div>';
