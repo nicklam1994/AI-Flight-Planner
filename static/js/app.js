@@ -337,16 +337,16 @@
     if (selectedEl) selectedEl.classList.add('selected');
 
     // Set loading states with timers
-    .innerHTML = '<div class="panel-loading">Loading... 0s</div>';
-    .innerHTML = '<div class="panel-loading">Loading... 0s</div>';
-    .innerHTML = '<div class="panel-loading">Loading... 0s</div>';
-    .innerHTML = '<div class="panel-loading">Loading... 0s</div>';
+    $depAirportContent.innerHTML = '<div class="panel-loading">Loading... 0s</div>';
+    $arrAirportContent.innerHTML = '<div class="panel-loading">Loading... 0s</div>';
+    $routeDetailContent.innerHTML = '<div class="panel-loading">Loading... 0s</div>';
+    $navDetailContent.innerHTML = '<div class="panel-loading">Loading... 0s</div>';
     const loadStart = Date.now();
     const loadTimer = setInterval(() => {
       const elapsed = Math.round((Date.now() - loadStart) / 1000);
       const t = `Loading... ${elapsed}s`;
       [$depAirportContent, $arrAirportContent, $routeDetailContent, $navDetailContent].forEach(el => {
-        if (el.textContent.includes('Loading')) el.innerHTML = `<div class="panel-loading">${t}</div>`;
+        if (el.textContent.includes('Loading')) el.innerHTML = '<div class="panel-loading">' + t + '</div>';
       });
     }, 1000);
 
