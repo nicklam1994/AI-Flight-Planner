@@ -317,6 +317,11 @@ const I18N = (() => {
       'zh-TW': '此機場無可用程序',
       'en': 'No procedures available'
     },
+    'info-no-procedure-for-fix': {
+      'zh-CN': '無程序匹配此航點',
+      'zh-TW': '無程序匹配此航點',
+      'en': 'No procedure matches this fix'
+    },
     'card-weather': {
       'zh-CN': 'Weather',
       'zh-TW': 'Weather',
