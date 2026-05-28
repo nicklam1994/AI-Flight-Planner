@@ -391,9 +391,9 @@
     let html = `
       <div class="card route-description-card">
         <div class="card-title">✈️ 航線詳情</div>
-        <div class="route-string-box" onclick="navigator.clipboard.writeText(this.textContent);this.classList.add('copied');setTimeout(()=>this.classList.remove('copied'),1500)" title="點擊即可复制">
+        <div class="route-string-box" title="點擊即可复制">
           <span class="copy-tip">📋 點擊即可复制</span>
-          ${escapeHtml(candidate.route_string)}
+          <span class="route-string-text" onclick="event.stopPropagation();navigator.clipboard.writeText(this.textContent.trim());this.parentElement.classList.add('copied');setTimeout(()=>this.parentElement.classList.remove('copied'),1500)">${escapeHtml(candidate.route_string)}</span>
         </div>
         <div class="route-desc-text">
           <p>出發地 ${escapeHtml(dep)}（${escapeHtml(depName)}），目的地 ${escapeHtml(arr)}（${escapeHtml(arrName)}）</p>
