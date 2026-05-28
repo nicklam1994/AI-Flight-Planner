@@ -140,10 +140,14 @@
     hideAllCards();
 
     setLoading(true);
-    showStatus('Planning route...', 'loading');
+    const startTime = Date.now();
+    const timerInterval = setInterval(() => {
+      const elapsed = Math.round((Date.now() - startTime) / 1000);
+      showStatus('Planning route... ' + elapsed + 's', 'loading');
+    }, 1000);
 
     try {
-      const result = await API.plan(input, 3, llmSettings, currentCycle);
+      const result = await API.plan(input, 3, llmSettings, currentCycle, useEvaluator);
       state.planResult = result;
       state.selectedRoute = null;
       state.candidateIndex = null;
@@ -169,6 +173,7 @@
     } catch (e) {
       showStatus(e.message || I18N.t('error-plan-failed'), 'error');
     } finally {
+      clearInterval(timerInterval);
       setLoading(false);
     }
   }
@@ -922,6 +927,11 @@
   function saveSettings() {
     llmSettings = LLMSettings.readForm();
     LLMSettings.save(llmSettings);
+    var ec = document.getElementById('settingsEval');
+    if (ec) {
+      useEvaluator = ec.checked;
+      localStorage.setItem('ai_flight_planner_evaluator', useEvaluator ? 'true' : 'false');
+    }
     closeSettings();
     showToast(I18N.t('toast-settings-saved'));
   }
