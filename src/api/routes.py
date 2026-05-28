@@ -733,9 +733,12 @@ async def get_airport_detail(icao: str, fix: str | None = None):
                 app_rows = db.execute(
                     "SELECT approach_id, arinc_name, runway_name, type, suffix FROM approach WHERE airport_id=? AND runway_name IS NOT NULL",
                     (apt_id,)).fetchall()
-                # Build approach lookup by fix
+                # Build approach lookup by fix (only ILS/RNAV precision approaches)
                 for app in app_rows:
-                    app_name = (app["type"] or "") + (app["suffix"] or "")
+                    app_type = (app["type"] or "")
+                    if app_type not in ("I", "L", "R"):  # I=ILS, L=LOC, R=RNAV
+                        continue
+                    app_name = app_type + (app["suffix"] or "")
                     arinc = app["arinc_name"]
                     rwy = app["runway_name"]
                     # Get transition fixes for this approach
@@ -749,8 +752,10 @@ async def get_airport_detail(icao: str, fix: str | None = None):
                     app_wps = {r["fix_ident"].upper() for r in leg_rows}
                     # For each STAR, check if STAR waypoints overlap with approach
                     for s in stars:
+                        # Only link if approach transition fix matches STAR waypoints
+                        trans_fix = (trans_rows[0]["fix_ident"].upper() if trans_rows else "")
                         star_wps = {w.upper() for w in (s.fix_waypoints or [])}
-                        if star_wps & app_wps:
+                        if trans_fix and trans_fix in star_wps:
                             s.approaches.append(ApproachInfo(
                                 name=app_name or "",
                                 arinc_name=arinc,
