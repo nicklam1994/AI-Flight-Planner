@@ -2,6 +2,7 @@
 REST API routes — all endpoints for the AI Flight Planner.
 """
 import logging
+import time
 
 from fastapi import APIRouter, HTTPException
 
@@ -140,8 +141,10 @@ async def plan_route(request: PlanRequest):
         raise HTTPException(status_code=503, detail="Airway graph not initialized. Try again shortly.")
 
     # --- Step 1: Parse intent ---
+    t0 = time.time()
     try:
         intent = await parse_intent(request.input, llm_cfg)
+        logger.info(f'[TIMING] NLP parse: {time.time()-t0:.1f}s')
     except Exception as e:
         logger.error(f"NLP parsing failed: {e}")
         raise HTTPException(status_code=400, detail=f"Cannot parse input: {e}")
@@ -176,6 +179,7 @@ async def plan_route(request: PlanRequest):
                     avoid_ids.append(wp_id)
                     break
 
+    t1 = time.time()
     try:
         candidates = find_routes(
             intent.origin,
@@ -194,12 +198,14 @@ async def plan_route(request: PlanRequest):
         raise HTTPException(status_code=500, detail=f"Route search error: {e}")
 
     if not candidates:
-        return PlanResponse(
+        logger.info(f'[TIMING] Total plan: {time.time()-t0:.1f}s')
+    return PlanResponse(
             parsed=_intent_to_response(intent),
             error="No routes found between specified airports.",
         )
 
     # --- Step 3: Evaluate routes with LLM (if enabled) ---
+    t2 = time.time()
     user_prefs = _build_user_prefs(intent)
     eval_enabled = request.use_evaluator
     if eval_enabled:
@@ -211,6 +217,7 @@ async def plan_route(request: PlanRequest):
                 user_preferences=user_prefs,
                 llm_config=llm_cfg,
             )
+            logger.info(f'[TIMING] Route evaluation: {time.time()-t2:.1f}s')
         except Exception as e:
             logger.warning(f"Route evaluation failed (using distance order): {e}")
             best_idx = 0
@@ -218,6 +225,7 @@ async def plan_route(request: PlanRequest):
     else:
         best_idx = 0
         rankings = []
+        logger.info(f'[TIMING] Route evaluation (disabled): 0.0s')
 
     # --- Step 4: Build response ---
     # Put best route first
@@ -257,6 +265,7 @@ async def plan_route(request: PlanRequest):
     global _last_plan_candidates
     _last_plan_candidates = candidates
 
+    logger.info(f'[TIMING] Total plan: {time.time()-t0:.1f}s')
     return PlanResponse(
         parsed=_intent_to_response(intent),
         route_string=best.route_string,
@@ -773,6 +782,7 @@ async def get_airport_detail(icao: str, fix: str | None = None):
                                 transition=(trans_rows[0]["fix_ident"] if trans_rows else None),
                                 runway=rwy,
                             ))
+            logger.info(f'[TIMING] Route evaluation: {time.time()-t2:.1f}s')
         except Exception as e:
             logger.warning(f"Approach linking failed for {icao_upper}: {e}")
 
