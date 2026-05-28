@@ -223,34 +223,30 @@
   }
 
   function renderParsedTable(parsed) {
-    const altStr = parsed.cruise_altitude
-      ? `FL${Math.round(parsed.cruise_altitude / 100)}`
-      : '\u2014';
+    var altMin = parsed.cruise_altitude_min
+      ? 'FL' + Math.round(parsed.cruise_altitude_min / 100)
+      : parsed.cruise_altitude ? 'FL' + Math.round(parsed.cruise_altitude / 100) : '—';
+    var altMax = parsed.cruise_altitude_max
+      ? 'FL' + Math.round(parsed.cruise_altitude_max / 100)
+      : parsed.cruise_altitude ? 'FL' + Math.round(parsed.cruise_altitude / 100) : '—';
+    var avoidParts = [];
+    if (parsed.avoid_waypoints && parsed.avoid_waypoints.length > 0) avoidParts.push('航点: ' + parsed.avoid_waypoints.join(', '));
+    if (parsed.avoid_airspaces && parsed.avoid_airspaces.length > 0) avoidParts.push('空域: ' + parsed.avoid_airspaces.join(', '));
+    var avoidStr = avoidParts.length > 0 ? avoidParts.join('; ') : '—';
 
-    const avoidParts = [];
-    if (parsed.avoid_waypoints && parsed.avoid_waypoints.length > 0) {
-      avoidParts.push('航点: ' + parsed.avoid_waypoints.join(', '));
-    }
-    if (parsed.avoid_airspaces && parsed.avoid_airspaces.length > 0) {
-      avoidParts.push('空域: ' + parsed.avoid_airspaces.join(', '));
-    }
-    const avoidStr = avoidParts.length > 0 ? avoidParts.join('; ') : '\u2014';
-
-    $parsedContent.innerHTML = `
-      <table class="parsed-table">
-        <thead><tr><th>\u9805\u76EE</th><th>\u5167\u5BB9</th></tr></thead>
-        <tbody>
-          <tr><td>${I18N.t('label-origin')}</td><td>${escapeHtml(parsed.origin || '?')}</td></tr>
-          <tr><td>${I18N.t('label-destination')}</td><td>${escapeHtml(parsed.destination || '?')}</td></tr>
-          <tr><td>${I18N.t('label-airway-type')}</td><td>${escapeHtml(parsed.airway_type || I18N.t('any'))}</td></tr>
-          <tr><td>${I18N.t('label-cruise-alt')}</td><td>${escapeHtml(altStr)}</td></tr>
-          <tr><td>\u822A\u7DDA\u898F\u907F</td><td>${escapeHtml(avoidStr)}</td></tr>
-          <tr><td>${I18N.t('label-confidence')}</td><td>${Math.round((parsed.confidence || 0) * 100)}%</td></tr>
-        </tbody>
-      </table>`;
+    var h = '';
+    if (parsed.context) h += '<div style="color:var(--accent);font-size:0.82rem;margin-bottom:8px;padding:6px 10px;background:rgba(59,130,246,0.08);border-radius:4px">' + escapeHtml(parsed.context) + '</div>';
+    h += '<table class="parsed-table"><tbody>';
+    h += '<tr><td class="intent-label">出發(ICAO/IATA)</td><td class="intent-value">' + escapeHtml(parsed.origin||'?') + (parsed.origin_iata?'/'+escapeHtml(parsed.origin_iata):'') + '</td><td class="intent-label">到達(ICAO/IATA)</td><td class="intent-value">' + escapeHtml(parsed.destination||'?') + (parsed.dest_iata?'/'+escapeHtml(parsed.dest_iata):'') + '</td></tr>';
+    h += '<tr><td class="intent-label">巡航高度(MIN)</td><td class="intent-value">' + altMin + '</td><td class="intent-label">巡航高度(MAX)</td><td class="intent-value">' + altMax + '</td></tr>';
+    h += '<tr><td class="intent-label">航路類型</td><td class="intent-value">' + (parsed.airway_type==='J'?'High':parsed.airway_type==='B'||parsed.airway_type==='V'?'Low':'Both') + '</td><td class="intent-label">航路規避</td><td class="intent-value">' + avoidStr + '</td></tr>';
+    h += '<tr><td class="intent-label">執飛機型</td><td class="intent-value">' + (parsed.aircraft_type ? escapeHtml(parsed.aircraft_type) : '—') + '</td><td class="intent-label">燃料單位</td><td class="intent-value">' + (parsed.fuel_unit ? escapeHtml(parsed.fuel_unit) : '—') + '</td></tr>';
+    h += '<tr><td class="intent-label">Use SIDs</td><td class="intent-value">' + (parsed.use_sids!==false?'✅️':'❌') + '</td><td class="intent-label">Use STARs</td><td class="intent-value">' + (parsed.use_stars!==false?'✅️':'❌') + '</td></tr>';
+    h += '<tr><td class="intent-label">RNAV equipped</td><td class="intent-value">' + (parsed.rnav_capable!==false?'✅️':'❌') + '</td><td class="intent-label">置信度</td><td class="intent-value">' + Math.round((parsed.confidence||0)*100) + '%</td></tr>';
+    h += '</tbody></table>';
+    $parsedContent.innerHTML = h;
     $parsedCard.style.display = 'block';
   }
-
   // ── Rendering: Route Candidate Cards (clickable) ─────────
   function renderCandidateCards(result) {
     const labels = [
