@@ -440,90 +440,265 @@
   }
 
   // ── Weather ───────────────────────────────────────────────
+  // Weather code → Chinese + emoji translation table
+  const WX_CN = {
+    '+': '大', '-': '小', VC: '附近',
+    MI: '淺', PR: '部分', BC: '碎片', DR: '低吹', BL: '高吹',
+    SH: '陣性', TS: '雷暴', FZ: '凍結',
+    RA: '雨', SN: '雪', DZ: '毛毛雨', SG: '雪粒',
+    PL: '冰粒', GR: '冰雹', GS: '小冰雹',
+    BR: '靄', FG: '霧', HZ: '霾', SA: '揚沙',
+    DU: '浮塵', FU: '煙', VA: '火山灰',
+    SQ: '颮', DS: '沙塵暴', SS: '沙暴',
+    PY: '水霧', FC: '漏斗雲',
+  };
+  const WX_EMOJI = {
+    TS: '🌩️', SH: '🌦️', RA: '🌧️', SN: '🌨️', FG: '🌫️', BR: '🌁',
+    HZ: '😶‍🌫️', DZ: '🌦️', GR: '🧊', SQ: '💨', DS: '🏜️', DU: '🌫️',
+    FZ: '🧊',
+  };
+  const CLOUD_TYPE_CN = { CB: '積雨雲', TCU: '濃積雲' };
+  const FLIGHT_RULES_CN = {
+    VFR: 'VFR (目視飛行規則)', MVFR: 'MVFR (邊際目視飛行規則)',
+    IFR: 'IFR (儀表飛行規則)', LIFR: 'LIFR (低儀表飛行規則)',
+  };
+  const CLOUD_CN = {
+    FEW: '少雲', SCT: '疏雲', BKN: '多雲', OVC: '陰天',
+    SKC: '晴空', CLR: '晴空', NSC: '無顯著雲', NCD: '無雲',
+  };
+
+  function stripMetarPrefix(raw) {
+    return (raw || '').replace(/^(METAR|SPECI)\s+/i, '').trim();
+  }
+
+  function stripTafPrefix(raw) {
+    return (raw || '').replace(/^TAF\s+/i, '').trim();
+  }
+
+  function translateWx(code) {
+    if (!code) return '';
+    code = code.toUpperCase();
+    const parts = [];
+    let c = code;
+
+    // Intensity
+    if (c.startsWith('+')) { parts.push(WX_CN['+']); c = c.slice(1); }
+    else if (c.startsWith('-')) { parts.push(WX_CN['-']); c = c.slice(1); }
+
+    // Proximity
+    if (c.startsWith('VC')) { parts.push(WX_CN.VC); c = c.slice(2); }
+
+    // Descriptors (MI, PR, BC, DR, BL, SH, TS, FZ)
+    for (const desc of ['MI', 'PR', 'BC', 'DR', 'BL', 'SH', 'TS', 'FZ']) {
+      if (c.startsWith(desc)) { parts.push(WX_CN[desc] || desc); c = c.slice(desc.length); break; }
+    }
+
+    // Precipitation/Obscuration type
+    for (const key of Object.keys(WX_CN).sort((a, b) => b.length - a.length)) {
+      if (['+', '-', 'VC', 'MI', 'PR', 'BC', 'DR', 'BL', 'SH', 'TS', 'FZ'].includes(key)) continue;
+      if (c.startsWith(key)) { parts.push(WX_CN[key]); c = c.slice(key.length); break; }
+    }
+
+    if (!parts.length) return code;
+
+    // Find emoji
+    let emoji = '🌡️';
+    if (code.includes('TS')) emoji = code.includes('RA') ? '⛈️' : '🌩️';
+    else if (code.includes('SH')) emoji = '🌦️';
+    else if (code.includes('RA')) emoji = '🌧️';
+    else if (code.includes('SN')) emoji = '🌨️';
+    else if (code.includes('FG')) emoji = '🌫️';
+    else if (code.includes('FZ')) emoji = '🧊';
+
+    return `${emoji} ${parts.join('')} (${code})`;
+  }
+
+  function translateCloud(c) {
+    if (!c) return '';
+    const cn = CLOUD_CN[c.cover] || c.cover;
+    const h = c.height_ft != null ? ` ${c.height_ft}英尺` : '';
+    const codeH = c.height_ft != null ? Math.round(c.height_ft / 100) : '';
+    const codeStr = c.cover ? ` (${c.cover}${codeH})` : '';
+
+    // Dangerous cloud type (CB, TCU)
+    let dangerTag = '';
+    if (c.is_dangerous) {
+      const typeCN = c.cloud_type_cn || CLOUD_TYPE_CN[c.cloud_type] || c.cloud_type || '';
+      dangerTag = ` ⚠️${typeCN}`;
+    }
+
+    return `${c.emoji || ''} ${cn}${h}${codeStr}${dangerTag}`;
+  }
+
   function renderWeatherPanel(data) {
     renderWeatherColumn(
       document.getElementById('weatherDepLabel'),
       document.getElementById('weatherDepContent'),
       data.departure,
-      true
+      'departure'
     );
     renderWeatherColumn(
       document.getElementById('weatherArrLabel'),
       document.getElementById('weatherArrContent'),
       data.arrival,
-      false
+      'arrival'
     );
   }
 
-  function renderWeatherColumn(labelEl, contentEl, wx, isDeparture) {
+  function renderWeatherColumn(labelEl, contentEl, wx, role) {
     if (!wx) {
-      labelEl.textContent = isDeparture ? '🛫 Weather' : '🛬 Weather';
+      labelEl.textContent = role === 'departure' ? '🛫 Weather' : '🛬 Weather';
       contentEl.innerHTML = '<p class="no-data">No weather data</p>';
       return;
     }
 
-    labelEl.textContent = `${wx.icao || ''} — ${wx.airport?.name || wx.airport?.city || ''}`;
+    const ap = wx.airport || {};
+    const apName = ap.name || wx.icao || '';
+    labelEl.innerHTML = `<strong>${escapeHtml(wx.icao || '')} — ${escapeHtml(apName)}</strong>`;
 
-    if (!wx.metar) {
-      contentEl.innerHTML = `<p class="no-data">No METAR data</p>
-        ${wx.taf_raw ? `<details><summary>Raw TAF</summary>
-        <pre class="weather-metar-raw">${escapeHtml(wx.taf_raw)}</pre></details>` : ''}`;
-      return;
+    let html = '';
+
+    // ── METAR section ──
+    if (wx.metar) {
+      const m = wx.metar;
+      html += '<div class="weather-section">';
+      html += '<div class="weather-section-title">📡 METAR 天气报告</div>';
+      html += `<pre class="weather-raw">${escapeHtml(stripMetarPrefix(m.raw || wx.metar_raw || ''))}</pre>`;
+
+      html += '<div class="weather-section-title">📋 METAR 报文解析</div>';
+      html += '<table class="weather-table"><tbody>';
+
+      // Airport info row
+      const latLon = ap.lat != null && ap.lon != null
+        ? ` 经纬度: ${ap.lat.toFixed(3)} / ${ap.lon.toFixed(3)}` : '';
+      const elev = m.elevation_m != null ? ` ${m.elevation_m} M` : '';
+      html += `<tr><td class="wx-label">机场代码</td><td class="wx-value">【 ${escapeHtml(wx.icao || '')} (${escapeHtml(apName)}${latLon}) 】</td>`
+        + (elev ? `<td class="wx-label">海拔高度</td><td class="wx-value">【 ${elev} 】</td>` : '<td></td><td></td>') + '</tr>';
+
+      // QNH + Temp/Dew
+      html += '<tr>';
+      html += `<td class="wx-label">修正海压</td><td class="wx-value">【 ${m.pressure_hpa != null ? m.pressure_hpa + ' hPa' : '—'} 】</td>`;
+      html += `<td class="wx-label">机场温度</td><td class="wx-value">【 ${m.temp_c != null ? m.temp_c + ' °C' : '—'}  / 露点 ${m.dewpt_c != null ? m.dewpt_c + ' °C' : '—'} 】</td>`;
+      html += '</tr>';
+
+      // Flight rules + Visibility
+      html += '<tr>';
+      html += `<td class="wx-label">飞行规则</td><td class="wx-value">【 ${FLIGHT_RULES_CN[m.flight_rules] || m.flight_rules || '—'} 】</td>`;
+      html += `<td class="wx-label">能见度</td><td class="wx-value">【 ${m.visibility_str || (m.visibility_m != null ? m.visibility_m >= 10000 ? '🔭 能见度良好' : m.visibility_m + 'm' : '—')} 】</td>`;
+      html += '</tr>';
+
+      // Wind + Updated
+      const wind = m.wind || {};
+      const windStr = wind.dir_cn
+        ? `${wind.arrow || ''} ${wind.dir_cn} @ ${wind.speed_kts || '?'} 節`
+        : (m.wind_text || '—');
+      const gustStr = wind.gust_kts ? ` Gust ${wind.gust_kts}kt` : '';
+      html += '<tr>';
+      html += `<td class="wx-label">风速风向</td><td class="wx-value">【 ${escapeHtml(windStr + gustStr)} 】</td>`;
+      html += `<td class="wx-label">更新时间</td><td class="wx-value">【 ${escapeHtml(wx.updated_iso || wx.updated || m.time || '—')} 】</td>`;
+      html += '</tr>';
+
+      // Weather phenomena
+      if (m.weather && m.weather.length > 0) {
+        html += '<tr>';
+        html += `<td class="wx-label">天气现象</td><td class="wx-value" colspan="3">【 ${m.weather.map(translateWx).join(' ')} 】</td>`;
+        html += '</tr>';
+      }
+
+      // Clouds
+      if (m.clouds && m.clouds.length > 0) {
+        html += '<tr>';
+        html += `<td class="wx-label">云层</td><td class="wx-value" colspan="3">【 ${m.clouds.map(translateCloud).join(' ')} 】</td>`;
+        html += '</tr>';
+      }
+
+      html += '</tbody></table>';
+      html += '</div>'; // weather-section
+    } else if (wx.metar_raw) {
+      html += '<div class="weather-section">';
+      html += '<div class="weather-section-title">📡 METAR 天气报告</div>';
+      html += `<pre class="weather-raw">${escapeHtml(stripMetarPrefix(wx.metar_raw))}</pre>`;
+      html += '</div>';
     }
 
-    const m = wx.metar;
+    // ── TAF section ──
+    if (wx.taf) {
+      const t = wx.taf;
+      html += '<div class="weather-section">';
+      html += '<div class="weather-section-title">📡 TAF 天气预报</div>';
+      html += `<pre class="weather-raw">${escapeHtml(stripTafPrefix(t.raw || wx.taf_raw || ''))}</pre>`;
 
-    let html = '<div class="weather-fields">';
+      html += '<div class="weather-section-title">📋 TAF 报文解析</div>';
+      html += '<table class="weather-table"><tbody>';
 
-    // Time
-    html += `<div class="weather-field"><span class="label">Time</span><span class="value">${m.time || '\u2014'}</span></div>`;
+      // Airport + validity
+      const timeFrom = t.time_from || '—';
+      const timeTo = t.time_to || '—';
+      html += '<tr>';
+      html += `<td class="wx-label">机场代码</td><td class="wx-value">【 ${escapeHtml(wx.icao || '')} (${escapeHtml(apName)}) 】</td>`;
+      html += `<td class="wx-label">预报时效</td><td class="wx-value">【 ${timeFrom} 至 ${timeTo} (UTC) 】</td>`;
+      html += '</tr>';
 
-    // Wind
-    html += `<div class="weather-field"><span class="label">Wind</span><span class="value">${m.wind_text || m.wind?.description || '\u2014'}</span></div>`;
+      // Max/Min temp
+      if (t.max_temp_c != null || t.min_temp_c != null) {
+        html += '<tr>';
+        const maxT = t.max_temp_c != null ? `${t.max_temp_c}°C${t.max_temp_time ? ' (' + t.max_temp_time + ')' : ''}` : '—';
+        const minT = t.min_temp_c != null ? `${t.min_temp_c}°C${t.min_temp_time ? ' (' + t.min_temp_time + ')' : ''}` : '—';
+        html += `<td class="wx-label">最高温度</td><td class="wx-value">【 ${maxT} 】</td>`;
+        html += `<td class="wx-label">最低温度</td><td class="wx-value">【 ${minT} 】</td>`;
+        html += '</tr>';
+      }
 
-    // Visibility
-    html += `<div class="weather-field"><span class="label">Vis</span><span class="value">${m.visibility_str || (m.visibility_m != null ? (m.visibility_m >= 10000 ? '10km+' : m.visibility_m + 'm') : '\u2014')}</span></div>`;
+      // Wind + Visibility
+      const twind = t.wind || {};
+      const twindStr = twind.dir_cn
+        ? `${twind.arrow || ''} ${twind.dir_cn} @ ${twind.speed_kts || '?'} 節`
+        : (t.wind_text || '—');
+      html += '<tr>';
+      html += `<td class="wx-label">主导风向风速</td><td class="wx-value">【 ${escapeHtml(twindStr)} 】</td>`;
+      html += `<td class="wx-label">能见度</td><td class="wx-value">【 ${escapeHtml(t.visibility_str || '—')} 】</td>`;
+      html += '</tr>';
 
-    // Temperature / Dew point
-    const tempStr = m.temp_c != null ? `${m.temp_c}°C` : '\u2014';
-    const dewStr = m.dewpt_c != null ? `${m.dewpt_c}°C` : '\u2014';
-    html += `<div class="weather-field"><span class="label">Temp/Dew</span><span class="value">${tempStr} / ${dewStr}</span></div>`;
+      // Clouds
+      if (t.clouds && t.clouds.length > 0) {
+        html += '<tr>';
+        html += `<td class="wx-label">云层状况</td><td class="wx-value" colspan="3">【 ${t.clouds.map(translateCloud).join(' ')} 】</td>`;
+        html += '</tr>';
+      }
 
-    // Pressure
-    html += `<div class="weather-field"><span class="label">QNH</span><span class="value">${m.pressure_hpa != null ? m.pressure_hpa + ' hPa' : '\u2014'}</span></div>`;
+      // Trends
+      if (t.trends && t.trends.length > 0) {
+        html += '<tr>';
+        html += '<td class="wx-label">变化趋势</td>';
+        html += '<td class="wx-value" colspan="3">';
+        html += t.trends.map(tr => {
+          const parts = [];
+          parts.push(`⏳ ${tr.kind} ${tr.time_from || '?'}-${tr.time_to || '?'}Z`);
 
-    // Clouds
-    if (m.clouds && m.clouds.length > 0) {
-      const cloudStr = m.clouds.map(c => {
-        const cover = c.cover_cn || c.cover || '';
-        const alt = c.height_ft != null ? ` ${c.height_ft}ft` : '';
-        return `${cover}${alt}`;
-      }).join(', ');
-      html += `<div class="weather-field"><span class="label">Clouds</span><span class="value">${escapeHtml(cloudStr)}</span></div>`;
+          const detailParts = [];
+          if (tr.wind_text) detailParts.push(escapeHtml(tr.wind_text));
+          if (tr.visibility_str) detailParts.push(escapeHtml(tr.visibility_str));
+          else if (tr.visibility_m != null) detailParts.push(`${tr.visibility_m}m`);
+          if (tr.clouds && tr.clouds.length > 0) detailParts.push(tr.clouds.map(translateCloud).join(' '));
+          if (tr.weather && tr.weather.length > 0) detailParts.push(tr.weather.map(translateWx).join(' '));
+
+          if (detailParts.length > 0) parts.push(`  ${detailParts.join('，')}`);
+          return parts.join('');
+        }).join('<br>');
+        html += '</td></tr>';
+      }
+
+      html += '</tbody></table>';
+      html += '</div>'; // weather-section
+    } else if (wx.taf_raw) {
+      html += '<div class="weather-section">';
+      html += '<div class="weather-section-title">📡 TAF 天气预报</div>';
+      html += `<pre class="weather-raw">${escapeHtml(stripTafPrefix(wx.taf_raw))}</pre>`;
+      html += '</div>';
     }
 
-    // Flight rules
-    if (m.flight_rules) {
-      html += `<div class="weather-field"><span class="label">Rules</span><span class="value"><span class="wx-badge wx-${m.flight_rules.toLowerCase()}">${m.flight_rules}</span></span></div>`;
-    }
-
-    // Weather phenomena
-    if (m.weather && m.weather.length > 0) {
-      html += `<div class="weather-field"><span class="label">Weather</span><span class="value">${escapeHtml(m.weather.join(', '))}</span></div>`;
-    }
-
-    html += '</div>';
-
-    // Raw METAR
-    if (wx.metar_raw) {
-      html += `<details><summary>Raw METAR</summary>
-        <pre class="weather-metar-raw">${escapeHtml(wx.metar_raw)}</pre></details>`;
-    }
-
-    // Raw TAF
-    if (wx.taf_raw) {
-      html += `<details><summary>Raw TAF</summary>
-        <pre class="weather-metar-raw">${escapeHtml(wx.taf_raw)}</pre></details>`;
+    if (!wx.metar && !wx.taf && !wx.metar_raw && !wx.taf_raw) {
+      html = '<p class="no-data">No weather data</p>';
     }
 
     contentEl.innerHTML = html;

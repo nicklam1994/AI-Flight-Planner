@@ -27,8 +27,9 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Route type filters (based on ARINC 424 data analysis)
 # ---------------------------------------------------------------------------
-# SIDs: both rt='5' (conventional) and rt='2' (RNAV) are valid SIDs
-SID_RT = "IN ('2','5')"
+# SIDs: route_type IN ('1','2','3','4','5','6') covers RNAV (2), conventional (5),
+# engine-out (1), transitions (3), RNAV transitions (4), and other variants (6).
+SID_RT = "IN ('1','2','3','4','5','6')"
 # STARs: rt='5' is dominant, rt='3' covers approach transitions
 STAR_RT = "IN ('3','5')"
 
@@ -270,3 +271,114 @@ def get_procedures(icao: str) -> dict:
             for name, rwys in star_runways.items()
         ],
     }
+
+
+# ---------------------------------------------------------------------------
+# SID exit fix / STAR initial fix extraction
+# ---------------------------------------------------------------------------
+
+def get_sid_exit_fixes(icao: str) -> list[dict]:
+    """
+    Get all unique SID exit fixes (last-leg waypoints) for an airport.
+
+    Returns a deduplicated list of dicts: {"fix": str, "sid": str, "runway": str}.
+    """
+    db = get_s3db()
+    if db is None:
+        return []
+
+    rows = db.execute(
+        "SELECT DISTINCT procedure_identifier, transition_identifier "
+        "FROM tbl_sids "
+        "WHERE airport_identifier = ? "
+        f"AND route_type {SID_RT} "
+        "AND waypoint_identifier IS NOT NULL "
+        "ORDER BY procedure_identifier, transition_identifier",
+        (icao.upper(),),
+    ).fetchall()
+
+    fixes: dict[str, dict] = {}
+    for row in rows:
+        trans = row["transition_identifier"]
+        if trans is None:
+            legs = db.execute(
+                "SELECT waypoint_identifier FROM tbl_sids "
+                "WHERE airport_identifier = ? "
+                "AND procedure_identifier = ? "
+                "AND transition_identifier IS NULL "
+                f"AND route_type {SID_RT} "
+                "AND waypoint_identifier IS NOT NULL "
+                "ORDER BY seqno DESC LIMIT 1",
+                (icao.upper(), row["procedure_identifier"]),
+            ).fetchone()
+        else:
+            legs = db.execute(
+                "SELECT waypoint_identifier FROM tbl_sids "
+                "WHERE airport_identifier = ? "
+                "AND procedure_identifier = ? "
+                "AND transition_identifier = ? "
+                f"AND route_type {SID_RT} "
+                "AND waypoint_identifier IS NOT NULL "
+                "ORDER BY seqno DESC LIMIT 1",
+                (icao.upper(), row["procedure_identifier"], trans),
+            ).fetchone()
+        if legs and legs["waypoint_identifier"]:
+            fix = legs["waypoint_identifier"]
+            if fix not in fixes:
+                fixes[fix] = {"fix": fix, "sid": row["procedure_identifier"], "runway": row["transition_identifier"]}
+
+    return list(fixes.values())
+
+
+def get_star_initial_fixes(icao: str) -> list[dict]:
+    """
+    Get all unique STAR initial fixes (first-leg waypoints) for an airport.
+
+    Returns a deduplicated list of dicts: {"fix": str, "star": str, "runway": str}.
+    """
+    db = get_s3db()
+    if db is None:
+        return []
+
+    rows = db.execute(
+        "SELECT DISTINCT procedure_identifier, transition_identifier "
+        "FROM tbl_stars "
+        "WHERE airport_identifier = ? "
+        f"AND route_type {STAR_RT} "
+        "AND waypoint_identifier IS NOT NULL "
+        "ORDER BY procedure_identifier, transition_identifier",
+        (icao.upper(),),
+    ).fetchall()
+
+    fixes: dict[str, dict] = {}
+    for row in rows:
+        trans = row["transition_identifier"]
+        # Handle NULL transitions
+        if trans is None:
+            legs = db.execute(
+                "SELECT waypoint_identifier FROM tbl_stars "
+                "WHERE airport_identifier = ? "
+                "AND procedure_identifier = ? "
+                "AND transition_identifier IS NULL "
+                f"AND route_type {STAR_RT} "
+                "AND waypoint_identifier IS NOT NULL "
+                "ORDER BY seqno ASC LIMIT 1",
+                (icao.upper(), row["procedure_identifier"]),
+            ).fetchone()
+        else:
+            legs = db.execute(
+                "SELECT waypoint_identifier FROM tbl_stars "
+                "WHERE airport_identifier = ? "
+                "AND procedure_identifier = ? "
+                "AND transition_identifier = ? "
+                f"AND route_type {STAR_RT} "
+                "AND waypoint_identifier IS NOT NULL "
+                "ORDER BY seqno ASC LIMIT 1",
+                (icao.upper(), row["procedure_identifier"], trans),
+            ).fetchone()
+        if legs and legs["waypoint_identifier"]:
+            fix = legs["waypoint_identifier"]
+            if fix not in fixes:
+                fixes[fix] = {"fix": fix, "star": row["procedure_identifier"], "runway": row["transition_identifier"]}
+
+    return list(fixes.values())

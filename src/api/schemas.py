@@ -182,19 +182,27 @@ class WeatherWind(BaseModel):
     speed_kts: float | None = None
     gust_kts: float | None = None
     dir_compass: str | None = None
+    dir_cn: str | None = None
+    arrow: str | None = None
 
 
 class WeatherCloud(BaseModel):
     cover: str = ""
     cover_cn: str = ""
-    height_ft: int | None = None
-
+    height_ft: float | None = None
+    emoji: str = ""
+    cloud_type: str | None = None     # "CB" or "TCU"
+    cloud_type_cn: str | None = None
+    is_dangerous: bool = False
 
 class WeatherAirport(BaseModel):
     ident: str = ""
     name: str = ""
     city: str = ""
     country: str = ""
+    elevation_m: float | None = None
+    lat: float | None = None
+    lon: float | None = None
 
 
 class WeatherMetar(BaseModel):
@@ -214,6 +222,7 @@ class WeatherMetar(BaseModel):
     clouds: list[WeatherCloud] = Field(default_factory=list)
     weather: list[str] = Field(default_factory=list)
     flight_rules: str = ""
+    elevation_m: float | None = None
 
 
 class WeatherStation(BaseModel):
@@ -223,12 +232,14 @@ class WeatherStation(BaseModel):
     metar_raw: str | None = None       # raw METAR text
     taf_raw: str | None = None         # raw TAF text
     taf: "WeatherTaf | None" = None    # parsed TAF fields
-    updated: str | None = None         # "Last updated: 0100 UTC 28 Thu May 2026"
+    updated: str | None = None         # "Updated: 2026-05-28 01:30 UTC"
+    updated_iso: str | None = None     # ISO 8601 timestamp
 
 
 class WeatherTaf(BaseModel):
-    """Parsed TAF fields."""
+    """Parsed TAF fields with trend lines."""
     raw: str = ""
+    icao: str = ""
     time_from: str | None = None       # "2026-05-28 00:00 UTC"
     time_to: str | None = None
     wind: WeatherWind = Field(default_factory=WeatherWind)
@@ -239,6 +250,23 @@ class WeatherTaf(BaseModel):
     weather: list[str] = Field(default_factory=list)
     max_temp_c: float | None = None
     min_temp_c: float | None = None
+    max_temp_time: str | None = None    # e.g., "28日06Z"
+    min_temp_time: str | None = None
+    trends: list["TafTrend"] = Field(default_factory=list)
+
+
+class TafTrend(BaseModel):
+    """A TAF trend line (TEMPO, BECMG, PROB)."""
+    kind: str = ""                     # "TEMPO", "BECMG", "PROB30", etc.
+    time_from: str | None = None       # e.g., "28日14Z"
+    time_to: str | None = None
+    wind: WeatherWind = Field(default_factory=WeatherWind)
+    wind_text: str = ""
+    visibility_m: float | None = None
+    visibility_str: str = ""
+    clouds: list[WeatherCloud] = Field(default_factory=list)
+    weather: list[str] = Field(default_factory=list)
+    raw: str = ""                      # original trend text
 
 
 class WeatherResponse(BaseModel):

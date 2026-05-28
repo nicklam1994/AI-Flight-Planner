@@ -570,32 +570,59 @@ textarea#routeInput:focus { outline: none; border-color: var(--accent); }
   margin-bottom: 8px;
 }
 
-/* ── Weather field display ──────────────────────────────── */
-.weather-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+/* ── Weather section ─────────────────────────────────────── */
+.weather-section {
+  margin-bottom: 12px;
 }
 
-.weather-field {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 8px;
-  font-size: 0.82rem;
-  padding: 2px 0;
+.weather-section-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 4px;
+  margin-top: 8px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 2px;
 }
 
-.weather-field .label {
+.weather-raw {
+  display: block;
+  background: var(--bg);
   color: var(--text-muted);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  min-width: 60px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.72rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin-bottom: 6px;
+  max-height: 120px;
+  overflow-y: auto;
 }
 
-.weather-field .value {
+.weather-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.weather-table td {
+  padding: 3px 6px;
+  vertical-align: top;
+  border-top: 1px solid rgba(71,85,105,0.3);
+}
+
+.wx-label {
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+  width: 1%;
+  font-size: 0.75rem;
+}
+
+.wx-value {
   color: var(--text);
-  text-align: right;
+  font-size: 0.78rem;
 }
 
 /* ── Weather badge (flight rules) ───────────────────────── */
