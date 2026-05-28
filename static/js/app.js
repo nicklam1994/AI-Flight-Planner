@@ -194,6 +194,31 @@
   }
 
   // ── Rendering: Parsed Intent (TABLE) ─────────────────────
+  function normalizeAircraft(raw) {
+    if (!raw) return '';
+    const s = raw.trim();
+    const map = {
+      'B738': 'Boeing 737-800', 'B737': 'Boeing 737', 'B739': 'Boeing 737-900',
+      'B738W': 'Boeing 737-800W', 'B77W': 'Boeing 777-300ER', 'B772': 'Boeing 777-200',
+      'B773': 'Boeing 777-300', 'B788': 'Boeing 787-8', 'B789': 'Boeing 787-9',
+      'B78X': 'Boeing 787-10', 'B744': 'Boeing 747-400', 'B748': 'Boeing 747-8',
+      'B748F': 'Boeing 747-8F', 'B763': 'Boeing 767-300', 'B764': 'Boeing 767-400',
+      'B752': 'Boeing 757-200', 'B753': 'Boeing 757-300',
+      'A320': 'Airbus A320', 'A319': 'Airbus A319', 'A321': 'Airbus A321',
+      'A332': 'Airbus A330-200', 'A333': 'Airbus A330-300', 'A339': 'Airbus A330-900',
+      'A342': 'Airbus A340-200', 'A343': 'Airbus A340-300', 'A345': 'Airbus A340-500',
+      'A346': 'Airbus A340-600', 'A359': 'Airbus A350-900', 'A35K': 'Airbus A350-1000',
+      'A388': 'Airbus A380-800',
+      'CRJ2': 'Bombardier CRJ200', 'CRJ7': 'Bombardier CRJ700', 'CRJ9': 'Bombardier CRJ900',
+      'E170': 'Embraer E170', 'E175': 'Embraer E175', 'E190': 'Embraer E190', 'E195': 'Embraer E195',
+    };
+    const upper = s.toUpperCase();
+    if (map[upper]) return map[upper];
+    // Already a full name like "Boeing 737-800" — keep as-is
+    if (/^(boeing|airbus|bombardier|embraer)/i.test(s)) return s;
+    return s;
+  }
+
   function renderParsedTable(parsed) {
     const altMin = parsed.cruise_altitude_min
       ? `FL${Math.round(parsed.cruise_altitude_min / 100)}`
@@ -228,7 +253,7 @@
             <td class="intent-label">航路規避</td><td class="intent-value">${escapeHtml(avoidStr)}</td>
           </tr>
           <tr>
-            <td class="intent-label">執飛機型</td><td class="intent-value">${escapeHtml(parsed.aircraft_type || '—')}</td>
+            <td class="intent-label">執飛機型</td><td class="intent-value">${escapeHtml(normalizeAircraft(parsed.aircraft_type) || '—')}</td>
             <td class="intent-label">燃料單位</td><td class="intent-value">${escapeHtml(parsed.fuel_unit || '—')}</td>
           </tr>
           <tr>
