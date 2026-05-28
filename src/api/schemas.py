@@ -314,3 +314,47 @@ class WaypointDetailResponse(BaseModel):
 class RouteWaypointsResponse(BaseModel):
     """GET /api/route/{candidate_index}/waypoints response."""
     waypoints: list[WaypointDetailResponse] = []
+
+
+# ---------------------------------------------------------------------------
+# Airport detail (GET /api/airport/{icao}/detail)
+# ---------------------------------------------------------------------------
+
+class AirportInfo(BaseModel):
+    """Basic airport information."""
+    ident: str
+    name: str
+    city: str | None = None
+    country: str | None = None
+    lat: float
+    lon: float
+    elevation_ft: int | None = None      # LNM altitude field is in feet
+    transition_altitude: int | None = None
+
+
+class RunwayInfo(BaseModel):
+    """Runway with ILS details."""
+    name: str                              # e.g., "07C"
+    length_ft: float | None = None
+    width_ft: float | None = None
+    heading: float | None = None
+    ils_frequency: int | None = None       # kHz * 100 (e.g., 109300 = 109.30 MHz)
+    ils_ident: str | None = None
+    ils_cat: str | None = None             # "CAT I", "CAT II", "CAT III"
+    has_dme: bool = False
+
+
+class ProcedureInfo(BaseModel):
+    """A filtered SID or STAR procedure with fix waypoints."""
+    name: str                              # e.g., "BEKO1C"
+    runway: str | None = None              # transition_identifier, e.g., "RW07C"
+    fix_waypoints: list[str] = []          # waypoint idents in sequence
+    exit_fix: str | None = None            # last waypoint (SID exit) or first (STAR initial)
+
+
+class AirportDetailResponse(BaseModel):
+    """GET /api/airport/{icao}/detail response."""
+    airport: AirportInfo
+    runways: list[RunwayInfo] = []
+    sids: list[ProcedureInfo] | None = None    # None when no fix param; filtered when ?fix=...
+    stars: list[ProcedureInfo] | None = None

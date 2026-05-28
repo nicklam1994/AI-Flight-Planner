@@ -36,6 +36,10 @@ from src.api.schemas import (
     WeatherAirport,
     WeatherTaf,
     TafTrend,
+    AirportDetailResponse,
+    AirportInfo,
+    RunwayInfo,
+    ProcedureInfo,
 )
 from src.db.airport import search as search_airports
 from src.db.connection import get_db, reconnect_db, reconnect_s3db
@@ -501,7 +505,190 @@ async def get_route_waypoints(candidate_index: int):
 
 
 # ---------------------------------------------------------------------------
-# Weather (METAR + TAF from NOAA)
+# Airport detail (runways + SID/STAR filtered by fix)
+# ---------------------------------------------------------------------------
+
+ILS_CAT_MAP: dict[str, str] = {
+    "0": "ILS",      # no perf indicator / unknown
+    "1": "CAT I",
+    "2": "CAT II",
+    "3": "CAT III",
+}
+
+
+@router.get("/airport/{icao}/detail", response_model=AirportDetailResponse)
+async def get_airport_detail(icao: str, fix: str | None = None):
+    """
+    Return detailed airport info, runways with ILS, and optionally
+    SID/STAR procedures filtered by a fix waypoint.
+
+    Path params:
+        icao: 4-letter ICAO airport code (e.g., "VHHH")
+    Query params:
+        fix:  Waypoint identifier (e.g., "ENPAR", "DUMAP").
+              When provided, returns SIDs and STARs whose leg waypoints
+              include this fix. Each ProcedureInfo includes the full
+              waypoint sequence and the exit/initial fix.
+    """
+    if not icao or len(icao) < 4:
+        raise HTTPException(status_code=400, detail="Airport ICAO code required (4 characters)")
+
+    icao_upper = icao.upper()
+    db = get_db()
+
+    # --- Airport info ---
+    apt_row = db.execute(
+        "SELECT ident, name, city, country, laty, lonx, altitude, transition_altitude "
+        "FROM airport WHERE upper(ident) = ? OR upper(icao) = ?",
+        (icao_upper, icao_upper),
+    ).fetchone()
+
+    if apt_row is None:
+        raise HTTPException(status_code=404, detail=f"Airport '{icao_upper}' not found")
+
+    airport_info = AirportInfo(
+        ident=apt_row["ident"],
+        name=apt_row["name"] or "",
+        city=apt_row["city"],
+        country=apt_row["country"],
+        lat=apt_row["laty"],
+        lon=apt_row["lonx"],
+        elevation_ft=apt_row["altitude"],
+        transition_altitude=int(apt_row["transition_altitude"])
+        if apt_row["transition_altitude"] is not None else None,
+    )
+
+    # --- Runways ---
+    rwy_rows = db.execute(
+        "SELECT re.name, re.heading, re.ils_ident, "
+        "r.length, r.width "
+        "FROM runway_end re "
+        "JOIN runway r ON r.primary_end_id = re.runway_end_id "
+        "  OR r.secondary_end_id = re.runway_end_id "
+        "JOIN airport a ON a.airport_id = r.airport_id "
+        "WHERE upper(a.ident) = ? "
+        "ORDER BY re.name",
+        (icao_upper,),
+    ).fetchall()
+
+    # Query all ILS for this airport in one batch
+    ils_rows = db.execute(
+        "SELECT ident, type, frequency, dme_range "
+        "FROM ils WHERE loc_airport_ident = ?",
+        (icao_upper,),
+    ).fetchall()
+    ils_map: dict[str, dict] = {r["ident"]: dict(r) for r in ils_rows}
+
+    runways: list[RunwayInfo] = []
+    seen: set[str] = set()
+    for r in rwy_rows:
+        name = r["name"]
+        if name in seen:
+            continue
+        seen.add(name)
+
+        ils = ils_map.get(r["ils_ident"]) if r["ils_ident"] else None
+        ils_cat = ILS_CAT_MAP.get(ils["type"], "ILS") if ils else None
+        has_dme = (ils["dme_range"] or 0) > 0 if ils else False
+
+        runways.append(RunwayInfo(
+            name=name,
+            length_ft=r["length"],
+            width_ft=r["width"],
+            heading=r["heading"],
+            ils_frequency=ils["frequency"] if ils else None,
+            ils_ident=ils["ident"] if ils else None,
+            ils_cat=ils_cat,
+            has_dme=has_dme,
+        ))
+
+    # --- SID/STAR filtered by fix ---
+    sids: list[ProcedureInfo] | None = None
+    stars: list[ProcedureInfo] | None = None
+
+    if fix:
+        from src.db.connection import get_s3db
+        from src.db.sidstar import SID_RT, STAR_RT
+
+        s3db = get_s3db()
+        if s3db is not None:
+            fix_upper = fix.upper()
+
+            # Query SIDs: all legs for procedures where any leg matches the fix
+            sid_rows = s3db.execute(
+                "SELECT procedure_identifier, transition_identifier, seqno, waypoint_identifier "
+                "FROM tbl_sids "
+                "WHERE airport_identifier = ? "
+                f"AND route_type {SID_RT} "
+                "AND waypoint_identifier IS NOT NULL "
+                "AND procedure_identifier IN ("
+                "  SELECT DISTINCT procedure_identifier FROM tbl_sids "
+                "  WHERE airport_identifier = ? "
+                f" AND route_type {SID_RT} "
+                "  AND waypoint_identifier = ?"
+                ") "
+                "ORDER BY procedure_identifier, transition_identifier, seqno",
+                (icao_upper, icao_upper, fix_upper),
+            ).fetchall()
+
+            # Group SID legs by (procedure_identifier, transition_identifier)
+            sid_groups: dict[tuple[str, str], list[str]] = {}
+            for r in sid_rows:
+                key = (r["procedure_identifier"], r["transition_identifier"] or "")
+                sid_groups.setdefault(key, []).append(r["waypoint_identifier"])
+
+            sids = [
+                ProcedureInfo(
+                    name=proc,
+                    runway=trans or None,
+                    fix_waypoints=wps,
+                    exit_fix=wps[-1] if wps else None,
+                )
+                for (proc, trans), wps in sid_groups.items()
+            ]
+
+            # Query STARs: all legs for procedures where any leg matches the fix
+            star_rows = s3db.execute(
+                "SELECT procedure_identifier, transition_identifier, seqno, waypoint_identifier "
+                "FROM tbl_stars "
+                "WHERE airport_identifier = ? "
+                f"AND route_type {STAR_RT} "
+                "AND waypoint_identifier IS NOT NULL "
+                "AND procedure_identifier IN ("
+                "  SELECT DISTINCT procedure_identifier FROM tbl_stars "
+                "  WHERE airport_identifier = ? "
+                f" AND route_type {STAR_RT} "
+                "  AND waypoint_identifier = ?"
+                ") "
+                "ORDER BY procedure_identifier, transition_identifier, seqno",
+                (icao_upper, icao_upper, fix_upper),
+            ).fetchall()
+
+            # Group STAR legs by (procedure_identifier, transition_identifier)
+            star_groups: dict[tuple[str, str], list[str]] = {}
+            for r in star_rows:
+                key = (r["procedure_identifier"], r["transition_identifier"] or "")
+                star_groups.setdefault(key, []).append(r["waypoint_identifier"])
+
+            stars = [
+                ProcedureInfo(
+                    name=proc,
+                    runway=trans or None,
+                    fix_waypoints=wps,
+                    exit_fix=wps[0] if wps else None,
+                )
+                for (proc, trans), wps in star_groups.items()
+            ]
+
+    return AirportDetailResponse(
+        airport=airport_info,
+        runways=runways,
+        sids=sids,
+        stars=stars,
+    )
+
+
+# ---------------------------------------------------------------------------\n# Weather (METAR + TAF from NOAA)
 # ---------------------------------------------------------------------------
 
 NOAA_METAR_URL = "https://aviationweather.gov/api/data/metar/"

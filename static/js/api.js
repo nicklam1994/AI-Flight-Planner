@@ -94,4 +94,17 @@ const API = {
     }
     return res.json();
   },
+
+  // ── Airport Detail (v3) ──────────────────────────────────────
+
+  async getAirportDetail(icao, fix) {
+    const params = new URLSearchParams();
+    if (fix) params.set('fix', fix);
+    const res = await fetch(`${this.base}/api/airport/${encodeURIComponent(icao)}/detail?${params}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    return res.json();
+  },
 };

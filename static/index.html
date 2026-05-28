@@ -39,19 +39,13 @@
     <!-- Status -->
     <div id="status" class="status"></div>
 
-    <!-- Card: Route Request -->
+    <!-- Card: Route Request (no kSelect) -->
     <div class="card">
       <div class="card-title" data-i18n="card-route-request">🗣️ Route Request</div>
       <div class="input-area">
         <textarea id="routeInput" data-i18n="input-placeholder" data-i18n-attr="placeholder"
           placeholder="Describe your flight...&#10;e.g., VHHH to RJTT, high altitude airways, avoid Taiwan airspace"></textarea>
         <div class="input-row">
-          <label for="kSelect" data-i18n="label-candidates">Candidates:</label>
-          <select id="kSelect">
-            <option value="1">1</option>
-            <option value="3">3</option>
-            <option value="5" selected>5</option>
-          </select>
           <button id="planBtn" class="btn btn-primary" data-i18n="btn-plan">✈️ Plan Route</button>
         </div>
       </div>
@@ -63,61 +57,38 @@
     <!-- Card: Parsed Intent -->
     <div id="parsedCard" class="card" style="display:none">
       <div class="card-title" data-i18n="card-parsed-intent">📋 Parsed Intent</div>
-      <div id="parsedContent" class="parsed-grid"></div>
+      <div id="parsedContent"></div>
     </div>
 
-    <!-- Card: Route Candidates (Step 2) -->
+    <!-- Card: Route Candidates (clickable cards) -->
     <div id="candidatesCard" class="card" style="display:none">
-      <div class="card-title" data-i18n="card-route-candidates">🛫 Route Candidates</div>
+      <div class="card-title">🛫 Route Candidates</div>
       <div id="candidatesContent"></div>
     </div>
 
-    <!-- Card: Route Details (Step 4 — Four-Panel Grid) -->
-    <div id="detailCard" class="card" style="display:none">
-      <div class="card-title">📋 Route Details</div>
+    <!-- Route Detail Section (after selection) -->
+    <div id="routeDetailSection" style="display:none">
 
-      <div class="four-panel">
-        <!-- Panel 1: Departure -->
-        <div class="panel panel-departure">
-          <h3 id="departureTitle">🛫 Departure</h3>
-          <div id="departureContent"></div>
+      <!-- Card: Airport Info (Departure + Arrival side by side) -->
+      <div class="airport-grid" id="airportGrid">
+        <div class="card airport-card" id="depAirportCard">
+          <div id="depAirportContent"></div>
         </div>
-
-        <!-- Panel 2: Arrival -->
-        <div class="panel panel-arrival">
-          <h3 id="arrivalTitle">🛬 Arrival</h3>
-          <div id="arrivalContent"></div>
-        </div>
-
-        <!-- Panel 3: Route String -->
-        <div class="panel panel-routestr">
-          <h3>🗺️ Route String</h3>
-          <div id="routeContent"></div>
-        </div>
-
-        <!-- Panel 4: Navigation -->
-        <div class="panel panel-navigation">
-          <h3>🧭 Navigation Waypoints</h3>
-          <div id="navigationContent"></div>
+        <div class="card airport-card" id="arrAirportCard">
+          <div id="arrAirportContent"></div>
         </div>
       </div>
-    </div>
 
-    <!-- Card: Weather (Step 5) -->
-    <div id="weatherCard" class="card" style="display:none">
-      <div class="card-title">
-        🌤️ <span data-i18n="card-weather">Weather</span>
-        <button id="weatherRefreshBtn" class="btn btn-secondary btn-sm" data-i18n="btn-refresh" style="margin-left:10px">🔄 Refresh</button>
+      <!-- Card: Route Details Table -->
+      <div class="card" id="routeDetailCard">
+        <div class="card-title">🗺️ Route Details</div>
+        <div id="routeDetailContent"></div>
       </div>
-      <div class="weather-grid">
-        <div class="weather-col">
-          <h4 id="weatherDepLabel">🛫 Departure</h4>
-          <div id="weatherDepContent"></div>
-        </div>
-        <div class="weather-col">
-          <h4 id="weatherArrLabel">🛬 Arrival</h4>
-          <div id="weatherArrContent"></div>
-        </div>
+
+      <!-- Card: Navigation Table -->
+      <div class="card" id="navDetailCard">
+        <div class="card-title">🧭 Navigation Waypoints</div>
+        <div id="navDetailContent"></div>
       </div>
     </div>
   </div>
@@ -126,23 +97,20 @@
   <div id="modalOverlay" class="modal-overlay">
     <div class="modal">
       <h2 data-i18n="modal-title">⚙️ LLM API Settings</h2>
-
       <div class="form-group">
         <label data-i18n="label-provider">Provider</label>
         <select id="llmProvider">
-          <option value="ollama" data-i18n="opt-provider-ollama">Ollama</option>
-          <option value="openai" data-i18n="opt-provider-openai">OpenAI</option>
-          <option value="deepseek" data-i18n="opt-provider-deepseek">DeepSeek</option>
-          <option value="nvidia" data-i18n="opt-provider-nvidia">Nvidia NIM</option>
-          <option value="custom" data-i18n="opt-provider-custom">Custom (OpenAI-compatible)</option>
+          <option value="ollama">Ollama</option>
+          <option value="openai">OpenAI</option>
+          <option value="deepseek">DeepSeek</option>
+          <option value="nvidia">Nvidia NIM</option>
+          <option value="custom">Custom (OpenAI-compatible)</option>
         </select>
       </div>
-
       <div class="form-group">
         <label data-i18n="label-base-url">Base URL</label>
         <input type="text" id="llmBaseUrl" placeholder="http://localhost:11434/v1">
       </div>
-
       <div class="form-group">
         <label data-i18n="label-api-key">API Key</label>
         <div class="api-key-wrapper">
@@ -150,24 +118,16 @@
           <button id="toggleKey" class="toggle-key">👁</button>
         </div>
       </div>
-
       <div class="form-group">
         <label data-i18n="label-model">Model</label>
         <div class="model-row">
           <input type="text" id="llmModel" list="llmModelList" placeholder="gemma4:e4b" style="flex:1;padding:8px 12px;background:var(--bg-input);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);font-size:0.9rem;">
           <datalist id="llmModelList">
-            <option value="gemma4:e4b">
-            <option value="qwen3.6:27b">
-            <option value="qwen3.5:9b">
-            <option value="qwen3.5:9b-agent">
-            <option value="qwen3-coder:30b">
-            <option value="deepseek-chat">
-            <option value="gpt-4o">
+            <option value="gemma4:e4b"><option value="qwen3.6:27b"><option value="deepseek-chat"><option value="gpt-4o">
           </datalist>
-          <button id="fetchModelsBtn" class="btn btn-secondary" title="Fetch model list from API">🔄</button>
+          <button id="fetchModelsBtn" class="btn btn-secondary" title="Fetch model list">🔄</button>
         </div>
       </div>
-
       <div class="form-group">
         <label data-i18n="label-temperature">Temperature</label>
         <div class="form-row">
@@ -175,12 +135,11 @@
           <span id="tempValue">0.3</span>
         </div>
       </div>
-
       <div class="modal-actions">
-        <button id="modalReset" class="btn btn-secondary" data-i18n="btn-reset-defaults">🔄 Reset Defaults</button>
-        <button id="testConnBtn" class="btn btn-secondary" data-i18n="btn-test-connection">🧪 Test Connection</button>
-        <button id="modalSave" class="btn btn-primary" data-i18n="btn-save">💾 Save</button>
-        <button id="modalClose" class="btn btn-secondary" data-i18n="btn-close">✕ Close</button>
+        <button id="modalReset" class="btn btn-secondary">🔄 Reset</button>
+        <button id="testConnBtn" class="btn btn-secondary">🧪 Test</button>
+        <button id="modalSave" class="btn btn-primary">💾 Save</button>
+        <button id="modalClose" class="btn btn-secondary">✕ Close</button>
       </div>
     </div>
   </div>

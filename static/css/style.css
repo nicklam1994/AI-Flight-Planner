@@ -678,6 +678,69 @@ textarea#routeInput:focus { outline: none; border-color: var(--accent); }
   margin-top: 4px;
 }
 
+/* ── v3: Route Cards (clickable, no buttons) ────────────── */
+.route-card {
+  display: block;
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.route-card:hover { border-color: var(--accent); }
+.route-card.selected {
+  border-color: var(--accent);
+  background: rgba(59,130,246,0.08);
+}
+.route-card-header {
+  font-weight: 600; font-size: 0.9rem; margin-bottom: 4px;
+}
+.route-card-header .best { color: var(--warning); }
+.route-card-route {
+  font-family: 'Consolas', monospace; font-size: 0.78rem;
+  color: var(--text); word-break: break-all; margin-bottom: 6px;
+}
+.route-card-meta { font-size: 0.75rem; color: var(--text-muted); }
+
+/* ── v3: Parsed Intent Table ────────────────────────────── */
+.parsed-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.parsed-table td { padding: 4px 10px; border-bottom: 1px solid rgba(71,85,105,0.4); }
+.parsed-table .intent-label { color: var(--text-muted); font-weight: 600; width: 30%; }
+.parsed-table .intent-value { color: var(--text); }
+
+/* ── v3: Route Description ──────────────────────────────── */
+.route-desc { margin-bottom: 12px; }
+.route-desc .desc-title { font-size: 1rem; font-weight: 700; color: var(--warning); margin-bottom: 4px; }
+.route-desc .desc-route { font-family: 'Consolas',monospace; font-size: 0.8rem; color: var(--accent); margin-bottom: 6px; word-break: break-all; }
+.route-desc .desc-body { font-size: 0.82rem; color: var(--text); line-height: 1.6; white-space: pre-line; }
+
+/* ── v3: Airport Grid ───────────────────────────────────── */
+.airport-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px; }
+.airport-card { margin-bottom: 0; }
+.airport-card h3 { font-size: 0.95rem; margin-bottom: 4px; color: var(--accent); }
+.airport-card .airport-subtitle { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 10px; }
+
+/* ── v3: Data Tables (runway, SID/STAR, route detail, nav) ─ */
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.72rem; margin-bottom: 10px; }
+.data-table th { padding: 5px 6px; text-align: left; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--border); font-size: 0.7rem; white-space: nowrap; }
+.data-table td { padding: 4px 6px; border-bottom: 1px solid rgba(71,85,105,0.2); color: var(--text); }
+.data-table tr:hover td { background: rgba(59,130,246,0.05); }
+.data-table .highlight { color: var(--accent); font-weight: 600; }
+
+/* ── v3: Collapsible Section (weather in airport card) ──── */
+.collapsible-section { margin-top: 10px; }
+.section-toggle { 
+  font-size: 0.78rem; font-weight: 600; color: var(--accent);
+  cursor: pointer; padding: 4px 0; border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.section-toggle:hover { color: var(--accent-hover); }
+.section-toggle .arrow { transition: transform 0.2s; }
+.section-toggle .arrow.open { transform: rotate(90deg); }
+.section-body.collapsed { display: none; }
+
 /* ── Result action buttons ─────────────────────────────── */
 .result-actions {
   display: flex;
