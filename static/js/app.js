@@ -423,8 +423,6 @@
           <table class="data-table">
             <tr><td class="intent-label">線路描述</td><td class="intent-value">出發地 ${escapeHtml(dep)}（${escapeHtml(depName)}），目的地 ${escapeHtml(arr)}（${escapeHtml(arrName)}）</td></tr>
             <tr><td class="intent-label">全程數據</td><td class="intent-value">全程共 ${n} 個導航點，直飛航向 <span id="${bearingId}">—</span>°，航路里程 ${distance} 海里</td></tr>
-          </table>
-          <table class="data-table" style="margin-top:6px">
             <tr><td class="intent-label">中國 RVSM</td><td class="intent-value">9200米(FL301)、9800米(FL321)、10400米(FL341) 或以上</td></tr>
             <tr><td class="intent-label">國際 RVSM</td><td class="intent-value">FL290、FL310、FL330 或以上</td></tr>
           </table>
