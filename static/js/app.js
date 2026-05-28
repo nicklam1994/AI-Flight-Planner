@@ -764,7 +764,7 @@
     const waypoints = wpData?.waypoints || [];
     const segments = candidate.segments || [];
 
-    let html = '<table class="route-detail-table"><thead><tr>';
+    let html = '<table class="data-table"><thead><tr>';
     html += '<th>\u822A\u8DEF</th><th>\u8D77\u9EDE</th><th>\u7D42\u9EDE</th><th>\u8DDD\u96E2(\u6D77\u91CC)</th><th>\u822A\u5411</th>';
     html += '</tr></thead><tbody>';
 
@@ -854,7 +854,7 @@
       return (w.frequency / 1000).toFixed(2) + ' MHz';
     }
 
-    let html = '<table class="nav-table"><thead><tr>';
+    let html = '<table class="data-table"><thead><tr>';
     html += '<th>\u5C0E\u822A\u9EDE</th><th>\u985E\u578B</th><th>\u983B\u7387</th><th>\u7DEF\u5EA6</th><th>\u7D93\u5EA6</th>';
     html += '</tr></thead><tbody>';
 
