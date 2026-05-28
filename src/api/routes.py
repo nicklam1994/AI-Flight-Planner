@@ -408,6 +408,97 @@ async def filter_procedures_endpoint(body: ProcedureFilterRequest):
 
 
 # ---------------------------------------------------------------------------
+# Step 3: Route filter (v2 — filter SID/STAR by route string waypoint)
+# ---------------------------------------------------------------------------
+
+@router.post("/route/filter", response_model=RouteFilterResponse)
+async def filter_route_endpoint(body: RouteFilterRequest):
+    """
+    Filter SID/STAR procedures based on waypoints extracted from a route string.
+
+    Given a route_string like "VHHH DCT OCEAN V3 SIKOU A1 ELATO DCT ZSSS",
+    extracts OCEAN (SID exit waypoint) and ELATO (STAR entry waypoint), then
+    queries the .s3db for procedures that pass through those waypoints.
+
+    This is the v2 replacement for POST /api/procedures/filter — it uses
+    the token-scan extraction that handles route strings without explicit
+    SID/STAR markers.
+    """
+    from src.route.step3_filter import filter_for_route
+
+    result = filter_for_route(
+        route_string=body.route_string,
+        dep_icao=body.origin,
+        arr_icao=body.destination,
+    )
+
+    return RouteFilterResponse(
+        origin=body.origin.upper(),
+        destination=body.destination.upper(),
+        route_string=body.route_string,
+        sid_filter_node=result.get("sid_node"),
+        star_filter_node=result.get("star_node"),
+        sids=[ProcedureSummary(name=p["name"], runways=p["runways"]) for p in result["sids"]],
+        stars=[ProcedureSummary(name=p["name"], runways=p["runways"]) for p in result["stars"]],
+    )
+
+
+# ---------------------------------------------------------------------------
+# Step 4: Route waypoints (v2 — navigation detail)
+# ---------------------------------------------------------------------------
+
+@router.get("/route/{candidate_index}/waypoints", response_model=RouteWaypointsResponse)
+async def get_route_waypoints(candidate_index: int):
+    """
+    Return detailed information for all waypoints in a candidate route.
+
+    Uses the last plan result (session cache). Extracts waypoint idents
+    from the candidate's segments, then batch-queries the LNM database
+    for type, frequency, and coordinates.
+    """
+    if _last_plan_candidates is None:
+        raise HTTPException(status_code=404, detail="No plan result cached — run /api/plan first")
+
+    candidate = None
+    for c in _last_plan_candidates:
+        if c.index == candidate_index:
+            candidate = c
+            break
+
+    if candidate is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Candidate {candidate_index} not found in last plan result",
+        )
+
+    wp_idents: list[str] = []
+    seen: set[str] = set()
+    for seg in candidate.segments:
+        for ident in (seg.from_ident, seg.to_ident):
+            if ident and ident not in seen:
+                wp_idents.append(ident)
+                seen.add(ident)
+
+    from src.db.airport import get_waypoint_details
+
+    details = get_waypoint_details(wp_idents)
+
+    return RouteWaypointsResponse(
+        waypoints=[
+            WaypointDetailResponse(
+                ident=d["ident"],
+                type=d["type"],
+                type_label=d["type_label"],
+                frequency=d["frequency"],
+                lat=d["lat"],
+                lon=d["lon"],
+            )
+            for d in details
+        ]
+    )
+
+
+# ---------------------------------------------------------------------------
 # Weather (METAR + TAF from NOAA)
 # ---------------------------------------------------------------------------
 

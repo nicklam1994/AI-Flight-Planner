@@ -444,18 +444,20 @@
     renderWeatherColumn(
       document.getElementById('weatherDepLabel'),
       document.getElementById('weatherDepContent'),
-      data.departure
+      data.departure,
+      true
     );
     renderWeatherColumn(
       document.getElementById('weatherArrLabel'),
       document.getElementById('weatherArrContent'),
-      data.arrival
+      data.arrival,
+      false
     );
   }
 
-  function renderWeatherColumn(labelEl, contentEl, wx) {
+  function renderWeatherColumn(labelEl, contentEl, wx, isDeparture) {
     if (!wx) {
-      labelEl.textContent = '🛫 Weather';
+      labelEl.textContent = isDeparture ? '🛫 Weather' : '🛬 Weather';
       contentEl.innerHTML = '<p class="no-data">No weather data</p>';
       return;
     }

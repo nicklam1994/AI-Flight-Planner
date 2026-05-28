@@ -251,8 +251,7 @@ textarea#routeInput:focus { outline: none; border-color: var(--accent); }
 .candidate-clickable:hover { border-color: var(--accent); }
 .candidate-selected { border-color: var(--accent) !important; background: rgba(59,130,246,0.1); }
 
-/* ── Weather ───────────────────────────────────────────── */
-.weather-grid { display: flex; flex-direction: column; gap: 16px; }
+/* ── Weather station ───────────────────────────────────────────── */
 .weather-station { border-left: 3px solid var(--accent); padding-left: 12px; }
 .weather-header {
   font-weight: 600; font-size: 0.9rem; margin-bottom: 8px;
@@ -484,3 +483,190 @@ textarea#routeInput:focus { outline: none; border-color: var(--accent); }
   font-size: 0.85rem; color: var(--text-muted);
   margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;
 }
+
+/* ── Four-panel grid layout ───────────────────────────────── */
+.four-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.panel {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+
+.panel h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-departure h3 { color: #22c55e; }
+.panel-arrival h3 { color: #3b82f6; }
+.panel-routestr h3 { color: #f59e0b; }
+.panel-navigation h3 { color: #a855f7; }
+
+/* ── Route string box ──────────────────────────────────── */
+.route-string-box {
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  background: var(--bg);
+  padding: 10px;
+  border-radius: var(--radius);
+  word-break: break-all;
+  border: 1px solid var(--border);
+}
+
+.route-stats {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* ── Navigation table ───────────────────────────────────── */
+.nav-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.nav-table th {
+  background: var(--bg);
+  color: var(--text-muted);
+  padding: 5px 8px;
+  text-align: left;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-table td {
+  padding: 4px 8px;
+  border-top: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.nav-table tbody tr:hover { background: rgba(59,130,246,0.05); }
+
+/* ── Weather grid (two columns) ─────────────────────────── */
+.weather-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.weather-col h4 {
+  font-size: 0.85rem;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+/* ── Weather field display ──────────────────────────────── */
+.weather-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.weather-field {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.82rem;
+  padding: 2px 0;
+}
+
+.weather-field .label {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  min-width: 60px;
+}
+
+.weather-field .value {
+  color: var(--text);
+  text-align: right;
+}
+
+/* ── Weather badge (flight rules) ───────────────────────── */
+.wx-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.wx-badge.vfr { background: #22c55e; color: #000; }
+.wx-badge.mvfr { background: #3b82f6; color: #fff; }
+.wx-badge.ifr { background: #ef4444; color: #fff; }
+.wx-badge.lifr { background: #a855f7; color: #fff; }
+
+/* ── Filter info & no-data helpers ──────────────────────── */
+.filter-info {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.filter-info code {
+  background: var(--bg);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.8rem;
+  color: var(--accent);
+}
+
+.no-data {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 0.85rem;
+  padding: 8px 0;
+}
+
+.no-data.error { color: var(--error); }
+
+/* ── Raw METAR/TAF display ─────────────────────────────── */
+.weather-metar-raw {
+  font-family: 'Courier New', monospace;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  background: var(--bg);
+  padding: 8px;
+  border-radius: var(--radius);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 120px;
+  overflow-y: auto;
+  margin-top: 4px;
+}
+
+/* ── Result action buttons ─────────────────────────────── */
+.result-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.select-btn {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.select-btn:hover { background: var(--accent-hover); }

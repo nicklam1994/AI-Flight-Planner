@@ -235,6 +235,12 @@ def find_routes(
             node_path=clean_path,
         ))
 
+    # --- 7. Auto-match SID/STAR from .s3db ---
+    # When the user didn't explicitly specify a SID/STAR, try to match one
+    # from the .s3db using the route's first/last enroute waypoints.
+    _auto_match_sid_star(candidates, origin_icao, dest_icao, origin, dest,
+                          wp_map, prefer_sid, prefer_star)
+
     # Sort by total distance
     candidates.sort(key=lambda c: c.total_distance_nm)
 
@@ -243,6 +249,68 @@ def find_routes(
         c.index = i
 
     return candidates
+
+
+def _auto_match_sid_star(
+    candidates: list[RouteCandidate],
+    origin_icao: str,
+    dest_icao: str,
+    origin: Airport,
+    dest: Airport,
+    wp_map: dict[int, WaypointInfo],
+    prefer_sid: str | None,
+    prefer_star: str | None,
+) -> None:
+    """
+    Auto-detect SID/STAR procedures from .s3db and inject into route strings.
+
+    For each candidate, extracts the first enroute waypoint (SID exit) and
+    last enroute waypoint (STAR entry), queries the PMDG .s3db for matching
+    procedures, picks the first match, and rebuilds the route string with
+    those procedure names.
+
+    Only runs when prefer_sid/prefer_star are not already explicitly set.
+    Gracefully degrades (no-op) if the .s3db is unavailable.
+    """
+    # If both are already explicitly set, nothing to do
+    if prefer_sid and prefer_star:
+        return
+
+    # Only attempt auto-match for the top candidates (first 3)
+    # to avoid excessive .s3db queries
+    for candidate in candidates[:3]:
+        try:
+            from src.route.step3_filter import filter_for_route
+
+            result = filter_for_route(
+                route_string=candidate.route_string,
+                dep_icao=origin_icao,
+                arr_icao=dest_icao,
+            )
+
+            matched_sid = prefer_sid
+            matched_star = prefer_star
+
+            if not matched_sid and result.get("sids"):
+                matched_sid = result["sids"][0]["name"]
+            if not matched_star and result.get("stars"):
+                matched_star = result["stars"][0]["name"]
+
+            # Rebuild route string with matched procedures if any found
+            if matched_sid != prefer_sid or matched_star != prefer_star:
+                candidate.route_string = build_route_string(
+                    origin, dest, candidate.segments, wp_map,
+                    prefer_sid=matched_sid,
+                    prefer_star=matched_star,
+                )
+                logger.debug(
+                    f"Candidate {candidate.index}: auto-matched "
+                    f"SID={matched_sid}, STAR={matched_star}"
+                )
+        except Exception as e:
+            logger.debug(f"SID/STAR auto-match skipped for candidate "
+                         f"{candidate.index}: {e}")
+            continue  # Try next candidate — one failure doesn't mean all fail
 
 
 def build_route_string(
@@ -259,13 +327,18 @@ def build_route_string(
     Format: ICAO_ORIGIN SID_NAME? WP1 AWY1 WP2 AWY2 ... DCT STAR_NAME? ICAO_DEST
 
     Compresses consecutive segments on the same airway into
-    "START_WP AWY_NAME END_WP".
+    "START_WP AWY_NAME END_WP".  Deduplicates waypoints when the
+    end of one segment equals the start of the next — both for
+    airway→airway and DCT→airway transitions.
     """
-    parts = [origin.icao or origin.ident]
+    parts: list[str] = [origin.icao or origin.ident]
+    last_ident: str = parts[0]  # Track last waypoint/airport to dedup
+    dest_icao = dest.icao or dest.ident
 
     # If SID is specified, insert it after the origin airport
     if prefer_sid:
         parts.append(prefer_sid)
+        last_ident = prefer_sid
 
     # Compress consecutive same-airway segments
     i = 0
@@ -273,14 +346,50 @@ def build_route_string(
         seg = segments[i]
 
         if seg.segment_type in ("SID", "STAR"):
-            parts.append(seg.airway_name or seg.segment_type)
+            proc_name = seg.airway_name or seg.segment_type
+            if proc_name != last_ident:
+                parts.append(proc_name)
+                last_ident = proc_name
             i += 1
             continue
 
         if seg.segment_type == "DCT":
-            parts.append("DCT")
-            parts.append(seg.to_ident)
-            i += 1
+            # Skip DCT→airport — destination ICAO is always appended at the end
+            if seg.to_ident.upper() == dest_icao.upper():
+                i += 1
+                continue
+
+            # When SID is already in the route string, don't emit "DCT" for the
+            # airport→first-waypoint segment — the SID subsumes the departure leg.
+            # Still output the waypoint so it appears as the first enroute fix
+            # (the next airway block will dedup it if it starts at the same point).
+            if prefer_sid and seg.from_ident.upper() == (origin.icao or origin.ident).upper():
+                if seg.to_ident != last_ident:
+                    parts.append(seg.to_ident)
+                    last_ident = seg.to_ident
+                i += 1
+                continue
+
+            # Compress consecutive DCT segments: only output the final destination.
+            final_to = seg.to_ident
+            j = i + 1
+            while j < len(segments):
+                next_seg = segments[j]
+                if (
+                    next_seg.segment_type == "DCT"
+                    and next_seg.to_ident.upper() != dest_icao.upper()
+                ):
+                    final_to = next_seg.to_ident
+                    j += 1
+                else:
+                    break
+
+            # Only output DCT + waypoint if not already at this waypoint
+            if final_to != last_ident:
+                parts.append("DCT")
+                parts.append(final_to)
+                last_ident = final_to
+            i = j
             continue
 
         # Airway segment: group consecutive same-airway segments
@@ -297,16 +406,21 @@ def build_route_string(
             else:
                 break
 
-        parts.append(start_wp)
+        # Dedup: if start_wp == last_ident (from previous DCT or airway),
+        # skip it — only output airway_name + end_wp
+        if start_wp != last_ident:
+            parts.append(start_wp)
         parts.append(airway_name)
         parts.append(end_wp)
+        last_ident = end_wp
         i = j
 
     # Add STAR name before destination if specified
-    dest_icao = dest.icao or dest.ident
     if prefer_star:
-        parts.append(prefer_star)
-    if parts[-1] != dest_icao:
+        if last_ident != prefer_star:
+            parts.append(prefer_star)
+            last_ident = prefer_star
+    if last_ident != dest_icao:
         parts.append(dest_icao)
 
     return " ".join(parts)
