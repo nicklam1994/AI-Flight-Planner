@@ -359,10 +359,11 @@ class RunwayInfo(BaseModel):
 
 class ProcedureInfo(BaseModel):
     """A filtered SID or STAR procedure with fix waypoints."""
-    name: str                              # e.g., "BEKO1C"
-    runway: str | None = None              # transition_identifier, e.g., "RW07C"
-    fix_waypoints: list[str] = []          # waypoint idents in sequence
-    exit_fix: str | None = None            # last waypoint (SID exit) or first (STAR initial)
+    name: str
+    runway: str | None = None
+    transition: str | None = None            # named transition (AGRIS, ENPAR, etc.)
+    fix_waypoints: list[str] = []
+    exit_fix: str | None = None
 
 
 class AirportDetailResponse(BaseModel):

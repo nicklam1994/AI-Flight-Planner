@@ -279,56 +279,88 @@ def get_procedures(icao: str) -> dict:
 
 def get_sid_exit_fixes(icao: str) -> list[dict]:
     """
-    Get all unique SID exit fixes (last-leg waypoints) for an airport.
-
-    Returns a deduplicated list of dicts: {"fix": str, "sid": str, "runway": str}.
+    Get all SID exit fixes with proper runway+transition pairing.
+    e.g., SAKUR5: 2 runways (16R/34L) × 5 transitions (base/AGRIS/ENPAR/KIMIN/SZE) = 10 entries.
+    Returns list of {fix, sid, runway, transition}.
     """
     db = get_s3db()
     if db is None:
         return []
 
+    # Get all transitions for each procedure
     rows = db.execute(
         "SELECT DISTINCT procedure_identifier, transition_identifier "
-        "FROM tbl_sids "
-        "WHERE airport_identifier = ? "
-        f"AND route_type {SID_RT} "
-        "AND waypoint_identifier IS NOT NULL "
+        "FROM tbl_sids WHERE airport_identifier = ? "
+        f"AND route_type {SID_RT} AND waypoint_identifier IS NOT NULL "
         "ORDER BY procedure_identifier, transition_identifier",
         (icao.upper(),),
     ).fetchall()
 
-    fixes: dict[str, dict] = {}
-    for row in rows:
-        trans = row["transition_identifier"]
+    # Group by procedure
+    from collections import defaultdict
+    proc_trans = defaultdict(list)
+    for r in rows:
+        proc_trans[r["procedure_identifier"]].append(r["transition_identifier"])
+
+    # For each procedure, get last leg of each transition
+    def last_leg(proc, trans):
         if trans is None:
-            legs = db.execute(
+            lr = db.execute(
                 "SELECT waypoint_identifier FROM tbl_sids "
-                "WHERE airport_identifier = ? "
-                "AND procedure_identifier = ? "
+                "WHERE airport_identifier=? AND procedure_identifier=? "
                 "AND transition_identifier IS NULL "
-                f"AND route_type {SID_RT} "
-                "AND waypoint_identifier IS NOT NULL "
+                f"AND route_type {SID_RT} AND waypoint_identifier IS NOT NULL "
                 "ORDER BY seqno DESC LIMIT 1",
-                (icao.upper(), row["procedure_identifier"]),
+                (icao.upper(), proc),
             ).fetchone()
         else:
-            legs = db.execute(
+            lr = db.execute(
                 "SELECT waypoint_identifier FROM tbl_sids "
-                "WHERE airport_identifier = ? "
-                "AND procedure_identifier = ? "
-                "AND transition_identifier = ? "
-                f"AND route_type {SID_RT} "
-                "AND waypoint_identifier IS NOT NULL "
+                "WHERE airport_identifier=? AND procedure_identifier=? "
+                "AND transition_identifier=? "
+                f"AND route_type {SID_RT} AND waypoint_identifier IS NOT NULL "
                 "ORDER BY seqno DESC LIMIT 1",
-                (icao.upper(), row["procedure_identifier"], trans),
+                (icao.upper(), proc, trans),
             ).fetchone()
-        if legs and legs["waypoint_identifier"]:
-            fix = legs["waypoint_identifier"]
-            if fix not in fixes:
-                fixes[fix] = {"fix": fix, "sid": row["procedure_identifier"], "runway": row["transition_identifier"]}
+        return lr["waypoint_identifier"] if lr else None
+
+    fixes = {}  # key: (fix, runway, transition)
+    for proc, trans_list in proc_trans.items():
+        # Separate runway transitions from named transitions
+        runways = []      # (trans, exit_fix) for RW* or NULL
+        named = []        # (trans, exit_fix) for named transitions
+
+        for trans in trans_list:
+            exit_fix = last_leg(proc, trans)
+            if not exit_fix:
+                continue
+            if trans is None or (trans or "").upper().startswith("RW"):
+                rwy = (trans or "").replace("RW", "")
+                runways.append((rwy or "", exit_fix, trans))
+            else:
+                named.append((trans, exit_fix))
+
+        # If no runways found but there are named transitions, check for NULL/base
+        # Pair each runway with each named transition
+        for rwy, rwy_fix, rwy_trans in runways:
+            # Base case: runway only, no named transition
+            key = (rwy_fix.upper(), rwy, "")
+            if key not in fixes:
+                fixes[key] = {"fix": rwy_fix, "sid": proc, "runway": rwy, "transition": ""}
+            # Paired: runway + named transition
+            for ntrans, nfix in named:
+                key = (nfix.upper(), rwy, ntrans)
+                if key not in fixes:
+                    fixes[key] = {"fix": nfix, "sid": proc, "runway": rwy, "transition": ntrans}
+
+        # Also add standalone named transitions (without runway) for airports that work that way
+        if not runways:
+            for ntrans, nfix in named:
+                key = (nfix.upper(), "", ntrans)
+                if key not in fixes:
+                    fixes[key] = {"fix": nfix, "sid": proc, "runway": "", "transition": ntrans}
 
     return list(fixes.values())
-
 
 def get_star_initial_fixes(icao: str) -> list[dict]:
     """

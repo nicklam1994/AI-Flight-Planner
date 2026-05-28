@@ -658,15 +658,35 @@ async def get_airport_detail(icao: str, fix: str | None = None):
                 key = (r["procedure_identifier"], r["transition_identifier"] or "")
                 sid_groups.setdefault(key, []).append(r["waypoint_identifier"])
 
-            sids = [
-                ProcedureInfo(
-                    name=proc,
-                    runway=trans or None,
-                    fix_waypoints=wps,
-                    exit_fix=wps[-1] if wps else None,
-                )
-                for (proc, trans), wps in sid_groups.items()
-            ]
+            # Pair runway transitions with named transitions
+            sid_paired = []
+            from collections import defaultdict
+            proc_data = defaultdict(lambda: {"runways": [], "named": {}})
+            for (proc, trans), wps in sid_groups.items():
+                if trans and trans.upper().startswith("RW"):
+                    rwy = trans.replace("RW", "")
+                    proc_data[proc]["runways"].append((rwy, wps))
+                elif trans:
+                    proc_data[proc]["named"][trans] = wps
+                else:
+                    proc_data[proc]["runways"].append(("", wps))
+            for proc, data in proc_data.items():
+                for rwy, rwy_wps in data["runways"]:
+                    rwy_fix = rwy_wps[-1] if rwy_wps else None
+                    # Base case: no transition
+                    sid_paired.append(ProcedureInfo(name=proc, runway=rwy or None, transition=None,
+                        fix_waypoints=rwy_wps, exit_fix=rwy_fix))
+                    # Paired: runway + named transition
+                    for ntrans, nwps in data["named"].items():
+                        nfix = nwps[-1] if nwps else None
+                        sid_paired.append(ProcedureInfo(name=proc, runway=rwy or None, transition=ntrans,
+                            fix_waypoints=rwy_wps + nwps, exit_fix=nfix))
+                if not data["runways"] and data["named"]:
+                    for ntrans, nwps in data["named"].items():
+                        nfix = nwps[-1] if nwps else None
+                        sid_paired.append(ProcedureInfo(name=proc, runway=None, transition=ntrans,
+                            fix_waypoints=nwps, exit_fix=nfix))
+            sids = sid_paired
 
             # Query STARs: all legs for procedures where any leg matches the fix
             star_rows = s3db.execute(

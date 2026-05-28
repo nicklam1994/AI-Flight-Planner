@@ -639,7 +639,7 @@
       html += '<div class="airport-section"><div class="airport-section-title">' + procTitle + '</div>';
       html += '<table class="data-table"><thead><tr><th>\u7A0B\u5E8F</th><th>\u4F7F\u7528\u8DD1\u9053</th><th>' + fixCol + '</th></tr></thead><tbody>';
       procs.forEach(function(p) {
-        var rwy = (p.runway || '').replace(/^RW/i, '');
+        var rwy = p.runway || '';
         if (rwy) refRunways[rwy.toUpperCase()] = true;
         var fix = isDeparture ? (p.exit_fix || '\u2014') : ((p.fix_waypoints && p.fix_waypoints[0]) || '\u2014'); var transRaw = p.runway || ''; var trans = transRaw && !/^RW/i.test(transRaw) ? transRaw : '\u2014';
         if (isDeparture) { html += '<tr><td>' + escapeHtml(p.name) + '</td><td>' + escapeHtml(rwy || '\u2014') + '</td><td>' + escapeHtml(trans) + '</td><td>' + escapeHtml(fix) + '</td></tr>'; } else { html += '<tr><td>' + escapeHtml(p.name) + '</td><td>' + escapeHtml(rwy || '\u2014') + '</td><td>' + escapeHtml(fix) + '</td></tr>'; }
