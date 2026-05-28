@@ -231,7 +231,7 @@
       '\u25CB \u5019\u9078\u7DDA\u8DEF2',      // ○ 候選線路2
     ];
 
-    $candidatesContent.innerHTML = result.candidates.map((c, i) => {
+    $candidatesContent.innerHTML = result.candidates.slice(0, 3).map((c, i) => {
       const label = labels[i] || `\u25CB \u5019\u9078\u7DDA\u8DEF${i + 1}`;
       const isBest = i === 0 || (c.index === (result.candidate_index ?? result.candidates[0]?.index ?? 0));
 
