@@ -18,9 +18,9 @@ const I18N = (() => {
       'en': 'AI Flight Planner'
     },
     'title-brand': {
-      'zh-CN': 'AI 飞行计划',
-      'zh-TW': 'AI 飛行計劃',
-      'en': 'AI Flight Planner'
+      'zh-CN': 'AI 飞行计划助手',
+      'zh-TW': 'AI 飛行計劃助手',
+      'en': 'AI FLIGHT PLANNER'
     },
     'header-airac': {
       'zh-CN': 'AIRAC:',
