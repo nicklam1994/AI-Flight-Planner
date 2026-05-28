@@ -662,7 +662,7 @@ async def get_airport_detail(icao: str, fix: str | None = None):
             # Pair runway transitions with named transitions
             sid_paired = []
             from collections import defaultdict
-            proc_data = defaultdict(lambda: {"runways": [], "named": {}})
+            proc_data = defaultdict(lambda: {"runways": [], "named": {}, "base_wps": None, "base_fix": None})
             for (proc, trans), wps in sid_groups.items():
                 if trans and trans.upper().startswith("RW"):
                     rwy = trans.replace("RW", "")
@@ -670,23 +670,34 @@ async def get_airport_detail(icao: str, fix: str | None = None):
                 elif trans:
                     proc_data[proc]["named"][trans] = wps
                 else:
-                    proc_data[proc]["runways"].append(("", wps))
+                    # NULL transition = base procedure
+                    proc_data[proc]["base_wps"] = wps
+                    proc_data[proc]["base_fix"] = wps[-1] if wps else None
             for proc, data in proc_data.items():
+                base_fix = data["base_fix"]
+                base_wps = data["base_wps"] or []
+                # For each runway, create entries using base fix + base waypoints
                 for rwy, rwy_wps in data["runways"]:
-                    rwy_fix = rwy_wps[-1] if rwy_wps else None
-                    # Base case: no transition
+                    rwy_fix = base_fix or (rwy_wps[-1] if rwy_wps else None)
+                    combined_wps = base_wps if base_wps else rwy_wps
+                    # Base case: runway only
                     sid_paired.append(ProcedureInfo(name=proc, runway=rwy or None, transition=None,
-                        fix_waypoints=rwy_wps, exit_fix=rwy_fix))
+                        fix_waypoints=combined_wps, exit_fix=rwy_fix))
                     # Paired: runway + named transition
                     for ntrans, nwps in data["named"].items():
                         nfix = nwps[-1] if nwps else None
                         sid_paired.append(ProcedureInfo(name=proc, runway=rwy or None, transition=ntrans,
-                            fix_waypoints=rwy_wps + nwps, exit_fix=nfix))
+                            fix_waypoints=combined_wps + nwps, exit_fix=nfix))
+                # If no runways but has named transitions
                 if not data["runways"] and data["named"]:
                     for ntrans, nwps in data["named"].items():
                         nfix = nwps[-1] if nwps else None
                         sid_paired.append(ProcedureInfo(name=proc, runway=None, transition=ntrans,
-                            fix_waypoints=nwps, exit_fix=nfix))
+                            fix_waypoints=base_wps + nwps, exit_fix=nfix))
+                # If no runways and no named, just the base
+                if not data["runways"] and not data["named"] and base_fix:
+                    sid_paired.append(ProcedureInfo(name=proc, runway=None, transition=None,
+                        fix_waypoints=base_wps, exit_fix=base_fix))
             sids = sid_paired
 
             # Query STARs: all legs for procedures where any leg matches the fix
