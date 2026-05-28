@@ -19,6 +19,7 @@ class PlanRequest(BaseModel):
     k: int = Field(default=5, ge=1, le=20, description="Number of candidate routes")
     llm_config: LLMConfigSchema | None = None
     cycle: str | None = Field(default=None, description="AIRAC cycle (e.g., '2604')")
+    use_evaluator: bool = Field(default=True, description="Whether to use AI route evaluator")
 
 
 class ParsedIntentResponse(BaseModel):

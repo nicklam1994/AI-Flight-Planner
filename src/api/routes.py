@@ -201,7 +201,7 @@ async def plan_route(request: PlanRequest):
 
     # --- Step 3: Evaluate routes with LLM (if enabled) ---
     user_prefs = _build_user_prefs(intent)
-    eval_enabled = getattr(request, 'use_evaluator', True)
+    eval_enabled = request.use_evaluator
     if eval_enabled:
         try:
             best_idx, rankings = await evaluate_routes(
