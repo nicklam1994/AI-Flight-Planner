@@ -664,7 +664,7 @@
     if (displayRunways.length > 0) {
       html += '<div class="airport-section"><div class="airport-section-title">\u8DD1\u9053\u4FE1\u606F</div>';
       html += '<table class="data-table"><thead><tr>';
-      html += '<th>\u8DD1\u9053</th><th>\u9577\u5EA6(ft)</th><th>\u5BEC\u5EA6(ft)</th><th>\u9AD8\u5EA6(ft)</th><th>\u822A\u5411(\u00B0)</th><th>GP\u4E0B\u6ED1(\u00B0)</th><th>ILS\u983B\u7387</th><th>\u6A19\u8B58</th><th>CAT</th><th>DME</th><th>\u904E\u6E21\u9AD8\u5EA6(ft)</th><th title=\"ILS CAT II/III + \u6700\u9577\u2014\u512A\u5148\u7CBE\u78BA\u9032\u5834\">\u63A8\u85A6</th>';
+      html += '<th>\u8DD1\u9053</th><th>\u9577\u5EA6(ft)</th><th>\u5BEC\u5EA6(ft)</th><th>\u9AD8\u5EA6(ft)</th><th>\u822A\u5411(\u00B0)</th><th>GP\u4E0B\u6ED1(\u00B0)</th><th>ILS\u983B\u7387(MHz)</th><th>\u6A19\u8B58</th><th>CAT</th><th>DME</th><th>\u904E\u6E21\u9AD8\u5EA6(ft)</th><th title=\"ILS CAT II/III + \u6700\u9577\u2014\u512A\u5148\u7CBE\u78BA\u9032\u5834\">\u63A8\u85A6</th>';
       html += '</tr></thead><tbody>';
       displayRunways.forEach(function(r) {
         var isRec = r.ils_cat && (r.ils_cat.indexOf('II') >= 0 || r.ils_cat.indexOf('III') >= 0) && r.length_ft === maxLen && maxLen > 0;
