@@ -328,12 +328,12 @@
     if (arrData?.airport?.name) state._arrAirportName = arrData.airport.name;
 
     // Update route description with real airport names
-    const descText = document.querySelector('.route-desc-text');
-    if (descText) {
+    const descTable = document.querySelector('.route-desc-text .data-table:first-child');
+    if (descTable) {
       const dn = state._depAirportName || dep;
       const an = state._arrAirportName || arr;
-      descText.querySelector('p:first-child').textContent =
-        `出發地 ${dep}（${dn}），目的地 ${arr}（${an}）`;
+      const td = descTable.querySelectorAll('td')[1];
+      if (td) td.textContent = `出發地 ${dep}（${dn}），目的地 ${arr}（${an}）`;
     }
     const wpData = wpResult.status === 'fulfilled' ? wpResult.value : null;
     const wxData = wxResult.status === 'fulfilled' ? wxResult.value : null;
@@ -395,8 +395,10 @@
           <span class="route-string-text" onclick="event.stopPropagation();navigator.clipboard.writeText(this.textContent.trim());this.parentElement.classList.add('copied');setTimeout(()=>this.parentElement.classList.remove('copied'),1500)">${escapeHtml(candidate.route_string)}</span>
         </div>
         <div class="route-desc-text">
-          <p>出發地 ${escapeHtml(dep)}（${escapeHtml(depName)}），目的地 ${escapeHtml(arr)}（${escapeHtml(arrName)}）</p>
-          <p>全程數據：全程共 ${n} 個導航點，直飛航向 <span id="${bearingId}">—</span>°，航路里程 ${distance} 海里。</p>
+          <table class="data-table">
+            <tr><td class="intent-label">線路描述</td><td class="intent-value">出發地 ${escapeHtml(dep)}（${escapeHtml(depName)}），目的地 ${escapeHtml(arr)}（${escapeHtml(arrName)}）</td></tr>
+            <tr><td class="intent-label">全程數據</td><td class="intent-value">全程共 ${n} 個導航點，直飛航向 <span id="${bearingId}">—</span>°，航路里程 ${distance} 海里</td></tr>
+          </table>
           <table class="data-table" style="margin-top:6px">
             <tr><td class="intent-label">中國 RVSM</td><td class="intent-value">9200米(FL301)、9800米(FL321)、10400米(FL341) 或以上</td></tr>
             <tr><td class="intent-label">國際 RVSM</td><td class="intent-value">FL290、FL310、FL330 或以上</td></tr>
