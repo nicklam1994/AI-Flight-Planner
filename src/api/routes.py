@@ -176,6 +176,25 @@ async def plan_route(request: PlanRequest):
                     avoid_ids.append(wp_id)
                     break
 
+    # Resolve avoid_airspaces to bounding boxes and filter waypoints
+    if intent.avoid_airspaces:
+        try:
+            db = get_db()
+            for airspace_name in intent.avoid_airspaces:
+                bounds = db.execute(
+                    "SELECT min_lonx, max_lonx, min_laty, max_laty FROM boundary "
+                    "WHERE name LIKE ? LIMIT 1",
+                    (f"%{airspace_name}%",),
+                ).fetchone()
+                if bounds:
+                    logger.info(f"Avoiding airspace '{airspace_name}': lon {bounds[0]:.1f}~{bounds[1]:.1f}, lat {bounds[2]:.1f}~{bounds[3]:.1f}")
+                    for wp_id, wp_info in list(waypoint_map.items()):
+                        if (bounds[0] <= wp_info.lon <= bounds[1] and
+                            bounds[2] <= wp_info.lat <= bounds[3]):
+                            avoid_ids.append(wp_id)
+        except Exception as e:
+            logger.warning(f"Airspace avoidance lookup failed: {e}")
+
     try:
         candidates = find_routes(
             intent.origin,
