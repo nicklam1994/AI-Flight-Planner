@@ -180,12 +180,31 @@ async def plan_route(request: PlanRequest):
     if intent.avoid_airspaces:
         try:
             db = get_db()
+            # Chinese→English airspace name mapping
+            airspace_map = {
+                '台灣': 'TAIPEI', '台湾': 'TAIPEI',
+                '香港': 'HONG KONG', '東京': 'TOKYO', '东京': 'TOKYO',
+                '上海': 'SHANGHAI', '北京': 'BEIJING',
+                '韓國': 'INCHEON', '韩国': 'INCHEON',
+                '馬尼拉': 'MANILA', '马尼拉': 'MANILA',
+            }
             for airspace_name in intent.avoid_airspaces:
+                # Try direct match first
                 bounds = db.execute(
                     "SELECT min_lonx, max_lonx, min_laty, max_laty FROM boundary "
                     "WHERE name LIKE ? LIMIT 1",
                     (f"%{airspace_name}%",),
                 ).fetchone()
+                # Try Chinese→English mapping
+                if not bounds:
+                    for cn_key, en_val in airspace_map.items():
+                        if cn_key in airspace_name:
+                            bounds = db.execute(
+                                "SELECT min_lonx, max_lonx, min_laty, max_laty FROM boundary "
+                                "WHERE name LIKE ? AND type='FIR' LIMIT 1",
+                                (f"%{en_val}%",),
+                            ).fetchone()
+                            if bounds: break
                 if bounds:
                     logger.info(f"Avoiding airspace '{airspace_name}': lon {bounds[0]:.1f}~{bounds[1]:.1f}, lat {bounds[2]:.1f}~{bounds[3]:.1f}")
                     for wp_id, wp_info in list(waypoint_map.items()):
