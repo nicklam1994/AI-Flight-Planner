@@ -761,15 +761,43 @@ async def get_airport_detail(icao: str, fix: str | None = None):
                 key = (r["procedure_identifier"], r["transition_identifier"] or "")
                 star_groups.setdefault(key, []).append(r["waypoint_identifier"])
 
-            stars = [
-                ProcedureInfo(
-                    name=proc,
-                    runway=trans or None,
-                    fix_waypoints=wps,
-                    exit_fix=wps[0] if wps else None,
-                )
-                for (proc, trans), wps in star_groups.items()
-            ]
+            # Pair base procedures with runway transitions (similar to SID logic)
+            from collections import defaultdict
+            star_proc_data = defaultdict(lambda: {"base_wps": [], "runways": {}})
+            for (proc, trans), wps in star_groups.items():
+                if trans and trans.upper().startswith("RW"):
+                    rwy = trans.replace("RW", "")  # Remove "RW" prefix to match SID format
+                    star_proc_data[proc]["runways"][rwy] = wps
+                elif not trans:
+                    star_proc_data[proc]["base_wps"] = wps
+
+            stars = []
+            for proc, data in star_proc_data.items():
+                base_wps = data["base_wps"]
+                rwy_transitions = data["runways"]
+                
+                if rwy_transitions:
+                    # Pair base with each runway transition
+                    for rwy, rwy_wps in rwy_transitions.items():
+                        # Combine base waypoints with runway waypoints (avoiding duplicates)
+                        combined_wps = base_wps[:]
+                        for wp in rwy_wps:
+                            if wp not in combined_wps:
+                                combined_wps.append(wp)
+                        stars.append(ProcedureInfo(
+                            name=proc,
+                            runway=rwy,
+                            fix_waypoints=combined_wps,
+                            exit_fix=combined_wps[0] if combined_wps else None,
+                        ))
+                else:
+                    # No runway transitions, just base procedure
+                    stars.append(ProcedureInfo(
+                        name=proc,
+                        runway=None,
+                        fix_waypoints=base_wps,
+                        exit_fix=base_wps[0] if base_wps else None,
+                    ))
 
     # Link approach procedures to STARs
     if stars and fix:

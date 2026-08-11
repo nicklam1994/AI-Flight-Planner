@@ -1,0 +1,18 @@
+INFO:     Will watch for changes in these directories: ['/home/nicklam-ai/repos/ai-flight-planner']
+INFO:     Uvicorn running on http://127.0.0.1:8080 (Press CTRL+C to quit)
+INFO:     Started reloader process [798389] using WatchFiles
+INFO:     Started server process [798396]
+INFO:     Waiting for application startup.
+2026-08-11 18:15:03,627 [INFO] src.api.app: Loading airway graph at startup...
+2026-08-11 18:15:03,627 [INFO] src.api.app: Using database: /home/nicklam-ai/repos/ai-flight-planner/data/cycles/2605/little_navmap_navigraph.sqlite
+2026-08-11 18:15:03,627 [INFO] src.db.connection: Opening database: /home/nicklam-ai/repos/ai-flight-planner/data/cycles/2605/little_navmap_navigraph.sqlite
+2026-08-11 18:15:03,628 [INFO] src.db.connection: LNM database connection established (200MB cache, 300MB mmap)
+2026-08-11 18:15:03,628 [INFO] src.db.connection: Opening PMDG database: /home/nicklam-ai/repos/ai-flight-planner/data/cycles/2605/e_dfd_PMDG.s3db
+2026-08-11 18:15:03,628 [INFO] src.db.connection: PMDG database connection established
+2026-08-11 18:15:03,628 [INFO] src.db.graph_builder: Loading waypoint lookup table...
+2026-08-11 18:15:04,100 [INFO] src.db.graph_builder: Loading airway segments (type=all)...
+2026-08-11 18:15:04,268 [INFO] src.db.graph_builder: Loaded 90889 airway segments
+2026-08-11 18:15:04,269 [INFO] watchfiles.main: 1 change detected
+2026-08-11 18:15:04,856 [INFO] src.db.graph_builder: Graph built: 47214 nodes, 140129 edges (167282 directional segments processed)
+2026-08-11 18:15:04,873 [INFO] src.api.app: Airway graph loaded: 47214 nodes, 140129 edges (cycle=default)
+INFO:     Application startup complete.

@@ -641,7 +641,19 @@
     }
 
     // Procedures (already filtered by fix from backend)
-    var allProcs = isDeparture ? (data.sids || []) : (data.stars || []); var procs = fix ? allProcs.filter(function(p) { return p.exit_fix && p.exit_fix.toUpperCase() === fix.toUpperCase(); }) : allProcs;
+    var allProcs = isDeparture ? (data.sids || []) : (data.stars || []);
+    // For SID: filter by exit_fix matching dep_fix
+    // For STAR: backend already filtered, show all (or filter by fix_waypoints containing arr_fix)
+    var procs = allProcs;
+    if (fix && isDeparture) {
+      procs = allProcs.filter(function(p) { return p.exit_fix && p.exit_fix.toUpperCase() === fix.toUpperCase(); });
+    } else if (fix && !isDeparture) {
+      // For STAR, check if fix_waypoints contains the arr_fix
+      procs = allProcs.filter(function(p) {
+        if (!p.fix_waypoints) return false;
+        return p.fix_waypoints.some(function(wp) { return wp.toUpperCase() === fix.toUpperCase(); });
+      });
+    }
     var procTitle = isDeparture ? '\u96E2\u5834\u7A0B\u5E8F (SID)' : '\u9032\u5834\u7A0B\u5E8F (STAR)';
     var fixCol = isDeparture ? '\u96E2\u5834\u9EDE' : '\u9032\u5834\u9EDE';
     var refRunways = {};
@@ -651,9 +663,18 @@
       html += '<table class="data-table"><thead><tr>' + (isDeparture ? '<th>\u96E2\u5834\u7A0B\u5E8F</th><th>\u4F7F\u7528\u8DD1\u9053</th><th>\u904E\u6E21</th><th>\u96E2\u5834\u9EDE</th>' : '<th>\u9032\u5834\u7A0B\u5E8F</th><th>\u9032\u8FD1\u7A0B\u5E8F</th><th>\u904E\u6E21</th><th>\u4F7F\u7528\u8DD1\u9053</th><th>\u9032\u5834\u9EDE</th>') + '</tr></thead><tbody>';
       var lastProcName = null; procs.forEach(function(p) {
         var rwy = p.runway || '';
-        if (rwy) refRunways[rwy.toUpperCase()] = true; if (!isDeparture && p.approaches) { p.approaches.forEach(function(a){ if (a.runway) refRunways[a.runway.toUpperCase()] = true; }); }
+        // Handle runway suffix B (Both) - expand to L and R
+        if (rwy) {
+          if (rwy.endsWith('B')) {
+            refRunways[rwy.replace('B', 'L').toUpperCase()] = true;
+            refRunways[rwy.replace('B', 'R').toUpperCase()] = true;
+          } else {
+            refRunways[rwy.toUpperCase()] = true;
+          }
+        }
+        if (!isDeparture && p.approaches) { p.approaches.forEach(function(a){ if (a.runway) refRunways[a.runway.toUpperCase()] = true; }); }
         var fix = isDeparture ? (p.exit_fix || '\u2014') : ((p.fix_waypoints && p.fix_waypoints[0]) || '\u2014'); var trans = (p.transition || '\u2014');
-        if (isDeparture) { var showName = (lastProcName !== p.name) ? escapeHtml(p.name) : '\u221F'; lastProcName = p.name; html += '<tr><td>' + showName + '</td><td>' + escapeHtml(rwy || '\u2014') + '</td><td>' + escapeHtml(trans) + '</td><td>' + escapeHtml(fix) + '</td></tr>'; } else { var apps = p.approaches || []; if (apps.length > 0) { apps.forEach(function(a,ai){ if (ai===0) html += '<tr><td>' + escapeHtml(p.name) + '</td>'; else html += '<tr><td>∟</td>'; var aname = a.name; html += '<td>' + escapeHtml(aname) + '</td><td>' + escapeHtml(a.transition || '\u2014') + '</td><td>' + escapeHtml(a.runway || '\u2014') + '</td><td>' + escapeHtml(fix) + '</td></tr>'; }); } /* no approaches - skip this STAR */  }
+        if (isDeparture) { var showName = (lastProcName !== p.name) ? escapeHtml(p.name) : '∟'; lastProcName = p.name; html += '<tr><td>' + showName + '</td><td>' + escapeHtml(rwy || '—') + '</td><td>' + escapeHtml(trans) + '</td><td>' + escapeHtml(fix) + '</td></tr>'; } else { var apps = p.approaches || []; if (apps.length > 0) { apps.forEach(function(a,ai){ if (ai===0) html += '<tr><td>' + escapeHtml(p.name) + '</td>'; else html += '<tr><td>∟</td>'; var aname = a.name; html += '<td>' + escapeHtml(aname) + '</td><td>' + escapeHtml(a.transition || '—') + '</td><td>' + escapeHtml(a.runway || '—') + '</td><td>' + escapeHtml(fix) + '</td></tr>'; }); } else { html += '<tr><td>' + escapeHtml(p.name) + '</td><td>—</td><td>' + escapeHtml(trans) + '</td><td>' + escapeHtml(rwy || '—') + '</td><td>' + escapeHtml(fix) + '</td></tr>'; } }
       });
       html += '</tbody></table></div>';
     }
@@ -966,209 +987,210 @@
   function renderWeatherContent(icao, wx) {
     var ap = wx.airport || {};
     var apName = ap.name || icao || '';
+    var lat = ap.latitude != null ? ap.latitude.toFixed(3) : '—';
+    var lon = ap.longitude != null ? ap.longitude.toFixed(3) : '—';
+    var elev = ap.elevation_ft != null ? ap.elevation_ft + ' M' : '—';
     var h = '';
 
+    // ── Airport header ──
+    h += '<div class="weather-header">' + escapeHtml(icao) + ' — ' + escapeHtml(apName) + '</div>';
+
+    // ── METAR ──
     if (wx.metar) {
       var m = wx.metar;
-      h += '<div class="weather-section"><div class="weather-section-title">\uD83D\uDCE1 METAR \u5929\u6C23\u5831\u544A</div>';
-      h += '<pre class="weather-raw">' + escapeHtml(stripMetarPrefix(m.raw || wx.metar_raw || '')) + '</pre>';
-      h += '<div class="weather-section-title">\uD83D\uDCCB METAR \u5831\u6587\u89E3\u6790</div>';
-      h += '<table class="data-table"><tbody>';
+      var rawMetar = stripMetarPrefix(m.raw || wx.metar_raw || '');
+      h += '<div class="weather-section">';
+      h += '<div class="weather-section-title">📡 METAR 天气报告</div>';
+      h += '<pre class="weather-raw">' + escapeHtml(rawMetar) + '</pre>';
+      h += '<div class="weather-section-title">📋 METAR 报文解析</div>';
+      h += '<div class="weather-grid">';
 
-      // Airport code + Update time
-      h += '<tr><td class="intent-label">\u6A5F\u5834\u4EE3\u78BC</td><td class="intent-value">' + escapeHtml(icao) + ' (' + escapeHtml(apName) + ')</td>';
-      h += '<td class="intent-label">\u66F4\u65B0\u6642\u9593</td><td class="intent-value">' + (wx.updated_iso || '\u2014') + '</td></tr>';
+      // Row 1: 机场代码 + 海拔
+      h += '<div class="wx-item"><span class="wx-label">机场代码</span>' + escapeHtml(icao) + ' ( 经纬度: ' + lat + ' / ' + lon + ' )</div>';
+      h += '<div class="wx-item"><span class="wx-label">海拔高度</span>' + elev + '</div>';
 
-      // Wind
+      // Row 2: 修正海压 + 温度/露点
+      var pressStr = m.pressure_hpa != null ? m.pressure_hpa + ' hPa' : '—';
+      var tempStr = (m.temp_c != null ? m.temp_c + ' °C' : '—');
+      var dewStr = (m.dewpt_c != null ? m.dewpt_c + ' °C' : '—');
+      h += '<div class="wx-item"><span class="wx-label">修正海压</span>' + pressStr + '</div>';
+      h += '<div class="wx-item"><span class="wx-label">机场温度</span>' + tempStr + ' / <span class="wx-label">露点</span>' + dewStr + '</div>';
+
+      // Row 3: 飞行规则 + 能见度
+      var flightRule = m.flight_rule || '—';
+      var visStr = m.visibility_str || (m.visibility_m != null ? (m.visibility_m >= 10000 ? '🔭 能见度良好' : '🔭 ' + m.visibility_m + 'm') : '—');
+      h += '<div class="wx-item"><span class="wx-label">飞行规则</span>' + escapeHtml(flightRule) + '</div>';
+      h += '<div class="wx-item"><span class="wx-label">能见度</span>' + visStr + '</div>';
+
+      // Row 4: 风速风向 + 更新时间
       var wind = m.wind || {};
-      var windStr = '\u2014';
+      var windStr = '—';
       if (wind.dir_cn && wind.dir != null) {
-        windStr = '(' + (wind.arrow||'') + ' ' + wind.dir_cn + ') ' + wind.dir + '\u00B0 @ ' + (wind.speed_kts||'?') + ' KT';
-        if (wind.gust_kts) windStr += ' Gust ' + wind.gust_kts + 'kt';
+        windStr = (wind.arrow || '') + ' ' + wind.dir_cn + ' @ ' + (wind.speed_kts || '?') + ' 节';
+        if (wind.gust_kts) windStr += ' (阵风 ' + wind.gust_kts + ' 节)';
       } else if (m.wind_text) { windStr = m.wind_text; }
       var rawText = m.raw || '';
       var varMatch = rawText.match(/(\d{3})V(\d{3})/);
-      if (varMatch) windStr += '<br>\u98A8\u5411\u5728 ' + varMatch[1] + '\u00B0 \u5230 ' + varMatch[2] + '\u00B0 \u4E4B\u9593\u6CE2\u52D5';
-      // Visibility
-      var visStr = m.visibility_str || (m.visibility_m!=null?(m.visibility_m>=10000?'\uD83D\uDD2D \u80FD\u898B\u5EA6\u826F\u597D':m.visibility_m+'m'):'\u2014');
-      h += '<tr><td class="intent-label">\u98A8\u901F\u98A8\u5411</td><td class="intent-value">' + windStr + '</td>';
-      h += '<td class="intent-label">\u80FD\u898B\u5EA6</td><td class="intent-value">' + visStr + '</td></tr>';
+      if (varMatch) windStr += ' (风向在 ' + varMatch[1] + '° 到 ' + varMatch[2] + '° 之间波动)';
+      h += '<div class="wx-item"><span class="wx-label">风速风向</span>' + windStr + '</div>';
+      h += '<div class="wx-item"><span class="wx-label">更新时间</span>' + (wx.updated_iso || '—') + '</div>';
 
-      // Clouds + Temp/Dew
-      var cloudStr = '\u2014';
+      // Row 5: 天气现象 (if any)
+      if (m.weather && m.weather.length > 0) {
+        var wxParts = [];
+        m.weather.forEach(function(w) {
+          var icon = w.intensity === 'light' ? '🌦️ ' : (w.intensity === 'heavy' ? '🌧️ ' : '');
+          wxParts.push(icon + (w.description_cn || w.code || ''));
+        });
+        if (wxParts.length > 0) {
+          h += '<div class="wx-item wx-full"><span class="wx-label">天气现象</span>' + wxParts.join(' ') + '</div>';
+        }
+      }
+
+      // Row 6: 云层
+      var cloudStr = '—';
       if (m.clouds && m.clouds.length > 0) {
-        cloudStr = '';
-        m.clouds.forEach(function(c) { cloudStr += (c.emoji||'')+' '+(c.cover_cn||c.cover)+', \u4E91\u5E95\u9AD8\u5EA6 '+c.height_ft+' FT '; });
+        cloudStr = m.clouds.map(function(c) {
+          return (c.emoji || '') + ' ' + (c.cover_cn || c.cover) + ' ' + c.height_ft + '英尺';
+        }).join(' ');
       }
-      var tempStr = (m.temp_c!=null?m.temp_c+' \u00B0C':'\u2014')+' / '+(m.dewpt_c!=null?m.dewpt_c+' \u00B0C':'\u2014');
-      h += '<tr><td class="intent-label">\u96F2\u5C64\u72C0\u6CC1</td><td class="intent-value">' + cloudStr + '</td>';
-      h += '<td class="intent-label">\u6EAB\u5EA6/\u9732\u9EDE</td><td class="intent-value">' + tempStr + '</td></tr>';
+      h += '<div class="wx-item wx-full"><span class="wx-label">云层</span>' + cloudStr + '</div>';
 
-      // Pressure + Local time
-      var localTime = '';
-      if (wx.updated_iso) {
-        try {
-          var utc = new Date(wx.updated_iso);
-          var tz = currentTimezone || 'UTC+8';
-          var off = parseInt(tz.replace(/[^0-9+-]/g,'')) || 8;
-          var local = new Date(utc.getTime() + off * 3600000);
-          localTime = local.getFullYear()+'-'+String(local.getMonth()+1).padStart(2,'0')+'-'+String(local.getDate()).padStart(2,'0')+' '+String(local.getHours()).padStart(2,'0')+':'+String(local.getMinutes()).padStart(2,'0')+' '+tz;
-        } catch(e) {}
-      }
-      h += '<tr><td class="intent-label">\u4FEE\u6B63\u6D77\u58D3</td><td class="intent-value">' + (m.pressure_hpa!=null?m.pressure_hpa+' hPa':'\u2014') + '</td>';
-      h += '<td class="intent-label">\u7576\u5730\u6642\u9593</td><td class="intent-value">' + (localTime || '\u2014') + '</td></tr>';
-
-      h += '</tbody></table>';
-
-      // Second table: trends + TEMPO (2-column)
-      h += '<table class="data-table"><tbody>';
-
-      // Trend
+      // Trend (NOSIG / BECMG / TEMPO)
       var rawUpper = rawText.toUpperCase();
       var trendParts = [];
-      if (rawUpper.indexOf('NOSIG') >= 0) trendParts.push('(NOSIG) \u672A\u4F862\u5C0F\u6642\u5167\u7121\u986F\u8457\u8B8A\u5316');
-      if (rawUpper.indexOf('BECMG') >= 0) trendParts.push('(BECMG) \u5929\u6C23\u5C07\u9010\u6F38\u8F49\u8B8A');
-      if (rawUpper.indexOf('TEMPO') >= 0) trendParts.push('(TEMPO) \u672A\u4F862\u5C0F\u6642\u5167\u6703\u6709\u77ED\u66AB\u7684\u5929\u6C23\u6CE2\u52D5');
-      if (rawUpper.indexOf('RMK') >= 0) trendParts.push('(RMK) \u5099\u8A3B');
-      var trendStr = trendParts.length > 0 ? trendParts.join('; ') : '\u2014';
-      h += '<tr><td class="intent-label">\u8DA8\u52E2\u8207\u5099\u8A3B</td><td class="intent-value">' + trendStr + '</td></tr>';
-
-      // TEMPO details
-      var tempoMatch = rawText.match(/TEMPO\s+(.+)/i);
-      if (tempoMatch) {
-        var tempoStr = tempoMatch[1].trim();
-        // Remove any trailing BECMG section
-        var becmgIdx = tempoStr.toUpperCase().indexOf('BECMG');
-        if (becmgIdx > 0) tempoStr = tempoStr.substring(0, becmgIdx).trim();
-        tempoStr = tempoStr.replace(/(FEW|SCT|BKN|OVC)(\d{3})/gi, function(_,c,h){
-          var cn = {FEW:"\u5C11\u96F2", SCT:"\u758F\u96F2", BKN:"\u88C2\u96F2", OVC:"\u9670\u5929"};
-          return cn[c.toUpperCase()] + "\uFF08" + c.toUpperCase() + "\uFF09\u4F4E\u81F3 " + (parseInt(h) * 100) + "\u82F1\u5C3A";
-        });
-        tempoStr = tempoStr.replace(/(\d{4})/g, '\u80FD\u898B\u5EA6 $1\u7C73');
-        tempoStr = tempoStr.replace(/\bBR\b/gi, '\u9744');
-        tempoStr = tempoStr.replace(/\bFG\b/gi, '\u9727');
-        tempoStr = tempoStr.replace(/\bRA\b/gi, '\u96E8');
-        tempoStr = tempoStr.replace(/\bTS\b/gi, '\u96F7\u66B4');
-        h += '<tr><td class="intent-label">\u77ED\u66AB\u6CE2\u52D5(TEMPO)</td><td class="intent-value">\u9810\u8A08\u77ED\u6642\u9593\u5167\uFF0C' + tempoStr + '</td></tr>';
+      if (rawUpper.indexOf('NOSIG') >= 0) trendParts.push('未来2小时内无显著变化');
+      if (rawUpper.indexOf('BECMG') >= 0) trendParts.push('天气将逐渐转变');
+      if (rawUpper.indexOf('TEMPO') >= 0) trendParts.push('未来2小时内会有短暂的天气波动');
+      if (trendParts.length > 0) {
+        h += '<div class="wx-item wx-full"><span class="wx-label">变化趋势</span>' + trendParts.join('；') + '</div>';
       }
 
-      // BECMG details
-      var becmgMatch = rawText.match(/BECMG\s+(.+)/i);
-      if (becmgMatch) {
-        var becmgStr = becmgMatch[1].trim();
-        // Remove any trailing TEMPO section
-        var tempoIdx = becmgStr.toUpperCase().indexOf('TEMPO');
-        if (tempoIdx > 0) becmgStr = becmgStr.substring(0, tempoIdx).trim();
-        // Parse wind: 26005KT
-        becmgStr = becmgStr.replace(/(\d{3})(\d{2,3})(G\d{2,3})?KT/gi, function(_,d,s,g){
-          return d + '\u00B0 @ ' + parseInt(s) + ' KT' + (g ? ' Gust ' + g.substring(1) + 'kt' : '');
-        });
-        h += '<tr><td class="intent-label">\u9010\u6F38\u8F49\u8B8A(BECMG)</td><td class="intent-value">' + becmgStr.trim() + '</td></tr>';
-      }
-
-      h += '</tbody></table></div>';
+      h += '</div></div>';
     } else if (wx.metar_raw) {
-      h += '<div class="weather-section"><div class="weather-section-title">\uD83D\uDCE1 METAR</div>';
+      h += '<div class="weather-section"><div class="weather-section-title">📡 METAR</div>';
       h += '<pre class="weather-raw">' + escapeHtml(stripMetarPrefix(wx.metar_raw)) + '</pre></div>';
     }
 
+    // ── TAF ──
     if (wx.taf) {
       var t = wx.taf;
-      h += '<div class="weather-section"><div class="weather-section-title">\uD83D\uDCE1 TAF \u5929\u6C23\u9810\u5831</div>';
-      h += '<pre class="weather-raw">' + escapeHtml(stripTafPrefix(t.raw || wx.taf_raw || '')) + '</pre>';
-            h += '<div class="weather-section-title">\uD83D\uDCCB TAF \u5831\u6587\u89E3\u6790</div>';
-      h += '<table class="data-table"><tbody>';
+      var rawTaf = stripTafPrefix(t.raw || wx.taf_raw || '');
+      h += '<div class="weather-section">';
+      h += '<div class="weather-section-title">📡 TAF 天气预报</div>';
+      h += '<pre class="weather-raw">' + escapeHtml(rawTaf) + '</pre>';
+      h += '<div class="weather-section-title">📋 TAF 报文解析</div>';
+      h += '<div class="weather-grid">';
 
-      // Airport + update time
-      h += '<tr><td class="intent-label">\u6A5F\u5834\u4EE3\u78BC</td><td class="intent-value">' + escapeHtml(icao) + ' (' + escapeHtml(apName) + ')</td>';
-      h += '<td class="intent-label">\u66F4\u65B0\u6642\u9593</td><td class="intent-value">' + (wx.updated_iso || '\u2014') + '</td></tr>';
+      // Row 1: 机场代码 + 预报时效
+      var validityStr = (t.time_from || '—') + ' 至 ' + (t.time_to || '—') + ' (UTC)';
+      h += '<div class="wx-item"><span class="wx-label">机场代码</span>' + escapeHtml(icao) + ' (' + escapeHtml(apName) + ')</div>';
+      h += '<div class="wx-item"><span class="wx-label">预报时效</span>' + validityStr + '</div>';
 
-      // Validity
-      h += '<tr><td class="intent-label">\u9810\u5831\u6642\u6548</td><td class="intent-value" colspan="3">' + (t.time_from||'\u2014') + ' \u81F3 ' + (t.time_to||'\u2014') + ' (UTC)</td></tr>';
+      // Row 2: 最高温度 + 最低温度
+      var maxTempStr = '—';
+      if (t.max_temp_c != null) {
+        maxTempStr = t.max_temp_c + '°C';
+        if (t.max_temp_time) maxTempStr += ' (' + t.max_temp_time + ')';
+      }
+      var minTempStr = '—';
+      if (t.min_temp_c != null) {
+        minTempStr = t.min_temp_c + '°C';
+        if (t.min_temp_time) minTempStr += ' (' + t.min_temp_time + ')';
+      }
+      h += '<div class="wx-item"><span class="wx-label">最高温度</span>' + maxTempStr + '</div>';
+      h += '<div class="wx-item"><span class="wx-label">最低温度</span>' + minTempStr + '</div>';
 
-      // Base weather: wind + vis + clouds
-      var baseStr = '';
+      // Row 3: 主导风向风速 + 能见度
       var tw = t.wind || {};
+      var tafWindStr = '—';
       if (tw.dir_cn && tw.dir != null) {
-        baseStr += '(' + (tw.arrow||'') + ' ' + tw.dir_cn + ') ' + tw.dir + '\u00B0 @ ' + (tw.speed_kts||'?') + ' KT';
-      } else if (t.wind_text) { baseStr += t.wind_text; }
-      if (t.visibility_str) baseStr += (baseStr?'\uFF1B':'') + '\u80FD\u898B\u5EA6' + t.visibility_str;
-      else if (t.visibility_m != null && t.visibility_m < 9999) baseStr += (baseStr?'\uFF1B':'') + '\u80FD\u898B\u5EA6' + t.visibility_m + 'm';
+        tafWindStr = (tw.arrow || '') + ' ' + tw.dir_cn + ' @ ' + (tw.speed_kts || '?') + ' 节';
+      } else if (t.wind_text) { tafWindStr = t.wind_text; }
+      var tafVisStr = t.visibility_str || (t.visibility_m != null ? '🔭 ' + (t.visibility_m >= 10000 ? '10公里或以上 (9999)' : t.visibility_m + 'm') : '—');
+      h += '<div class="wx-item"><span class="wx-label">主导风向风速</span>' + tafWindStr + '</div>';
+      h += '<div class="wx-item"><span class="wx-label">能见度</span>' + tafVisStr + '</div>';
+
+      // Row 4: 云层状况
+      var tafCloudStr = '—';
       if (t.clouds && t.clouds.length > 0) {
-        baseStr += (baseStr?'\uFF1B':'');
-        t.clouds.forEach(function(c){ baseStr += (c.emoji||'')+' '+(c.cover_cn||c.cover)+'\u9AD8 '+c.height_ft+' \u82F1\u5C3A'; });
+        tafCloudStr = t.clouds.map(function(c) {
+          return (c.emoji || '') + ' ' + (c.cover_cn || c.cover) + ' ' + c.height_ft + '英尺';
+        }).join(' ');
       }
-      if (baseStr) h += '<tr><td class="intent-label">\u57FA\u790E\u5929\u6C23</td><td class="intent-value" colspan="3">' + baseStr + '</td></tr>';
+      h += '<div class="wx-item wx-full"><span class="wx-label">云层状况</span>' + tafCloudStr + '</div>';
 
-      // Max/Min temp
-      if (t.max_temp_c != null || t.min_temp_c != null) {
-        h += '<tr><td class="intent-label">\u6700\u9AD8\u6EAB\u5EA6</td><td class="intent-value">' + (t.max_temp_c!=null?t.max_temp_c+'\u00B0C'+(t.max_temp_time?' ('+t.max_temp_time+')':''):'\u2014') + '</td>';
-        h += '<td class="intent-label">\u6700\u4F4E\u6EAB\u5EA6</td><td class="intent-value">' + (t.min_temp_c!=null?t.min_temp_c+'\u00B0C'+(t.min_temp_time?' ('+t.min_temp_time+')':''):'\u2014') + '</td></tr>';
-      }
-
-      // Trends from raw TAF text
-      var rawTaf = (t.raw || wx.taf_raw || '').toUpperCase();
-      // Remove base part (before first trend keyword)
-      var trendSection = rawTaf.replace(/^[\s\S]*?(?=TEMPO|BECMG|PROB)/i, '');
-      // Split by trend keywords
-      var trendParts = trendSection.split(/\b(?=TEMPO|BECMG|PROB)/gi);
-            for (var ti = 0; ti < trendParts.length; ti++) {
+      // Row 5+: 变化趋势 (each trend as separate row)
+      var rawTafUpper = rawTaf.toUpperCase();
+      var trendSection = rawTafUpper.replace(/^[\s\S]*?(?=TEMPO|BECMG|PROB|FM)/i, '');
+      var trendParts = trendSection.split(/\b(?=TEMPO|BECMG|PROB\d+|FM\d+)/gi);
+      for (var ti = 0; ti < trendParts.length; ti++) {
         var tp = trendParts[ti].trim();
         if (!tp) continue;
-        var kind = tp.match(/^(TEMPO|BECMG|PROB\d+)/i);
+        var kind = tp.match(/^(TEMPO|BECMG|PROB\d+|FM\d+)/i);
         if (!kind) continue;
         var kindStr = kind[1].toUpperCase();
         var rest = tp.substring(kind[0].length).trim();
 
-        // Parse time range
+        // Parse time range DDHH/DDHH
         var timeMatch = rest.match(/(\d{4})\/(\d{4})/);
         var timeStr = '';
         if (timeMatch) {
-          timeStr = timeMatch[1].substring(0,2)+'\u65E5 '+timeMatch[1].substring(2,4)+':00 \u2013 '+timeMatch[2].substring(0,2)+'\u65E5 '+timeMatch[2].substring(2,4)+':00 (UTC)';
+          var fromDay = timeMatch[1].substring(0, 2);
+          var fromHr = timeMatch[1].substring(2, 4);
+          var toDay = timeMatch[2].substring(0, 2);
+          var toHr = timeMatch[2].substring(2, 4);
+          timeStr = fromDay + '日' + fromHr + '-' + toDay + '日' + toHr + 'Z 间';
           rest = rest.replace(timeMatch[0], '').trim();
         }
 
         var desc = rest;
         // Translate clouds
-        desc = desc.replace(/FEW(\d{3})/gi, '\u5C11\u91CF\u96F2 $1\u82F1\u5C3A');
-        desc = desc.replace(/SCT(\d{3})/gi, '\u758F\u6563\u96F2 $1\u82F1\u5C3A');
-        desc = desc.replace(/BKN(\d{3})/gi, '\u591A\u96F2 $1\u82F1\u5C3A');
-        desc = desc.replace(/OVC(\d{3})/gi, '\u9670\u5929 $1\u82F1\u5C3A');
+        desc = desc.replace(/FEW(\d{3})/gi, '🌤️ 少云 $1英尺');
+        desc = desc.replace(/SCT(\d{3})/gi, '⛅ 疏云 $1英尺');
+        desc = desc.replace(/BKN(\d{3})/gi, '☁️ 多云 $1英尺');
+        desc = desc.replace(/OVC(\d{3})/gi, '🌫️ 阴天 $1英尺');
         // Translate visibility
-        desc = desc.replace(/\b(\d{4})\b/g, '\u80FD\u898B\u5EA6 $1\u7C73');
+        desc = desc.replace(/\b(\d{4})\b/g, function(_, v) { return parseInt(v) >= 9999 ? '10公里或以上' : v + '米'; });
         // Translate weather
-        desc = desc.replace(/\bBR\b/gi, '\u8F15\u9727');
-        desc = desc.replace(/\bFG\b/gi, '\u5927\u9727');
-        desc = desc.replace(/\bBCFG\b/gi, '\u7247\u72C0\u9727');
-        desc = desc.replace(/\bRA\b/gi, '\u96E8');
-        desc = desc.replace(/\bTS\b/gi, '\u96F7\u66B4');
-        desc = desc.replace(/\bSHRA\b/gi, '\u9663\u96E8');
-        desc = desc.replace(/\bDZ\b/gi, '\u6BDB\u6BDB\u96E8');
-        desc = desc.replace(/\bHZ\b/gi, '\u973E');
+        desc = desc.replace(/\bBR\b/gi, '轻雾');
+        desc = desc.replace(/\bFG\b/gi, '大雾');
+        desc = desc.replace(/\bBCFG\b/gi, '片状雾');
+        desc = desc.replace(/\bRA\b/gi, '雨');
+        desc = desc.replace(/\bTS\b/gi, '雷暴');
+        desc = desc.replace(/\bSHRA\b/gi, '阵雨');
+        desc = desc.replace(/\bDZ\b/gi, '毛毛雨');
+        desc = desc.replace(/\bHZ\b/gi, '霾');
         // Translate wind
         var windM = desc.match(/(\d{3})(\d{2,3})(G\d{2,3})?KT/);
         if (windM) {
           var wd = windM[1], ws = windM[2], wg = windM[3];
-          desc = desc.replace(windM[0], wd+'\u00B0'+(ws?'\uFF0C\u98CE\u901F '+parseInt(ws)+' \u7BC0':'')+(wg?'\uFF0C\u9663\u98CE'+wg.substring(1)+'\u7BC0':''));
+          var dirCN = dirToCN(parseInt(wd));
+          desc = desc.replace(windM[0], dirCN + ' @ ' + parseInt(ws) + ' 节' + (wg ? ' (阵风 ' + wg.substring(1) + ' 节)' : ''));
         }
+        // VRB wind
+        desc = desc.replace(/VRB(\d{2,3})KT/gi, '风向不定，风速 $1 节');
 
-        var label = kindStr;
-        if (kindStr === 'TEMPO') label = '\u77ED\u66AB\u6CE2\u52D5(TEMPO)';
-        else if (kindStr === 'BECMG') label = '\u9010\u6F38\u8F49\u8B8A(BECMG)';
-        else if (kindStr.indexOf('PROB') === 0) label = 'PROB' + kindStr.substring(4) + '\uFF05';
-        // Include time in label
-        var contentStr = desc.trim();
-        h += '<tr><td class="intent-label">' + label + '</td><td class="intent-value" style="white-space:nowrap">' + (timeStr || '\u2014') + '</td><td class="intent-value" style="width:100%">' + contentStr + '</td></tr>';
+        var label = '⏳ ' + (timeStr || kindStr);
+        h += '<div class="wx-item wx-full"><span class="wx-label">变化趋势</span>' + label + ' ' + desc.trim() + '</div>';
       }
 
-      h += '</tbody></table></div>';
+      h += '</div></div>';
     } else if (wx.taf_raw) {
-    } else if (wx.taf_raw) {
-      h += '<div class="weather-section"><div class="weather-section-title">\uD83D\uDCE1 TAF</div>';
+      h += '<div class="weather-section"><div class="weather-section-title">📡 TAF</div>';
       h += '<pre class="weather-raw">' + escapeHtml(stripTafPrefix(wx.taf_raw)) + '</pre></div>';
     }
     return h;
   }
+
+  // Helper: direction to Chinese
+  function dirToCN(deg) {
+    var dirs = ['北', '北偏东', '东北', '东偏北', '东', '东偏南', '东南', '南偏东',
+                '南', '南偏西', '西南', '西偏南', '西', '西偏北', '西北', '北偏西'];
+    var idx = Math.round(deg / 22.5) % 16;
+    return dirs[idx];
+  }
+
   async function handleWeatherRefresh(icao, candidateIndex) {
     const parsed = state.planResult?.parsed;
     if (!parsed) return;

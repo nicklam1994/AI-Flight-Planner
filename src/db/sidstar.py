@@ -30,8 +30,9 @@ logger = logging.getLogger(__name__)
 # SIDs: route_type IN ('1','2','3','4','5','6') covers RNAV (2), conventional (5),
 # engine-out (1), transitions (3), RNAV transitions (4), and other variants (6).
 SID_RT = "IN ('1','2','3','4','5','6')"
-# STARs: rt='5' is dominant, rt='3' covers approach transitions
-STAR_RT = "IN ('3','5')"
+# STARs: rt='5' is dominant (enroute), rt='3' covers approach transitions,
+# rt='6' covers runway-specific transitions
+STAR_RT = "IN ('3','5','6')"
 
 
 # ---------------------------------------------------------------------------

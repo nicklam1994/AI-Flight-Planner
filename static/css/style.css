@@ -782,3 +782,44 @@ textarea#routeInput:focus { outline: none; border-color: var(--accent); }
 }
 
 .select-btn:hover { background: var(--accent-hover); }
+
+/* ── Weather v4: 报文解析格式 ────────────────────────────── */
+.weather-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+  margin-top: 8px;
+}
+
+.wx-item {
+  display: flex;
+  gap: 8px;
+  font-size: 0.78rem;
+  padding: 4px 0;
+  align-items: baseline;
+}
+
+.wx-item.wx-full {
+  grid-column: 1 / -1;
+}
+
+.wx-label {
+  color: var(--text-muted);
+  font-weight: 500;
+  white-space: nowrap;
+  min-width: 80px;
+}
+
+.wx-value {
+  color: var(--text);
+  flex: 1;
+}
+
+.weather-header {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}

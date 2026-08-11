@@ -101,8 +101,8 @@ def find_routes(
     arr_fix_map = {f["fix"].upper(): f for f in star_fixes}
 
     # Resolve fix waypoints to graph node IDs
-    dep_nodes = _resolve_fix_nodes(sid_fixes, wp_map, search_G)
-    arr_nodes = _resolve_fix_nodes(star_fixes, wp_map, search_G)
+    dep_nodes = _resolve_fix_nodes(sid_fixes, wp_map, search_G, airport_lat=origin.lat, airport_lon=origin.lon)
+    arr_nodes = _resolve_fix_nodes(star_fixes, wp_map, search_G, airport_lat=dest.lat, airport_lon=dest.lon)
 
     # Calculate distances from airport to each fix
     for d in dep_nodes:
@@ -303,13 +303,28 @@ def _resolve_fix_nodes(
     fixes: list[dict],
     wp_map: dict[int, WaypointInfo],
     G: nx.DiGraph,
+    airport_lat: float | None = None,
+    airport_lon: float | None = None,
 ) -> list[dict]:
-    """Resolve SID/STAR fix waypoint idents to graph node IDs."""
+    """Resolve SID/STAR fix waypoint idents to graph node IDs.
+    
+    Filters out waypoints that are too far from the airport (>200NM),
+    which indicates they are PMDG distance/radial format waypoints
+    (e.g., D195P) with incorrect coordinates.
+    """
+    from src.db.graph_builder import haversine_nm
+    
     nodes = []
     for f in fixes:
         fix_ident = f["fix"].upper()
         for wp_id, wp in wp_map.items():
             if wp.ident.upper() == fix_ident and wp_id in G.nodes():
+                # Check if waypoint is within reasonable distance of airport
+                if airport_lat is not None and airport_lon is not None:
+                    dist = haversine_nm(airport_lat, airport_lon, wp.lat, wp.lon)
+                    if dist > 200:  # NM - STAR/SID fixes should be near airport
+                        continue
+                
                 nodes.append({
                     "waypoint_id": wp_id, "ident": wp.ident,
                     "lat": wp.lat, "lon": wp.lon, "dist_nm": 0,
