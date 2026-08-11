@@ -1,0 +1,1461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Flight Planner — Tesla Edition</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ═══════════════════════════════════════════════
+       DESIGN SYSTEM: TESLA-INSPIRED
+       Radical subtraction · Near-zero UI · Full-viewport drama · Cinematic
+       "Every pixel that isn't product imagery is white space"
+       ═══════════════════════════════════════════════ */
+
+    :root {
+      /* Tesla Core */
+      --bg: #ffffff;
+      --bg-hero: #f5f5f5;
+      --bg-card: #ffffff;
+      --bg-surface: #fafafa;
+      --bg-hover: #f0f0f0;
+
+      --text: #171a20;
+      --text-secondary: #5c5e62;
+      --text-tertiary: #8e8e8e;
+      --text-hero: rgba(23,26,32,0.85);
+
+      --accent: #3e6ae1;
+      --accent-hover: #3457c8;
+      --accent-subtle: rgba(62,106,225,0.06);
+
+      --border: rgba(0,0,0,0.06);
+      --border-hover: rgba(0,0,0,0.12);
+
+      --display: 40px;
+      --display-weight: 500;
+      --display-lh: 1.15;
+      --display-ls: -0.03em;
+
+      --font-sans: 'Inter', -apple-system, system-ui, 'Helvetica Neue', sans-serif;
+      --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+
+      --transition: 200ms cubic-bezier(0.2, 0, 0, 1);
+      --radius: 0px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { -webkit-font-smoothing: antialiased; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    /* ═══════════════ HERO / HEADER ═══════════════ */
+
+    .hero {
+      position: relative;
+      min-height: 60vh;
+      background: var(--bg-hero);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      overflow: hidden;
+    }
+
+    /* Abstract aviation map pattern — stands in for Tesla's full-viewport photography */
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 40%, rgba(62,106,225,0.04) 0%, transparent 70%),
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 80px,
+          rgba(62,106,225,0.02) 80px,
+          rgba(62,106,225,0.02) 81px
+        ),
+        repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent 80px,
+          rgba(62,106,225,0.02) 80px,
+          rgba(62,106,225,0.02) 81px
+        );
+    }
+
+    /* Floating dots simulate airports */
+    .hero-bg::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(circle 2px, rgba(62,106,225,0.15) 0%, transparent 100%),
+        radial-gradient(circle 3px, rgba(62,106,225,0.1) 0%, transparent 100%);
+      background-size: 120px 120px, 200px 200px;
+      background-position: 30px 40px, 100px 80px;
+    }
+
+    /* Connection lines */
+    .hero-bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(45deg, transparent 40%, rgba(62,106,225,0.04) 45%, transparent 50%),
+        linear-gradient(-45deg, transparent 40%, rgba(62,106,225,0.03) 45%, transparent 50%);
+    }
+
+    /* Floating header (like Tesla's transparent nav) */
+    .hero-header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 48px;
+      background: transparent;
+    }
+
+    .hero-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .hero-logo {
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--text);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .hero-title {
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+
+    .hero-title span {
+      color: var(--accent);
+    }
+
+    .hero-nav {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .hero-nav a {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color var(--transition);
+      cursor: pointer;
+    }
+
+    .hero-nav a:hover {
+      color: var(--text);
+    }
+
+    .hero-nav .nav-cta {
+      padding: 8px 20px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 0;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      transition: background var(--transition);
+    }
+
+    .hero-nav .nav-cta:hover {
+      background: var(--accent-hover);
+      color: #fff;
+    }
+
+    /* Hero content */
+    .hero-content {
+      position: relative;
+      z-index: 5;
+      padding: 48px;
+      max-width: 640px;
+    }
+
+    .hero-eyebrow {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      margin-bottom: 12px;
+    }
+
+    .hero-headline {
+      font-size: var(--display);
+      font-weight: var(--display-weight);
+      line-height: var(--display-lh);
+      letter-spacing: var(--display-ls);
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+
+    .hero-sub {
+      font-size: 16px;
+      font-weight: 400;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      max-width: 480px;
+    }
+
+    .hero-sub strong {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    /* ═══════════════ FLOATING CTA BAR ═══════════════ */
+
+    .sticky-bar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 48px;
+      height: 64px;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sticky-bar .bar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .sticky-bar .bar-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+    }
+
+    .sticky-bar select {
+      padding: 6px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 0;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-family: var(--font-sans);
+      font-weight: 500;
+      cursor: pointer;
+      outline: none;
+      transition: border-color var(--transition);
+    }
+
+    .sticky-bar select:focus {
+      border-color: var(--accent);
+    }
+
+    .sticky-bar .mobile-menu {
+      display: none;
+      font-size: 20px;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    /* ═══════════════ PAGE ═══════════════ */
+
+    .page {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 48px;
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 24px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 48px;
+    }
+
+    .layout-sidebar {
+      position: sticky;
+      top: 88px;
+      align-self: start;
+    }
+
+    /* ═══════════════ CARDS (borderless) ═══════════════ */
+
+    .tesla-section {
+      margin-bottom: 24px;
+    }
+
+    .tesla-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .tesla-section .sec-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      margin-bottom: 16px;
+    }
+
+    .tesla-card {
+      background: var(--bg-card);
+      margin-bottom: 2px;
+    }
+
+    .tesla-card:last-child {
+      margin-bottom: 0;
+    }
+
+    .tesla-card-body {
+      padding: 20px;
+    }
+
+    /* ═══════════════ INPUT ═══════════════ */
+
+    .route-input {
+      width: 100%;
+      min-height: 72px;
+      padding: 16px 0 4px;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      font-size: 18px;
+      font-weight: 300;
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      resize: none;
+      outline: none;
+      transition: border-color var(--transition);
+    }
+
+    .route-input::placeholder {
+      color: var(--text-tertiary);
+      font-weight: 300;
+    }
+
+    .route-input:focus {
+      border-bottom-color: var(--accent);
+    }
+
+    .input-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 16px;
+    }
+
+    .input-hint {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    .input-hint kbd {
+      display: inline-block;
+      padding: 1px 6px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--text-secondary);
+    }
+
+    /* ═══════════════ BUTTONS ═══════════════ */
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 28px;
+      border: none;
+      border-radius: 0;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      transition: all var(--transition);
+      letter-spacing: 0.01em;
+      line-height: 1;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text);
+      border: 2px solid var(--text);
+    }
+
+    .btn-secondary:hover {
+      background: var(--text);
+      color: #fff;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-secondary);
+      padding: 6px 12px;
+    }
+
+    .btn-ghost:hover {
+      color: var(--text);
+    }
+
+    .btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    /* ═══════════════ STATUS ═══════════════ */
+
+    .status-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 24px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+    }
+
+    .status-line.idle { display: none; }
+
+    .status-line.progress { border-color: var(--accent); color: var(--text-secondary); }
+
+    .status-line.done {
+      background: var(--accent-subtle);
+      border-color: rgba(62,106,225,0.15);
+      color: var(--accent);
+    }
+
+    .pulse {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.7); }
+    }
+
+    /* ═══════════════ CANDIDATES ═══════════════ */
+
+    .candidate-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .candidate {
+      padding: 20px;
+      background: var(--bg-card);
+      cursor: pointer;
+      transition: all var(--transition);
+      border: 1px solid var(--border);
+    }
+
+    .candidate:hover {
+      border-color: var(--accent);
+    }
+
+    .candidate.selected {
+      border-color: var(--accent);
+      background: var(--accent-subtle);
+    }
+
+    .candidate.best {
+      border-color: var(--text);
+      border-width: 1px;
+    }
+
+    .candidate-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .candidate-rank {
+      font-size: 28px;
+      font-weight: 300;
+      color: var(--text-tertiary);
+      min-width: 36px;
+    }
+
+    .candidate-info {
+      flex: 1;
+    }
+
+    .candidate-name {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .candidate-score {
+      display: inline-block;
+      margin-left: 12px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--accent);
+    }
+
+    .candidate-route {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      word-break: break-all;
+    }
+
+    .candidate-route .highlight {
+      color: var(--accent);
+    }
+
+    .candidate-stats {
+      display: flex;
+      gap: 20px;
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    /* ═══════════════ PARSED ═══════════════ */
+
+    .intent-row {
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+    }
+
+    .intent-fact {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .intent-fact .label {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+    }
+
+    .intent-fact .value {
+      font-size: 22px;
+      font-weight: 300;
+      color: var(--text);
+    }
+
+    /* ═══════════════ AIRPORTS ═══════════════ */
+
+    .airport-pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+    }
+
+    .airport-card {
+      padding: 20px;
+      border: 1px solid var(--border);
+      transition: border-color var(--transition);
+    }
+
+    .airport-card:hover {
+      border-color: var(--border-hover);
+    }
+
+    .airport-code {
+      font-size: 28px;
+      font-weight: 300;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+
+    .airport-dep .airport-code { color: var(--text); }
+    .airport-arr .airport-code { color: var(--accent); }
+
+    .airport-name {
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--text-secondary);
+    }
+
+    .airport-detail {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 8px;
+    }
+
+    /* ═══════════════ ROUTE BOX ═══════════════ */
+
+    .route-box {
+      position: relative;
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--text);
+      font-weight: 400;
+      line-height: 1.7;
+      word-break: break-all;
+      cursor: pointer;
+      transition: color var(--transition);
+      padding: 0;
+    }
+
+    .route-box:hover {
+      color: var(--accent);
+    }
+
+    .route-box .copy-tip {
+      position: absolute;
+      right: 0;
+      top: -24px;
+      font-size: 10px;
+      font-weight: 500;
+      font-family: var(--font-sans);
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      opacity: 0;
+      transition: opacity var(--transition);
+    }
+
+    .route-box:hover .copy-tip { opacity: 1; }
+
+    .route-stats {
+      display: flex;
+      gap: 32px;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .route-stat {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .route-stat .stat-label {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .route-stat .stat-value {
+      font-size: 20px;
+      font-weight: 300;
+      color: var(--text);
+    }
+
+    /* ═══════════════ NAV TABLE ═══════════════ */
+
+    .nav-wrap {
+      overflow-x: auto;
+    }
+
+    table.nav {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    table.nav thead th {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    table.nav tbody td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    table.nav tbody tr:hover td {
+      background: var(--bg-surface);
+    }
+
+    table.nav .fix {
+      font-family: var(--font-mono);
+      color: var(--text);
+      font-weight: 500;
+      font-size: 11px;
+    }
+
+    table.nav .accent {
+      color: var(--accent);
+    }
+
+    /* ═══════════════ SIDEBAR ═══════════════ */
+
+    .sidebar-card {
+      margin-bottom: 24px;
+    }
+
+    .sidebar-card:last-child { margin-bottom: 0; }
+
+    .sidebar-card .sc-title {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      margin-bottom: 16px;
+    }
+
+    .sidebar-card .sc-body {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* Settings */
+    .set-field {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .set-field label {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .set-field input:not([type=checkbox]):not([type=range]),
+    .set-field select {
+      width: 100%;
+      padding: 8px 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 0;
+      color: var(--text);
+      font-size: 13px;
+      font-family: var(--font-sans);
+      font-weight: 400;
+      outline: none;
+      transition: border-color var(--transition);
+    }
+
+    .set-field input:focus,
+    .set-field select:focus {
+      border-color: var(--accent);
+      background: #fff;
+    }
+
+    .set-field .row-with-btn {
+      display: flex;
+      gap: 4px;
+    }
+
+    .set-field .row-with-btn input { flex: 1; }
+
+    .set-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 4px 0;
+    }
+
+    .set-check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .set-check input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      accent-color: var(--accent);
+    }
+
+    .set-check label {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .slider-row input[type="range"] {
+      flex: 1;
+      height: 2px;
+      -webkit-appearance: none;
+      background: var(--border);
+      border-radius: 1px;
+      outline: none;
+    }
+
+    .slider-row input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      border: none;
+    }
+
+    .slider-row .temp-val {
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--text-secondary);
+      min-width: 28px;
+    }
+
+    .set-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    /* Recent */
+    .recent-item {
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+
+    .recent-item:hover {
+      border-color: var(--accent);
+    }
+
+    .recent-item .pair {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .recent-item .ago {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+
+    /* ═══════════════ WEATHER ═══════════════ */
+
+    .weather-pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+    }
+
+    .weather-station {
+      padding: 16px 20px;
+      border: 1px solid var(--border);
+    }
+
+    .weather-station .sta-code {
+      font-size: 16px;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    .weather-station .sta-code small {
+      font-weight: 400;
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-left: 8px;
+    }
+
+    .fr-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+      border: 1px solid;
+    }
+
+    .fr-badge.vfr { border-color: #22c55e; color: #22c55e; }
+    .fr-badge.ifr { border-color: #ef4444; color: #ef4444; }
+
+    .weather-line {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .weather-raw {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-tertiary);
+      margin-top: 8px;
+      padding: 6px 0;
+    }
+
+    /* ═══════════════ TOAST ═══════════════ */
+
+    .toast-corner {
+      position: fixed;
+      bottom: 32px;
+      right: 32px;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toast {
+      padding: 12px 24px;
+      background: var(--text);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: var(--font-sans);
+      opacity: 0;
+      transform: translateY(8px);
+      animation: fadeUp 0.25s forwards, fadeOut 0.2s 2.5s forwards;
+    }
+
+    @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeOut { to { opacity: 0; transform: translateY(-6px); } }
+
+    /* ═══════════════ RESPONSIVE ═══════════════ */
+
+    @media (max-width: 1024px) {
+      .layout { grid-template-columns: 1fr; }
+      .layout-sidebar { position: static; }
+    }
+
+    @media (max-width: 640px) {
+      .hero-header { padding: 16px 24px; flex-wrap: wrap; }
+      .hero-content { padding: 24px; }
+      .hero-headline { font-size: 28px; }
+      .page { padding: 24px; }
+      .sticky-bar { padding: 0 24px; }
+      .hero-nav { display: none; }
+      .sticky-bar .mobile-menu { display: block; }
+      .airport-pair { grid-template-columns: 1fr; }
+      .weather-pair { grid-template-columns: 1fr; }
+      .route-stats { flex-wrap: wrap; gap: 16px; }
+    }
+
+    /* ── Collapsible ── */
+    .collap-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .collap-header .arr {
+      font-size: 14px;
+      color: var(--text-tertiary);
+      transition: transform var(--transition);
+    }
+
+    .collap-header.open .arr {
+      transform: rotate(90deg);
+    }
+
+    .collap-body { padding-top: 20px; }
+    .collap-body.hidden { display: none; }
+
+    /* ── Warning ── */
+    .warning-banner {
+      padding: 12px 20px;
+      background: rgba(245,158,11,0.04);
+      border: 1px solid rgba(245,158,11,0.15);
+      font-size: 13px;
+      color: #92400e;
+      margin-bottom: 24px;
+    }
+
+    /* ── Empty state ── */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-tertiary);
+      font-size: 13px;
+    }
+
+    .empty-state .big {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.3;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════ HERO SECTION ═══════════ -->
+  <div class="hero">
+
+    <!-- Abstract aviation background (Tesla's cinematic photography stand-in) -->
+    <div class="hero-bg"></div>
+
+    <!-- Floating header (like Tesla's transparent nav) -->
+    <div class="hero-header">
+      <div class="hero-brand">
+        <div class="hero-logo">✈</div>
+        <div class="hero-title"><span>AI</span> Flight Planner</div>
+      </div>
+      <nav class="hero-nav">
+        <a onclick="scrollToSection('planner')">Plan</a>
+        <a onclick="scrollToSection('candidates')">Routes</a>
+        <a onclick="scrollToSection('details')">Details</a>
+        <a class="nav-cta" onclick="document.getElementById('planBtn').click()">Plan a Flight</a>
+      </nav>
+    </div>
+
+    <!-- Hero text -->
+    <div class="hero-content">
+      <div class="hero-eyebrow">Intelligent Route Planning</div>
+      <h1 class="hero-headline">Describe your flight.<br>We'll find the path.</h1>
+      <p class="hero-sub">
+        Natural language to aviation-grade routing — powered by AI, backed by <strong>Navigraph</strong>.
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══════════ STICKY BAR ═══════════ -->
+  <div class="sticky-bar" id="planner">
+    <div class="bar-left">
+      <span class="bar-label">AIRAC</span>
+      <select><option>2605</option><option>2604</option></select>
+      <span style="color:var(--text-tertiary);font-size:13px;font-weight:400;margin-left:4px">Cycle</span>
+    </div>
+    <div>
+      <span class="mobile-menu">☰</span>
+    </div>
+  </div>
+
+  <!-- ═══════════ PAGE ═══════════ -->
+  <div class="page">
+
+    <!-- Status -->
+    <div id="status" class="status-line idle">
+      <div class="pulse"></div>
+      <span>Computing optimal routes…</span>
+    </div>
+
+    <div class="layout">
+
+      <!-- ══════ MAIN ══════ -->
+      <main class="layout-main">
+
+        <!-- ── Input ── -->
+        <div class="tesla-section" id="inputSection">
+          <div class="sec-label">Route Request</div>
+          <div class="tesla-card">
+            <div class="tesla-card-body">
+              <textarea class="route-input" id="routeInput" rows="2"
+                placeholder="VHHH to RJTT, high altitude, avoid Taiwan airspace"></textarea>
+              <div class="input-bar">
+                <span class="input-hint"><kbd>⌘⏎</kbd></span>
+                <button class="btn btn-primary" id="planBtn">Plan Route</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Warning -->
+        <div id="warnings" class="warning-banner" style="display:none">
+          ⚠ Taiwan airspace avoidance applied — routing via eastern B
+        </div>
+
+        <!-- ── Parsed Intent ── -->
+        <div id="parsedSection" class="tesla-section" style="display:none">
+          <div class="sec-label">Parsed Intent</div>
+          <div class="tesla-card">
+            <div class="tesla-card-body">
+              <div class="intent-row" id="parsedContent">
+                <div class="intent-fact">
+                  <span class="label">Departure</span>
+                  <span class="value">VHHH</span>
+                </div>
+                <div class="intent-fact">
+                  <span class="label">Arrival</span>
+                  <span class="value">RJTT</span>
+                </div>
+                <div class="intent-fact">
+                  <span class="label">Altitude</span>
+                  <span class="value">FL390</span>
+                </div>
+                <div class="intent-fact">
+                  <span class="label">Constraint</span>
+                  <span class="value" style="font-size:14px">Avoid Taiwan</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Candidates ── -->
+        <div id="candidatesSection" class="tesla-section" style="display:none">
+          <div class="sec-label" id="candidates">Route Candidates</div>
+          <div class="candidate-list" id="candidatesContent">
+
+            <div class="candidate best selected">
+              <div class="candidate-row">
+                <span class="candidate-rank">01</span>
+                <div class="candidate-info">
+                  <div class="candidate-name">
+                    Via TAIWAN B EAST
+                    <span class="candidate-score">92% match</span>
+                  </div>
+                  <div class="candidate-route">
+                    VHHH <span class="highlight">SID</span> TAI <span class="highlight">B EAST</span> M750 MADOG Y42 KOSHI Y40 NGO Y139 <span class="highlight">STAR</span> RJTT
+                  </div>
+                  <div class="candidate-stats">
+                    <span>1,876 NM</span>
+                    <span>4h 12m</span>
+                    <span>FL390</span>
+                    <span>12,400 kg fuel</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="candidate">
+              <div class="candidate-row">
+                <span class="candidate-rank">02</span>
+                <div class="candidate-info">
+                  <div class="candidate-name">
+                    Via P570
+                    <span class="candidate-score" style="color:var(--text-tertiary)">78% match</span>
+                  </div>
+                  <div class="candidate-route">
+                    VHHH <span class="highlight">SID</span> TAI P570 ABVAR M750 MADOG Y42 KOSHI Y40 <span class="highlight">STAR</span> RJTT
+                  </div>
+                  <div class="candidate-stats">
+                    <span>1,892 NM</span>
+                    <span>4h 18m</span>
+                    <span>FL390</span>
+                    <span>12,800 kg fuel</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="candidate">
+              <div class="candidate-row">
+                <span class="candidate-rank">03</span>
+                <div class="candidate-info">
+                  <div class="candidate-name">
+                    Via A1 Oceanic
+                    <span class="candidate-score" style="color:var(--text-tertiary)">65% match</span>
+                  </div>
+                  <div class="candidate-route">
+                    VHHH <span class="highlight">SID</span> OCEAN A1 KRIPO A1 MJC KOSHI Y40 <span class="highlight">STAR</span> RJTT
+                  </div>
+                  <div class="candidate-stats">
+                    <span>1,920 NM</span>
+                    <span>4h 25m</span>
+                    <span>FL350</span>
+                    <span>13,100 kg fuel</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── Route Detail ── -->
+        <div id="detailsSection" class="tesla-section" style="display:none">
+
+          <!-- Airports -->
+          <div class="sec-label" id="details">Route Details</div>
+          <div class="airport-pair" style="margin-bottom:2px">
+            <div class="airport-card airport-dep">
+              <div class="airport-code">VHHH</div>
+              <div class="airport-name">Hong Kong International</div>
+              <div class="airport-detail">Departure · 07L/25R · SID: TAI</div>
+            </div>
+            <div class="airport-card airport-arr">
+              <div class="airport-code">RJTT</div>
+              <div class="airport-name">Tokyo Haneda</div>
+              <div class="airport-detail">Arrival · 16R/34L · STAR: UTIBO</div>
+            </div>
+          </div>
+
+          <!-- Route String -->
+          <div class="tesla-card">
+            <div class="tesla-card-body">
+              <div class="route-box" id="routeBox">
+                VHHH SID TAI B EAST M750 MADOG Y42 KOSHI Y40 NGO Y139 UTIBO STAR RJTT
+                <span class="copy-tip">Click to copy</span>
+              </div>
+              <div class="route-stats">
+                <div class="route-stat">
+                  <span class="stat-label">Distance</span>
+                  <span class="stat-value">1,876 NM</span>
+                </div>
+                <div class="route-stat">
+                  <span class="stat-label">Est. Time</span>
+                  <span class="stat-value">4h 12m</span>
+                </div>
+                <div class="route-stat">
+                  <span class="stat-label">Fuel</span>
+                  <span class="stat-value">12,400 kg</span>
+                </div>
+                <div class="route-stat">
+                  <span class="stat-label">Cruise</span>
+                  <span class="stat-value">FL390</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Nav Table -->
+          <div class="tesla-card" style="margin-top:2px">
+            <div class="tesla-card-body">
+              <div class="collap-header" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('hidden')">
+                <span style="font-size:11px;font-weight:500;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.15em">Waypoints · 28</span>
+                <span class="arr">▶</span>
+              </div>
+              <div class="collap-body">
+                <div class="nav-wrap">
+                  <table class="nav">
+                    <thead>
+                      <tr>
+                        <th>#</th><th>Fix</th><th>Type</th><th>Lat</th><th>Lon</th><th>Course</th><th>Dist</th><th>Alt</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr><td>1</td><td class="fix">VHHH</td><td>APT</td><td>22°18'N</td><td>113°55'E</td><td>—</td><td>—</td><td>0</td></tr>
+                      <tr><td>2</td><td class="fix">TAI</td><td>VOR</td><td>22°08'N</td><td>113°40'E</td><td>250°</td><td>18</td><td>3,000</td></tr>
+                      <tr><td>3</td><td class="fix accent">B EAST</td><td>WPT</td><td>21°44'N</td><td>115°20'E</td><td>112°</td><td>102</td><td>FL180</td></tr>
+                      <tr><td>4</td><td class="fix">MADOG</td><td>WPT</td><td>25°12'N</td><td>122°30'E</td><td>058°</td><td>240</td><td>FL390</td></tr>
+                      <tr><td>5</td><td class="fix">KOSHI</td><td>WPT</td><td>28°30'N</td><td>125°00'E</td><td>040°</td><td>168</td><td>FL390</td></tr>
+                      <tr><td>6</td><td class="fix accent">NGO</td><td>VOR</td><td>34°48'N</td><td>136°48'E</td><td>035°</td><td>195</td><td>FL390</td></tr>
+                      <tr><td>7</td><td class="fix">UTIBO</td><td>STAR</td><td>35°20'N</td><td>139°30'E</td><td>078°</td><td>110</td><td>FL160</td></tr>
+                      <tr><td>8</td><td class="fix">RJTT</td><td>APT</td><td>35°33'N</td><td>139°47'E</td><td>078°</td><td>26</td><td>0</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Weather -->
+          <div class="tesla-card" style="margin-top:2px">
+            <div class="tesla-card-body">
+              <div class="collap-header" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('hidden')">
+                <span style="font-size:11px;font-weight:500;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.15em">Weather</span>
+                <span class="arr">▶</span>
+              </div>
+              <div class="collap-body">
+                <div class="weather-pair">
+                  <div class="weather-station">
+                    <div class="sta-code">VHHH <small>Departure</small></div>
+                    <span class="fr-badge vfr">VFR</span>
+                    <div class="weather-line">230° 12kt · CAVOK · 30°C</div>
+                    <div class="weather-raw">VHHH 100830Z 23012KT CAVOK 30/18 Q1016 NOSIG=</div>
+                  </div>
+                  <div class="weather-station">
+                    <div class="sta-code">RJTT <small>Arrival</small></div>
+                    <span class="fr-badge ifr">IFR</span>
+                    <div class="weather-line">160° 18kt · 8km · Light Rain · 22°C</div>
+                    <div class="weather-raw">RJTT 100900Z 16018KT 8000 -RA FEW020 BKN040 22/18 Q1015 NOSIG=</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /detailsSection -->
+
+      </main><!-- /layout-main -->
+
+      <!-- ══════ SIDEBAR ══════ -->
+      <aside class="layout-sidebar">
+
+        <!-- Settings -->
+        <div class="sidebar-card">
+          <div class="sc-title">Settings</div>
+          <div class="sc-body">
+            <div class="set-field">
+              <label>Language</label>
+              <select><option>English</option><option>简体中文</option><option>繁體中文</option></select>
+            </div>
+            <div class="set-field">
+              <label>Timezone</label>
+              <select><option>UTC+8 (Hong Kong)</option><option>UTC+9 (Tokyo)</option></select>
+            </div>
+            <div class="set-divider"></div>
+            <div class="set-field">
+              <label>LLM Provider</label>
+              <select><option>Ollama</option><option>DeepSeek</option><option>OpenAI</option></select>
+            </div>
+            <div class="set-field">
+              <label>Base URL</label>
+              <input type="text" value="http://localhost:11434/v1">
+            </div>
+            <div class="set-field">
+              <label>Model</label>
+              <div class="row-with-btn">
+                <input type="text" value="gemma4:e4b">
+                <button class="btn btn-ghost" style="padding:6px 10px;border:1px solid var(--border)">🔄</button>
+              </div>
+            </div>
+            <div class="set-field">
+              <label>Temperature</label>
+              <div class="slider-row">
+                <input type="range" min="0" max="1" step="0.05" value="0.3">
+                <span class="temp-val">0.3</span>
+              </div>
+            </div>
+            <div class="set-check">
+              <input type="checkbox" id="evalT" checked>
+              <label for="evalT">Route Evaluator</label>
+            </div>
+            <div class="set-actions">
+              <button class="btn btn-secondary" style="flex:1;font-size:12px">Test</button>
+              <button class="btn btn-primary" style="flex:1;font-size:12px">Save</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent -->
+        <div class="sidebar-card">
+          <div class="sc-title">Recent</div>
+          <div class="recent-item">
+            <div class="pair">VHHH → RJTT</div>
+            <div class="ago">2 hours ago · Best: 92%</div>
+          </div>
+          <div class="recent-item">
+            <div class="pair">KLAX → KORD</div>
+            <div class="ago">Yesterday · 6 routes</div>
+          </div>
+          <div class="recent-item">
+            <div class="pair">EGLL → EDDM</div>
+            <div class="ago">3 days ago · Saved</div>
+          </div>
+        </div>
+
+      </aside><!-- /layout-sidebar -->
+
+    </div><!-- /layout -->
+  </div><!-- /page -->
+
+  <div class="toast-corner" id="toastZone"></div>
+
+  <script>
+    // ── Candidate selection ──
+    document.querySelectorAll('.candidate').forEach(el => {
+      el.addEventListener('click', function() {
+        document.querySelectorAll('.candidate').forEach(c => c.classList.remove('selected'));
+        this.classList.add('selected');
+        showToast('Route ' + this.querySelector('.candidate-rank').textContent.trim() + ' selected');
+      });
+    });
+
+    // ── Route copy ──
+    document.getElementById('routeBox')?.addEventListener('click', function() {
+      const text = this.textContent.replace('Click to copy', '').trim();
+      navigator.clipboard.writeText(text).then(() => showToast('Route string copied'));
+    });
+
+    // ── Temperature ──
+    const sr = document.querySelector('.slider-row input');
+    const sv = document.querySelector('.temp-val');
+    if (sr && sv) sr.addEventListener('input', () => { sv.textContent = sr.value; });
+
+    // ── Plan ──
+    document.getElementById('planBtn')?.addEventListener('click', () => {
+      const s = document.getElementById('status');
+      s.className = 'status-line progress';
+      s.innerHTML = '<div class="pulse"></div><span>Computing optimal routes…</span>';
+      ['parsedSection','candidatesSection','detailsSection'].forEach(id => document.getElementById(id).style.display = 'none');
+      document.getElementById('warnings').style.display = 'none';
+
+      setTimeout(() => {
+        s.className = 'status-line done';
+        s.innerHTML = '✓ 4 routes computed · Best match: 92%';
+        document.getElementById('parsedSection').style.display = '';
+        document.getElementById('candidatesSection').style.display = '';
+        document.getElementById('detailsSection').style.display = '';
+        document.getElementById('warnings').style.display = '';
+      }, 1400);
+    });
+
+    // ── Cmd+Enter ──
+    document.getElementById('routeInput')?.addEventListener('keydown', e => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') document.getElementById('planBtn').click();
+    });
+
+    // ── Nav scroll ──
+    function scrollToSection(id) {
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // ── Toast ──
+    function showToast(msg) {
+      const z = document.getElementById('toastZone');
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.textContent = msg;
+      z.appendChild(t);
+      setTimeout(() => t.remove(), 3000);
+    }
+  </script>
+
+</body>
+</html>

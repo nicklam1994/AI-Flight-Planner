@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Flight Planner — Redesign</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* ═══════════════════════════════════════════════
+       DESIGN SYSTEM: VERCEL-INSPIRED + AVIATION TOUCH
+       ═══════════════════════════════════════════════ */
+
+    :root {
+      /* Vercel Core */
+      --bg: #000000;
+      --bg-surface: #0a0a0a;
+      --bg-card: #111111;
+      --bg-elevated: #1a1a1a;
+      --bg-hover: #222222;
+      --text: #ededed;
+      --text-secondary: #888888;
+      --text-tertiary: #555555;
+      --border: #1f1f1f;
+      --border-hover: #333333;
+      
+      /* Accent — Aviation Blue */
+      --accent: #3b82f6;
+      --accent-subtle: rgba(59,130,246,0.1);
+      --accent-glow: rgba(59,130,246,0.3);
+      
+      /* Semantic */
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --info: #3b82f6;
+      
+      /* Radius */
+      --radius-sm: 6px;
+      --radius: 10px;
+      --radius-lg: 14px;
+      
+      /* Transitions */
+      --transition: 150ms cubic-bezier(0.16, 1, 0.3, 1);
+      
+      /* Typography */
+      --font-sans: 'Geist', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Consolas', monospace;
+    }
+
+    /* Reset */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    html {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    /* ═══════════════════════ HEADER ═══════════════════════ */
+
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 32px;
+      height: 60px;
+      background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-logo {
+      width: 28px;
+      height: 28px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: #000;
+    }
+
+    .header-title {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .header-title span {
+      color: var(--accent);
+    }
+
+    .header-badge {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      background: var(--bg-elevated);
+      padding: 2px 8px;
+      border-radius: 100px;
+      border: 1px solid var(--border);
+      margin-left: 8px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-select {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+    }
+
+    .header-select label {
+      color: var(--text-tertiary);
+      font-weight: 500;
+    }
+
+    .header-select select {
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 12px;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      outline: none;
+      font-weight: 500;
+    }
+
+    .header-select select option {
+      background: var(--bg-card);
+    }
+
+    .icon-btn {
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 15px;
+      transition: all var(--transition);
+    }
+
+    .icon-btn:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-hover);
+      color: var(--text);
+    }
+
+    /* ═══════════════════════ LAYOUT ═══════════════════════ */
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px 32px;
+      gap: 24px;
+    }
+
+    .layout-main {
+      min-width: 0;
+    }
+
+    .layout-sidebar {
+      position: sticky;
+      top: 84px;
+      align-self: start;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* ═══════════════════════ CARDS ═══════════════════════ */
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      transition: border-color var(--transition);
+    }
+
+    .card:hover {
+      border-color: var(--border-hover);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      letter-spacing: 0.01em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title .emoji {
+      font-size: 15px;
+    }
+
+    .card-body {
+      padding: 20px;
+    }
+
+    /* ═══════════════════════ INPUT AREA ═══════════════════════ */
+
+    .input-card .card-body {
+      padding: 0;
+    }
+
+    .route-textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 20px;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-size: 15px;
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      resize: vertical;
+      outline: none;
+    }
+
+    .route-textarea::placeholder {
+      color: var(--text-tertiary);
+    }
+
+    .input-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .input-hint {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    .input-hint kbd {
+      display: inline-block;
+      padding: 1px 5px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--text-secondary);
+    }
+
+    /* ═══════════════════════ BUTTONS ═══════════════════════ */
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      transition: all var(--transition);
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.97);
+    }
+
+    .btn-secondary {
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-hover);
+      color: var(--text);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-secondary);
+    }
+
+    .btn-ghost:hover {
+      background: var(--bg-elevated);
+      color: var(--text);
+    }
+
+    .btn-icon {
+      padding: 6px;
+      font-size: 16px;
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-lg {
+      padding: 10px 20px;
+      font-size: 14px;
+      border-radius: var(--radius);
+    }
+
+    /* ═══════════════════════ STATUS ═══════════════════════ */
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+
+    .status-bar.idle {
+      display: none;
+    }
+
+    .status-bar.loading {
+      background: var(--accent-subtle);
+      border: 1px solid rgba(59,130,246,0.2);
+      color: var(--accent);
+    }
+
+    .status-bar.success {
+      background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.2);
+      color: var(--success);
+    }
+
+    .status-bar.error {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.2);
+      color: var(--error);
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(59,130,246,0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ═══════════════════════ CANDIDATE CARDS ═══════════════════════ */
+
+    .candidate-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .candidate {
+      position: relative;
+      padding: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+
+    .candidate:hover {
+      border-color: var(--accent);
+      background: var(--accent-subtle);
+    }
+
+    .candidate.selected {
+      border-color: var(--accent);
+      background: var(--accent-subtle);
+    }
+
+    .candidate.best {
+      border-color: var(--warning);
+    }
+
+    .candidate.best::before {
+      content: 'BEST';
+      position: absolute;
+      top: -1px;
+      right: 16px;
+      font-size: 9px;
+      font-weight: 700;
+      color: #000;
+      background: var(--warning);
+      padding: 1px 8px;
+      border-radius: 0 0 6px 6px;
+      letter-spacing: 0.05em;
+    }
+
+    .candidate-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .candidate-rank {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      background: var(--bg-elevated);
+      padding: 1px 8px;
+      border-radius: 100px;
+    }
+
+    .candidate-score {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--success);
+    }
+
+    .candidate-route {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text);
+      line-height: 1.5;
+      word-break: break-all;
+      margin-bottom: 8px;
+      padding: 8px 10px;
+      background: var(--bg);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+
+    .candidate-meta {
+      display: flex;
+      gap: 16px;
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+
+    .candidate-meta span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* ═══════════════════════ PARSED INTENT ═══════════════════════ */
+
+    .intent-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .intent-item {
+      padding: 12px;
+      background: var(--bg);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+
+    .intent-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+
+    .intent-value {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    /* ═══════════════════════ AIRPORT INFO ═══════════════════════ */
+
+    .airport-pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .airport-card {
+      padding: 16px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+
+    .airport-card .airport-code {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    .airport-card .airport-name {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .airport-card .airport-dir {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-top: 8px;
+    }
+
+    .airport-dep .airport-code { color: var(--success); }
+    .airport-arr .airport-code { color: var(--accent); }
+
+    /* ═══════════════════════ ROUTE DETAIL ═══════════════════════ */
+
+    .route-string-box {
+      position: relative;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--accent);
+      background: var(--bg);
+      padding: 14px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      word-break: break-all;
+      cursor: pointer;
+      transition: all var(--transition);
+      line-height: 1.6;
+    }
+
+    .route-string-box:hover {
+      border-color: var(--accent);
+      background: var(--accent-subtle);
+    }
+
+    .route-string-box .copy-hint {
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      font-size: 9px;
+      color: var(--text-tertiary);
+      background: var(--bg-card);
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      opacity: 0;
+      transition: opacity var(--transition);
+    }
+
+    .route-string-box:hover .copy-hint {
+      opacity: 1;
+    }
+
+    .route-stats {
+      display: flex;
+      gap: 20px;
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    .route-stats .stat {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .route-stats .stat-value {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* ═══════════════════════ NAVIGATION TABLE ═══════════════════════ */
+
+    .nav-table-wrap {
+      overflow-x: auto;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+
+    table.nav-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    table.nav-table th {
+      background: var(--bg-elevated);
+      color: var(--text-tertiary);
+      font-weight: 600;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    table.nav-table td {
+      padding: 7px 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+
+    table.nav-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    table.nav-table tbody tr:hover td {
+      background: var(--bg-hover);
+    }
+
+    table.nav-table .waypoint {
+      color: var(--text);
+      font-weight: 500;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    /* ═══════════════════════ SIDEBAR WIDGETS ═══════════════════════ */
+
+    .sidebar-widget {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    .widget-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .settings-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .settings-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .settings-row label {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      font-weight: 500;
+    }
+
+    .settings-row input,
+    .settings-row select {
+      width: 100%;
+      padding: 7px 10px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: 12px;
+      font-family: var(--font-sans);
+      outline: none;
+      transition: border-color var(--transition);
+    }
+
+    .settings-row input:focus,
+    .settings-row select:focus {
+      border-color: var(--accent);
+    }
+
+    .settings-row select {
+      cursor: pointer;
+    }
+
+    .settings-row .input-with-btn {
+      display: flex;
+      gap: 4px;
+    }
+
+    .settings-row .input-with-btn input {
+      flex: 1;
+    }
+
+    .temp-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .temp-row input[type="range"] {
+      flex: 1;
+      height: 4px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: var(--border);
+      border-radius: 2px;
+      outline: none;
+      padding: 0;
+    }
+
+    .temp-row input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      border: 2px solid var(--bg-card);
+    }
+
+    .temp-row .temp-value {
+      font-size: 12px;
+      color: var(--text-secondary);
+      min-width: 28px;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .checkbox-row input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      accent-color: var(--accent);
+    }
+
+    .checkbox-row label {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .settings-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    /* ═══════════════════════ TOAST ═══════════════════════ */
+
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toast {
+      padding: 10px 16px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 13px;
+      color: var(--text);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      opacity: 0;
+      transform: translateY(8px);
+      animation: toastIn 0.2s forwards, toastOut 0.2s 2.5s forwards;
+    }
+
+    .toast.success { border-color: var(--success); }
+    .toast.error { border-color: var(--error); }
+
+    @keyframes toastIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes toastOut {
+      to { opacity: 0; transform: translateY(-8px); }
+    }
+
+    /* ═══════════════════════ RESPONSIVE ═══════════════════════ */
+
+    @media (max-width: 1024px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      .layout-sidebar {
+        position: static;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .layout { padding: 16px; }
+      .header { padding: 0 16px; }
+      .airport-pair { grid-template-columns: 1fr; }
+      .intent-grid { grid-template-columns: 1fr 1fr; }
+      .layout-sidebar { grid-template-columns: 1fr; }
+    }
+
+    /* ═══════════════════════ MISC ═══════════════════════ */
+
+    .separator {
+      height: 1px;
+      background: var(--border);
+      margin: 16px 0;
+    }
+
+    .segments-flow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      align-items: center;
+      font-size: 11px;
+    }
+
+    .segment-tag {
+      padding: 2px 8px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      font-size: 10px;
+    }
+
+    .segment-arrow {
+      color: var(--text-tertiary);
+      font-size: 10px;
+    }
+
+    .departure-highlight { color: var(--success); }
+    .arrival-highlight { color: var(--accent); }
+
+    /* Weather summary mini */
+    .weather-mini {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+    }
+
+    .weather-mini-item {
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+
+    .weather-mini-item strong {
+      color: var(--text-secondary);
+    }
+
+    .flight-rules-badge {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    .flight-rules-badge.vfr { background: var(--success); color: #000; }
+    .flight-rules-badge.ifr { background: var(--error); color: #fff; }
+    .flight-rules-badge.mvfr { background: var(--info); color: #fff; }
+
+    /* ── Collapsible ── */
+    .collapsible-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .collapsible-toggle:hover {
+      color: var(--accent);
+    }
+
+    .chevron {
+      transition: transform 0.2s;
+      font-size: 10px;
+    }
+
+    .chevron.open {
+      transform: rotate(90deg);
+    }
+
+    .collapsible-body {
+      padding-top: 12px;
+    }
+
+    .collapsible-body.hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════ HEADER ═══════════ -->
+  <header class="header">
+    <div class="header-brand">
+      <div class="header-logo">✈</div>
+      <div class="header-title"><span>AI</span> Flight Planner</div>
+      <span class="header-badge">v2.0</span>
+    </div>
+    <div class="header-actions">
+      <div class="header-select">
+        <label>AIRAC</label>
+        <select id="cycleSelect">
+          <option>2605</option>
+          <option>2604</option>
+          <option>2602</option>
+        </select>
+      </div>
+      <button class="icon-btn" title="Settings">⚙</button>
+    </div>
+  </header>
+
+  <!-- ═══════════ LAYOUT ═══════════ -->
+  <div class="layout">
+
+    <!-- ══════ MAIN ══════ -->
+    <div class="layout-main">
+
+      <!-- Status Bar -->
+      <div id="status" class="status-bar idle">
+        <div class="spinner"></div>
+        <span>Planning route…</span>
+      </div>
+
+      <!-- ── Input Card ── -->
+      <div class="card input-card" style="margin-bottom:16px">
+        <div class="card-header">
+          <div class="card-title"><span class="emoji">🗣</span> Route Request</div>
+        </div>
+        <div class="card-body">
+          <textarea class="route-textarea" id="routeInput" 
+            placeholder="Describe your flight...&#10;e.g., VHHH to RJTT, high altitude airways, avoid Taiwan airspace"></textarea>
+          <div class="input-actions">
+            <span class="input-hint"><kbd>⌘⏎</kbd> to plan</span>
+            <button class="btn btn-primary btn-lg" id="planBtn">✈ Plan Route</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Parsed Intent ── -->
+      <div id="parsedCard" class="card" style="margin-bottom:16px;display:none">
+        <div class="card-header">
+          <div class="card-title"><span class="emoji">📋</span> Parsed Intent</div>
+        </div>
+        <div class="card-body">
+          <div class="intent-grid" id="parsedContent">
+            <div class="intent-item">
+              <div class="intent-label">Departure</div>
+              <div class="intent-value">VHHH</div>
+            </div>
+            <div class="intent-item">
+              <div class="intent-label">Arrival</div>
+              <div class="intent-value">RJTT</div>
+            </div>
+            <div class="intent-item">
+              <div class="intent-label">Altitude</div>
+              <div class="intent-value">FL390</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Warning Area ── -->
+      <div id="warnings" style="display:none;margin-bottom:16px">
+        <div style="padding:10px 14px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:var(--radius);font-size:12px;color:var(--warning)">
+          ⚠ Taiwan airspace avoidance applied — routing via eastern B (#4)
+        </div>
+      </div>
+
+      <!-- ── Route Candidates ── -->
+      <div id="candidatesCard" class="card" style="margin-bottom:16px;display:none">
+        <div class="card-header">
+          <div class="card-title"><span class="emoji">🛫</span> Route Candidates</div>
+          <span style="font-size:11px;color:var(--text-tertiary)">4 found</span>
+        </div>
+        <div class="card-body">
+          <div class="candidate-list" id="candidatesContent">
+            
+            <!-- Candidate 1 (Best) -->
+            <div class="candidate best selected">
+              <div class="candidate-header">
+                <span class="candidate-rank">#1</span>
+                <span style="font-size:12px;font-weight:600">Via TAIWAN B EAST</span>
+                <span class="candidate-score">+92%</span>
+              </div>
+              <div class="candidate-route">VHHH SID TAI B EAST M750 MADOG Y42 KOSHI Y40 NGO Y139 UTIBO STAR RJTT</div>
+              <div class="candidate-meta">
+                <span>📏 1,876 NM</span>
+                <span>⏱ 4h 12m</span>
+                <span>🛩 FL390</span>
+                <span>⛽ 12,400 kg</span>
+              </div>
+            </div>
+
+            <!-- Candidate 2 -->
+            <div class="candidate">
+              <div class="candidate-header">
+                <span class="candidate-rank">#2</span>
+                <span style="font-size:12px;font-weight:600">Via P570</span>
+                <span class="candidate-score" style="color:var(--text-tertiary)">+78%</span>
+              </div>
+              <div class="candidate-route">VHHH SID TAI P570 ABVAR M750 MADOG Y42 KOSHI Y40 Y40 UTIBO STAR RJTT</div>
+              <div class="candidate-meta">
+                <span>📏 1,892 NM</span>
+                <span>⏱ 4h 18m</span>
+                <span>🛩 FL390</span>
+                <span>⛽ 12,800 kg</span>
+              </div>
+            </div>
+
+            <!-- Candidate 3 -->
+            <div class="candidate">
+              <div class="candidate-header">
+                <span class="candidate-rank">#3</span>
+                <span style="font-size:12px;font-weight:600">Via A1 (OCEANIC)</span>
+                <span class="candidate-score" style="color:var(--text-tertiary)">+65%</span>
+              </div>
+              <div class="candidate-route">VHHH SID OCEAN A1 KRIPO A1 MJC KOSHI Y40 UTIBO STAR RJTT</div>
+              <div class="candidate-meta">
+                <span>📏 1,920 NM</span>
+                <span>⏱ 4h 25m</span>
+                <span>🛩 FL350</span>
+                <span>⛽ 13,100 kg</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Route Detail Section ── -->
+      <div id="routeDetailSection" style="display:none">
+
+        <!-- Airport Pair -->
+        <div class="airport-pair" style="margin-bottom:16px">
+          <div class="airport-card airport-dep">
+            <div class="airport-code">VHHH</div>
+            <div class="airport-name">Hong Kong International</div>
+            <div class="airport-dir">Departure &middot; 07L/25R</div>
+          </div>
+          <div class="airport-card airport-arr">
+            <div class="airport-code">RJTT</div>
+            <div class="airport-name">Tokyo Haneda</div>
+            <div class="airport-dir">Arrival &middot; 16R/34L</div>
+          </div>
+        </div>
+
+        <!-- Route String -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header">
+            <div class="card-title"><span class="emoji">🗺</span> Route</div>
+            <button class="btn btn-ghost btn-icon" title="Copy">📋</button>
+          </div>
+          <div class="card-body">
+            <div class="route-string-box">
+              VHHH SID TAI B EAST M750 MADOG Y42 KOSHI Y40 NGO Y139 UTIBO STAR RJTT
+              <span class="copy-hint">Click to copy</span>
+            </div>
+            <div class="route-stats">
+              <div class="stat">Distance <span class="stat-value">1,876 NM</span></div>
+              <div class="stat">Est. Time <span class="stat-value">4h 12m</span></div>
+              <div class="stat">Fuel <span class="stat-value">12,400 kg</span></div>
+              <div class="stat">Altitude <span class="stat-value">FL390</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation Table -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header collapsible-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('hidden')">
+            <div class="card-title"><span class="emoji">🧭</span> Navigation Waypoints <span style="font-weight:400;font-size:11px;color:var(--text-tertiary)">(28)</span></div>
+            <span class="chevron">▶</span>
+          </div>
+          <div class="card-body collapsible-body">
+            <div class="nav-table-wrap">
+              <table class="nav-table">
+                <thead>
+                  <tr>
+                    <th>#</th><th>Waypoint</th><th>Type</th><th>Lat</th><th>Lon</th><th>Course</th><th>Dist (NM)</th><th>Altitude</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>1</td><td class="waypoint">VHHH</td><td>Airport</td><td>22°18' N</td><td>113°55' E</td><td>—</td><td>—</td><td>0 ft</td></tr>
+                  <tr><td>2</td><td class="waypoint">TAI</td><td>VOR</td><td>22°08' N</td><td>113°40' E</td><td>250°</td><td>18</td><td>3,000 ft</td></tr>
+                  <tr><td>3</td><td class="waypoint">B EAST</td><td>Waypoint</td><td>21°44' N</td><td>115°20' E</td><td>112°</td><td>102</td><td>FL180</td></tr>
+                  <tr><td>4</td><td class="waypoint">M750</td><td>Airway</td><td>—</td><td>—</td><td>058°</td><td>240</td><td>FL390</td></tr>
+                  <tr><td>5</td><td class="waypoint">MADOG</td><td>Waypoint</td><td>25°12' N</td><td>122°30' E</td><td>058°</td><td>240</td><td>FL390</td></tr>
+                  <tr><td>6</td><td class="waypoint">Y42</td><td>Airway</td><td>—</td><td>—</td><td>040°</td><td>168</td><td>FL390</td></tr>
+                  <tr><td>7</td><td class="waypoint">KOSHI</td><td>Waypoint</td><td>28°30' N</td><td>125°00' E</td><td>040°</td><td>168</td><td>FL390</td></tr>
+                  <tr><td>8</td><td class="waypoint">Y40</td><td>Airway</td><td>—</td><td>—</td><td>035°</td><td>195</td><td>FL390</td></tr>
+                  <tr><td>9</td><td class="waypoint">NGO</td><td>VOR</td><td>34°48' N</td><td>136°48' E</td><td>035°</td><td>195</td><td>FL390</td></tr>
+                  <tr><td>10</td><td class="waypoint">UTIBO</td><td>STAR</td><td>35°20' N</td><td>139°30' E</td><td>078°</td><td>110</td><td>FL160</td></tr>
+                  <tr><td>11</td><td class="waypoint">RJTT</td><td>Airport</td><td>35°33' N</td><td>139°47' E</td><td>078°</td><td>26</td><td>0 ft</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Weather Summary -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header collapsible-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('hidden')">
+            <div class="card-title"><span class="emoji">🌤</span> Weather</div>
+            <span class="chevron">▶</span>
+          </div>
+          <div class="card-body collapsible-body">
+            <div class="airport-pair">
+              <div>
+                <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--success)">VHHH — Departure</div>
+                <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px"><span class="flight-rules-badge vfr">VFR</span> Wind 230° 12kt · CAVOK · 30°C</div>
+                <div style="font-size:11px;color:var(--text-tertiary)">METAR: VHHH 100830Z 23012KT CAVOK 30/18 Q1016 NOSIG=</div>
+              </div>
+              <div>
+                <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--accent)">RJTT — Arrival</div>
+                <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px"><span class="flight-rules-badge ifr">IFR</span> Wind 160° 18kt · 8km · Light Rain · 22°C</div>
+                <div style="font-size:11px;color:var(--text-tertiary)">METAR: RJTT 100900Z 16018KT 8000 -RA FEW020 BKN040 22/18 Q1015 NOSIG=</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /routeDetailSection -->
+
+    </div><!-- /layout-main -->
+
+    <!-- ══════ SIDEBAR ══════ -->
+    <div class="layout-sidebar">
+
+      <!-- Settings Widget -->
+      <div class="sidebar-widget">
+        <div class="widget-title">⚙ Settings</div>
+        <div class="settings-group">
+          
+          <div class="settings-row">
+            <label>Language</label>
+            <select>
+              <option>English</option>
+              <option>简体中文</option>
+              <option>繁體中文</option>
+            </select>
+          </div>
+
+          <div class="settings-row">
+            <label>Timezone</label>
+            <select>
+              <option>UTC+8 (Asia/Hong_Kong)</option>
+              <option>UTC+9 (Asia/Tokyo)</option>
+              <option>UTC+0 (Europe/London)</option>
+            </select>
+          </div>
+
+          <div class="separator" style="margin:4px 0"></div>
+
+          <div class="settings-row">
+            <label>LLM Provider</label>
+            <select>
+              <option>Ollama</option>
+              <option>DeepSeek</option>
+              <option>OpenAI</option>
+              <option>Custom</option>
+            </select>
+          </div>
+
+          <div class="settings-row">
+            <label>Base URL</label>
+            <input type="text" value="http://localhost:11434/v1">
+          </div>
+
+          <div class="settings-row">
+            <label>Model</label>
+            <div class="input-with-btn">
+              <input type="text" value="gemma4:e4b">
+              <button class="btn btn-secondary btn-icon">🔄</button>
+            </div>
+          </div>
+
+          <div class="settings-row">
+            <label>Temperature</label>
+            <div class="temp-row">
+              <input type="range" min="0" max="1" step="0.05" value="0.3">
+              <span class="temp-value">0.3</span>
+            </div>
+          </div>
+
+          <div class="checkbox-row">
+            <input type="checkbox" id="evalToggle" checked>
+            <label for="evalToggle">Route Evaluator (AI) — better ranking</label>
+          </div>
+
+          <div class="settings-actions">
+            <button class="btn btn-secondary" style="flex:1">Test</button>
+            <button class="btn btn-primary" style="flex:1">Save</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Routes Widget -->
+      <div class="sidebar-widget">
+        <div class="widget-title">🕐 Recent</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer">
+            <div style="font-size:12px;font-weight:500;color:var(--text)">VHHH → RJTT</div>
+            <div style="font-size:10px;color:var(--text-tertiary);margin-top:2px">2h ago · 4 routes found</div>
+          </div>
+          <div style="padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer">
+            <div style="font-size:12px;font-weight:500;color:var(--text)">KLAX → KORD</div>
+            <div style="font-size:10px;color:var(--text-tertiary);margin-top:2px">Yesterday · 6 routes found</div>
+          </div>
+          <div style="padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer">
+            <div style="font-size:12px;font-weight:500;color:var(--text)">EGLL → EDDM</div>
+            <div style="font-size:10px;color:var(--text-tertiary);margin-top:2px">3d ago · Saved</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info Widget -->
+      <div class="sidebar-widget">
+        <div class="widget-title">ℹ About</div>
+        <div style="font-size:12px;color:var(--text-tertiary);line-height:1.6">
+          AI-powered flight route planning using natural language. Supports AIRAC 2605 with full airway/waypoint network.
+        </div>
+      </div>
+
+    </div><!-- /layout-sidebar -->
+
+  </div><!-- /layout -->
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    // ── Interactive Demo ──
+    
+    // Candidate selection
+    document.querySelectorAll('.candidate').forEach(el => {
+      el.addEventListener('click', () => {
+        document.querySelectorAll('.candidate').forEach(c => c.classList.remove('selected'));
+        el.classList.add('selected');
+        showToast('Route #' + el.querySelector('.candidate-rank').textContent.trim().replace('#','') + ' selected');
+      });
+    });
+
+    // Route string copy
+    document.querySelector('.route-string-box')?.addEventListener('click', function() {
+      const text = this.textContent.replace('Click to copy', '').trim();
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('✓ Route string copied');
+        this.style.borderColor = 'var(--success)';
+        setTimeout(() => this.style.borderColor = '', 1500);
+      });
+    });
+
+    // Temperature slider
+    const tempSlider = document.querySelector('input[type="range"]');
+    const tempDisplay = document.querySelector('.temp-value');
+    if (tempSlider && tempDisplay) {
+      tempSlider.addEventListener('input', () => {
+        tempDisplay.textContent = tempSlider.value;
+      });
+    }
+
+    // Plan route button
+    document.getElementById('planBtn')?.addEventListener('click', () => {
+      const status = document.getElementById('status');
+      status.className = 'status-bar loading';
+      status.style.display = 'flex';
+      
+      const cards = ['parsedCard', 'candidatesCard', 'routeDetailSection'];
+      
+      setTimeout(() => {
+        status.className = 'status-bar success';
+        status.innerHTML = '<span style="font-size:14px">✓</span> <span>4 routes found · Best match: 92%</span>';
+        
+        // Show all result cards
+        cards.forEach(id => document.getElementById(id).style.display = 'block');
+        document.getElementById('warnings').style.display = 'block';
+      }, 1800);
+    });
+
+    // Enter to plan
+    document.getElementById('routeInput')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+        document.getElementById('planBtn').click();
+      }
+    });
+
+    // Toast helper
+    function showToast(msg, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = msg;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    // Collapsible chevron rotation
+    document.querySelectorAll('.collapsible-toggle').forEach(el => {
+      el.addEventListener('click', function() {
+        this.querySelector('.chevron')?.classList.toggle('open');
+      });
+    });
+  </script>
+
+</body>
+</html>
